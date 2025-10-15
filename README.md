@@ -5,7 +5,7 @@ something our info or something
 ## Project Structure
 
 ```
-Hygin-App/
+Hygin/
 ├── src/                    # React source files
 ├── public/                 # Static assets
 ├── node_modules/           # Dependencies (not tracked in git)
@@ -26,8 +26,8 @@ Hygin-App/
 ### Clone the Repository
 
 ```bash
-git clone https://github.com/YourUsername/Hygin-App.git
-cd Hygin-App
+git clone https://github.com/jermochi/Hygin.git
+cd Hygin
 ```
 
 ### Install Dependencies
@@ -56,11 +56,6 @@ npm run build
 npm run preview
 ```
 
-## Team Members
-
-- Member 1
-- Member 2
-- Member 3
 
 ## Tech Stack
 
