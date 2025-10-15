@@ -1,16 +1,73 @@
-# React + Vite
+# Hygin App
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+something our info or something
 
-Currently, two official plugins are available:
+## Project Structure
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+```
+Hygin-App/
+├── src/                    # React source files
+├── public/                 # Static assets
+├── node_modules/           # Dependencies (not tracked in git)
+├── .gitignore             # Git ignore rules
+├── package.json           # Project dependencies and scripts
+├── vite.config.js         # Vite configuration
+├── index.html             # Entry HTML file
+└── README.md              # This file
+```
 
-## React Compiler
+## Local Setup
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+### Prerequisites
+- [Node.js](https://nodejs.org/) (v16 or higher)
+- [Git](https://git-scm.com/)
+- A code editor (VS Code recommended)
 
-## Expanding the ESLint configuration
+### Clone the Repository
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+```bash
+git clone https://github.com/YourUsername/Hygin-App.git
+cd Hygin-App
+```
+
+### Install Dependencies
+
+```bash
+npm install
+```
+
+### Run Development Server
+
+```bash
+npm run dev
+```
+
+The app will be available at `http://localhost:5173`
+
+### Build for Production
+
+```bash
+npm run build
+```
+
+### Preview Production Build
+
+```bash
+npm run preview
+```
+
+## Team Members
+
+- Member 1
+- Member 2
+- Member 3
+
+## Tech Stack
+
+- React - UI Library
+- Vite - Build Tool
+- [Add other technologies as you use them]
+
+---
+
+Made with ❤️ by nahuy n frenss
