@@ -39,32 +39,30 @@ body {
 }
 
 .left-section {
-  flex: 1;
-  max-width: 50%;
+  flex: 0 0 40%;
+  max-width: 40%;
 }
 
 .title {
-  font-size: 4rem;
+  margin-left: 50px;
+  font-size: 6rem;
   font-weight: bold;
   color: #8B0000;
-  margin-bottom: 1rem;
+  margin-bottom: 2rem;
 }
 
-.subtitle {
-  font-size: 1.5rem;
-  color: #DAA520;
-  margin-bottom: 1.5rem;
-}
 
 .description {
-  font-size: 1.1rem;
+  margin-left: 50px;
+  font-size: 1.4rem;
   line-height: 1.6;
   color: #333;
   text-align: justify;
 }
 
 .right-section {
-  flex: 1;
+  flex: 0 0 50%;
+  max-width: 50%;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -72,94 +70,61 @@ body {
 
 .model-container {
   position: relative;
-  width: 400px;
-  height: 500px;
-}
-
-.stick-figure {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 60px;
-  height: 120px;
-}
-
-.stick-figure .head {
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  background-color: #8B0000;
-  margin: 0 auto 5px;
-}
-
-.stick-figure .body {
-  width: 2px;
-  height: 40px;
-  background-color: #8B0000;
-  margin: 0 auto;
-}
-
-.stick-figure .left-arm,
-.stick-figure .right-arm {
-  width: 2px;
-  height: 25px;
-  background-color: #8B0000;
-  position: absolute;
-  top: 25px;
-}
-
-.stick-figure .left-arm {
-  left: -10px;
-  transform: rotate(-30deg);
-}
-
-.stick-figure .right-arm {
-  right: -10px;
-  transform: rotate(30deg);
-}
-
-.stick-figure .left-leg,
-.stick-figure .right-leg {
-  width: 2px;
-  height: 30px;
-  background-color: #8B0000;
-  position: absolute;
-  bottom: -30px;
-}
-
-.stick-figure .left-leg {
-  left: 5px;
-  transform: rotate(-15deg);
-}
-
-.stick-figure .right-leg {
-  right: 5px;
-  transform: rotate(15deg);
-}
-
-.thumbnails {
-  position: relative;
   width: 100%;
   height: 100%;
+  max-width: 600px;
+  max-height: 700px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.character-image {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  z-index: 1;
+}
+.thumbnails {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.thumbnails > * {
+  pointer-events: auto;
 }
 
 @media (max-width: 768px) {
   .main-content {
     flex-direction: column;
     text-align: center;
+    gap: 2rem;
   }
   
   .left-section {
+    flex: 1;
+    max-width: 100%;
+  }
+  
+  .right-section {
+    flex: 1;
     max-width: 100%;
   }
   
   .title {
-    font-size: 2.5rem;
+    font-size: 4rem;
+  }
+  
+  .description {
+    font-size: 1.2rem;
   }
   
   .model-container {
-    width: 300px;
-    height: 400px;
+    max-width: 400px;
+    max-height: 500px;
   }
 }

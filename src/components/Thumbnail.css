@@ -1,7 +1,7 @@
 .thumbnail {
   position: absolute;
-  width: 80px;
-  height: 80px;
+  width: 100px;
+  height: 100px;
   border-radius: 50%;
   background-color: #DAA520;
   border: 3px solid #8B0000;
@@ -11,6 +11,15 @@
   cursor: pointer;
   transition: all 0.3s ease;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  z-index: 10;
+}
+
+.thumbnail::after {
+  content: '';
+  position: absolute;
+  width: 0;
+  height: 0;
+  border-style: solid;
 }
 
 .thumbnail:hover {
@@ -20,41 +29,64 @@
 }
 
 .thumbnail-icon {
-  font-size: 2rem;
+  font-size: 2.5rem;
 }
 
-.thumbnail-top {
-  top: 20px;
+.thumbnail-hair {
+  top: -15%;
+  left: 25%;
+  transform: translateX(-50%)scale(1.5)rotate(-35deg);
+}
+
+
+.thumbnail-hair::after {
+  top: 100%;
   left: 50%;
   transform: translateX(-50%);
+  border-left: 12px solid transparent;
+  border-right: 12px solid transparent;
+  border-top: 18px solid #8B0000;
 }
 
-.thumbnail-right {
+.thumbnail-mouth {
+  top: 32%;
+  right: 15%;
+  transform: translateY(-50%) scale(1.5);
+}
+
+.thumbnail-mouth::after {
   top: 50%;
-  right: 20px;
+  left: -18px;
   transform: translateY(-50%);
+  border-top: 12px solid transparent;
+  border-bottom: 12px solid transparent;
+  border-right: 18px solid #8B0000;
 }
 
-.thumbnail-left {
+.thumbnail-hands {
+  top: 60%;
+  left: 5%;
+  transform: translateY(-50%)scale(1.5);
+}
+
+.thumbnail-hands::after {
   top: 50%;
-  left: 20px;
+  right: -18px;
   transform: translateY(-50%);
+  border-top: 12px solid transparent;
+  border-bottom: 12px solid transparent;
+  border-left: 18px solid #8B0000;
 }
 
-.thumbnail-top:hover,
-.thumbnail-right:hover,
-.thumbnail-left:hover {
-  transform: scale(1.1);
+
+.thumbnail-hair:hover {
+  transform: translateX(-50%) scale(1.8) rotate(-35deg);
 }
 
-.thumbnail-top:hover {
-  transform: translateX(-50%) scale(1.1);
+.thumbnail-mouth:hover {
+  transform: translateY(-50%) scale(1.8);
 }
 
-.thumbnail-right:hover {
-  transform: translateY(-50%) scale(1.1);
-}
-
-.thumbnail-left:hover {
-  transform: translateY(-50%) scale(1.1);
+.thumbnail-hands:hover {
+  transform: translateY(-50%) scale(1.8);
 }

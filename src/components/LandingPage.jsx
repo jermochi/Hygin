@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import Thumbnail from './Thumbnail'
+import characterImage from '../assets/character.png'
 import './LandingPage.css'
 
 const LandingPage = () => {
@@ -12,42 +13,34 @@ const LandingPage = () => {
       <main className="main-content">
         <div className="left-section">
           <h1 className="title">Hygin</h1>
-          <h2 className="subtitle">HYGIN desc</h2>
           <p className="description">
-            Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.
+            Hygin is an engaging, web-based gamification platform designed to teach essential hygiene practices to children in Grades 3-6. The game transforms daily routines into a fun, interactive experience by using game elements like points, levels, and challenges. Players learn about and are motivated to practice key hygiene habits, specifically handwashing, tooth brushing, and hair washing, with the goal of building lifelong healthy behaviors.
           </p>
         </div>
         
         <div className="right-section">
           <div className="model-container">
-            <div className="stick-figure">
-              <div className="head"></div>
-              <div className="body"></div>
-              <div className="left-arm"></div>
-              <div className="right-arm"></div>
-              <div className="left-leg"></div>
-              <div className="right-leg"></div>
-            </div>
+            <img src={characterImage} alt="Character" className="character-image" />
             
             <div className="thumbnails">
               <Link to="/hairwashing">
                 <Thumbnail 
                   type="hairwashing" 
-                  position="top"
+                  position="hair"
                   icon="🛁"
                 />
               </Link>
               <Link to="/toothbrushing">
                 <Thumbnail 
                   type="toothbrushing" 
-                  position="right"
+                  position="mouth"
                   icon="🦷"
                 />
               </Link>
               <Link to="/handwashing">
                 <Thumbnail 
                   type="handwashing" 
-                  position="left"
+                  position="hands"
                   icon="🧼"
                 />
               </Link>
