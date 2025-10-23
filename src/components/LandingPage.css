@@ -1,0 +1,165 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Arial', sans-serif;
+  background-color: #f5f5f5;
+}
+
+.app {
+  min-height: 100vh;
+}
+
+.landing-page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.header {
+  padding: 1rem 2rem;
+  background-color: #8B0000;
+  color: #DAA520;
+}
+
+.logo {
+  font-size: 1.2rem;
+  font-weight: bold;
+}
+
+.main-content {
+  flex: 1;
+  display: flex;
+  padding: 2rem;
+  gap: 3rem;
+  align-items: center;
+}
+
+.left-section {
+  flex: 1;
+  max-width: 50%;
+}
+
+.title {
+  font-size: 4rem;
+  font-weight: bold;
+  color: #8B0000;
+  margin-bottom: 1rem;
+}
+
+.subtitle {
+  font-size: 1.5rem;
+  color: #DAA520;
+  margin-bottom: 1.5rem;
+}
+
+.description {
+  font-size: 1.1rem;
+  line-height: 1.6;
+  color: #333;
+  text-align: justify;
+}
+
+.right-section {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.model-container {
+  position: relative;
+  width: 400px;
+  height: 500px;
+}
+
+.stick-figure {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 60px;
+  height: 120px;
+}
+
+.stick-figure .head {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background-color: #8B0000;
+  margin: 0 auto 5px;
+}
+
+.stick-figure .body {
+  width: 2px;
+  height: 40px;
+  background-color: #8B0000;
+  margin: 0 auto;
+}
+
+.stick-figure .left-arm,
+.stick-figure .right-arm {
+  width: 2px;
+  height: 25px;
+  background-color: #8B0000;
+  position: absolute;
+  top: 25px;
+}
+
+.stick-figure .left-arm {
+  left: -10px;
+  transform: rotate(-30deg);
+}
+
+.stick-figure .right-arm {
+  right: -10px;
+  transform: rotate(30deg);
+}
+
+.stick-figure .left-leg,
+.stick-figure .right-leg {
+  width: 2px;
+  height: 30px;
+  background-color: #8B0000;
+  position: absolute;
+  bottom: -30px;
+}
+
+.stick-figure .left-leg {
+  left: 5px;
+  transform: rotate(-15deg);
+}
+
+.stick-figure .right-leg {
+  right: 5px;
+  transform: rotate(15deg);
+}
+
+.thumbnails {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+@media (max-width: 768px) {
+  .main-content {
+    flex-direction: column;
+    text-align: center;
+  }
+  
+  .left-section {
+    max-width: 100%;
+  }
+  
+  .title {
+    font-size: 2.5rem;
+  }
+  
+  .model-container {
+    width: 300px;
+    height: 400px;
+  }
+}

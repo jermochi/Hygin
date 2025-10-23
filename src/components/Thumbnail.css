@@ -1,0 +1,60 @@
+.thumbnail {
+  position: absolute;
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background-color: #DAA520;
+  border: 3px solid #8B0000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.thumbnail:hover {
+  transform: scale(1.1);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+  background-color: #B8860B;
+}
+
+.thumbnail-icon {
+  font-size: 2rem;
+}
+
+.thumbnail-top {
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.thumbnail-right {
+  top: 50%;
+  right: 20px;
+  transform: translateY(-50%);
+}
+
+.thumbnail-left {
+  top: 50%;
+  left: 20px;
+  transform: translateY(-50%);
+}
+
+.thumbnail-top:hover,
+.thumbnail-right:hover,
+.thumbnail-left:hover {
+  transform: scale(1.1);
+}
+
+.thumbnail-top:hover {
+  transform: translateX(-50%) scale(1.1);
+}
+
+.thumbnail-right:hover {
+  transform: translateY(-50%) scale(1.1);
+}
+
+.thumbnail-left:hover {
+  transform: translateY(-50%) scale(1.1);
+}
