@@ -1,31 +1,34 @@
 .game-page {
   min-height: 100vh;
+  height: 100%;
   display: flex;
   flex-direction: column;
+  background: radial-gradient(circle at bottom, #e1eedb 0%, #ffffff 100%);
 }
 
 .game-header {
   padding: 1rem 2rem;
-  background-color: #8B0000;
-  color: #DAA520;
+  background-color: #93BFC7;
+  color: #ffffff;
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  z-index: 2;
 }
 
-.back-button {
-  color: #DAA520;
+.logo-link {
   text-decoration: none;
-  font-size: 1.1rem;
-  padding: 0.5rem 1rem;
-  border: 2px solid #DAA520;
-  border-radius: 5px;
+  display: flex;
+  align-items: center;
   transition: all 0.3s ease;
 }
 
-.back-button:hover {
-  background-color: #DAA520;
-  color: #8B0000;
+.logo-link:hover {
+  transform: scale(1.05);
+}
+
+.logo-image {
+  height: 100px;
+  width: auto;
 }
 
 .game-content {
@@ -40,15 +43,18 @@
   text-align: center;
   max-width: 600px;
   padding: 2rem;
-  background-color: white;
-  border-radius: 10px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  background-color: rgba(255, 255, 255, 0.9);
+  border-radius: 15px;
+  box-shadow: 0 8px 24px rgba(147, 191, 199, 0.2);
+  border: 2px solid rgba(147, 191, 199, 0.3);
 }
 
 .game-title {
   font-size: 3rem;
-  color: #8B0000;
+  color: #93BFC7;
   margin-bottom: 2rem;
+  font-family: 'Inter', 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+  font-weight: bold;
 }
 
 .game-placeholder {
@@ -59,4 +65,24 @@
 
 .game-placeholder p {
   margin-bottom: 1rem;
+}
+
+/* Responsive adjustments */
+@media (max-width: 600px) {
+  .game-header {
+    padding: 1rem;
+  }
+  
+  .logo-image {
+    height: 80px;
+  }
+  
+  .game-container {
+    margin: 1rem;
+    padding: 1.5rem;
+  }
+  
+  .game-title {
+    font-size: 2.5rem;
+  }
 }

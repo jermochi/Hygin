@@ -1,12 +1,14 @@
 import { Link } from 'react-router-dom'
 import './GamePage.css'
+import logo from '../assets/logo.png'
 
 const GamePage = ({ gameType }) => {
   return (
     <div className="game-page">
       <header className="game-header">
-        <Link to="/" className="back-button">← Back to Home</Link>
-        <div className="logo">logo</div>
+        <Link to="/" className="logo-link">
+          <img src={logo} alt="Hygin Logo" className="logo-image" />
+        </Link>
       </header>
       
       <main className="game-content">
