@@ -23,14 +23,31 @@ body {
 
 .header {
   padding: 1rem 2rem;
-  background-color: #CBF3BB;
+  background-color: #93BFC7;
   color: #ffffff;
   z-index: 2;
 }
 
 .logo {
-  font-size: 1.2rem;
+  font-size: 1.5rem;
   font-weight: bold;
+  color: #333;
+  display: flex;
+  align-items: center;
+}
+
+.logo-image {
+  height: 100px;
+  width: auto;
+}
+
+.title-logo {
+  width: clamp(160px, 22vw, 420px);
+  height: auto;
+  display: block;
+  fill: #93BFC7; /* direct fill works when SVG is a ReactComponent */
+  margin-left: 50px;
+  margin-bottom: 1.5rem;
 }
 
 .main-content {
