@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import './GamePage.css'
 import logo from '../assets/logo.png'
+import HandwashingGame from './HandwashingGame'
 
 const GamePage = ({ gameType }) => {
   return (
@@ -12,13 +13,17 @@ const GamePage = ({ gameType }) => {
       </header>
       
       <main className="game-content">
-        <div className="game-container">
-          <h1 className="game-title">{gameType} Game</h1>
-          <div className="game-placeholder">
-            <p>This is the {gameType.toLowerCase()} game screen.</p>
-            <p>Game content will be implemented here.</p>
+        {gameType === "Hand Washing" ? (
+          <HandwashingGame />
+        ) : (
+          <div className="game-container">
+            <h1 className="game-title">{gameType} Game</h1>
+            <div className="game-placeholder">
+              <p>This is the {gameType.toLowerCase()} game screen.</p>
+              <p>Game content will be implemented here.</p>
+            </div>
           </div>
-        </div>
+        )}
       </main>
     </div>
   )
