@@ -29,13 +29,12 @@ body {
   min-width: 320px;
   min-height: 100vh;
   /* Page background image (uses Vite dev server static path) */
-  background-image: url('/src/assets/background.jpg');
+  /* background-image: url('/src/assets/background.jpg');
   background-size: cover;
   background-position: center center;
   background-repeat: no-repeat;
   background-attachment: fixed;
-  /* Provide a fallback color while image loads */
-  background-color: #242424;
+  background-color: #242424; */
 }
 
 h1 {

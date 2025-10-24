@@ -3,8 +3,8 @@
   width: 100px;
   height: 100px;
   border-radius: 50%;
-  background-color: #DAA520;
-  border: 3px solid #8B0000;
+  background-color: #ABE7B2;
+  border: 3px solid #ECF4E8;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -25,7 +25,7 @@
 .thumbnail:hover {
   transform: scale(1.1);
   box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
-  background-color: #B8860B;
+  background-color: #93BFC7;
 }
 
 .thumbnail-icon {
@@ -45,7 +45,7 @@
   transform: translateX(-50%);
   border-left: 12px solid transparent;
   border-right: 12px solid transparent;
-  border-top: 18px solid #8B0000;
+  border-top: 18px solid #ECF4E8;
 }
 
 .thumbnail-mouth {
@@ -60,7 +60,7 @@
   transform: translateY(-50%);
   border-top: 12px solid transparent;
   border-bottom: 12px solid transparent;
-  border-right: 18px solid #8B0000;
+  border-right: 18px solid #ECF4E8;
 }
 
 .thumbnail-hands {
@@ -75,7 +75,7 @@
   transform: translateY(-50%);
   border-top: 12px solid transparent;
   border-bottom: 12px solid transparent;
-  border-left: 18px solid #8B0000;
+  border-left: 18px solid #ECF4E8;
 }
 
 

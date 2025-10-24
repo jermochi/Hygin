@@ -7,6 +7,8 @@
 body {
   font-family: 'Arial', sans-serif;
   background-color: #f5f5f5;
+  /*background: linear-gradient(to top, #CBF3BB 0%, #ffffff 100%);*/
+  background: radial-gradient(circle at bottom, #e1eedb 0%, #ffffff 100%);
 }
 
 .app {
@@ -21,8 +23,9 @@ body {
 
 .header {
   padding: 1rem 2rem;
-  background-color: #8B0000;
-  color: #DAA520;
+  background-color: #CBF3BB;
+  color: #ffffff;
+  z-index: 2;
 }
 
 .logo {
@@ -41,14 +44,17 @@ body {
 .left-section {
   flex: 0 0 40%;
   max-width: 40%;
+  padding-left: 2rem;
 }
 
 .title {
   margin-left: 50px;
   font-size: 6rem;
   font-weight: bold;
-  color: #8B0000;
+  color: #ABE7B2;
   margin-bottom: 2rem;
+  font-family: 'Inter', 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+  z-index: 3;
 }
 
 
@@ -58,25 +64,28 @@ body {
   line-height: 1.6;
   color: #333;
   text-align: justify;
+  z-index: 2;
 }
 
 .right-section {
   flex: 0 0 50%;
   max-width: 50%;
   display: flex;
-  justify-content: center;
+  justify-content: flex-end; /* align to the right edge */
   align-items: center;
+  padding-right: 3rem;
 }
 
 .model-container {
   position: relative;
   width: 100%;
   height: 100%;
-  max-width: 600px;
-  max-height: 700px;
+  max-width: clamp(320px, 45vw, 600px); /* scales between 320px and 600px based on viewport */
+  max-height: clamp(300px, 70vh, 700px);
   display: flex;
   justify-content: center;
   align-items: center;
+  margin-left: 0; /* removed fixed offset so layout is responsive */
 }
 
 .character-image {
@@ -98,33 +107,61 @@ body {
   pointer-events: auto;
 }
 
-@media (max-width: 768px) {
+
+/* Responsive layout adjustments for narrow screens */
+@media (max-width: 880px) {
+  .main-content {
+    gap: 1.5rem;
+    padding: 1.5rem;
+  }
+
+  .left-section {
+    flex: 1 1 50%;
+    max-width: 50%;
+    padding-left: 1rem;
+  }
+
+  .right-section {
+    flex: 1 1 50%;
+    max-width: 50%;
+    padding-right: 1.5rem;
+  }
+
+  .title {
+    margin-left: 24px;
+    font-size: clamp(3rem, 8vw, 5rem);
+  }
+
+  .description {
+    margin-left: 24px;
+    font-size: clamp(1rem, 2.2vw, 1.4rem);
+  }
+
+  /* keep thumbnails smaller on small screens */
+  .thumbnails {
+    --thumb-size: clamp(36px, 9vw, 64px);
+  }
+}
+
+@media (max-width: 600px) {
   .main-content {
     flex-direction: column;
     text-align: center;
-    gap: 2rem;
   }
-  
-  .left-section {
-    flex: 1;
-    max-width: 100%;
-  }
-  
+
+  .left-section,
   .right-section {
-    flex: 1;
     max-width: 100%;
+    flex: 1 1 100%;
+    padding: 0 1rem;
   }
-  
-  .title {
-    font-size: 4rem;
-  }
-  
-  .description {
-    font-size: 1.2rem;
-  }
-  
+
   .model-container {
-    max-width: 400px;
-    max-height: 500px;
+    max-width: clamp(240px, 70vw, 420px);
+    margin: 0 auto;
+  }
+
+  .thumbnails {
+    --thumb-size: clamp(32px, 12vw, 56px);
   }
 }
