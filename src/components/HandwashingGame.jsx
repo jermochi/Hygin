@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import './HandwashingGame.css'
+import videoSrc from '../assets/handwashing.mp4'
 
 const HandwashingGame = () => {
   const steps = [
@@ -12,6 +13,7 @@ const HandwashingGame = () => {
     "Rotational rubbing of left thumb clasped in right palm and vice versa",
     "Rotational rubbing, backwards and forwards with clasped fingers of right hand in left palm and vice versa",
     "Rinse hands with water",
+    "Dry hands thoroughly with a single use towel",
     "Use towel to turn off faucet"
   ]
 
@@ -22,6 +24,24 @@ const HandwashingGame = () => {
   const [wrongCount, setWrongCount] = useState(0)
   const [gameOver, setGameOver] = useState(false)
   const [stepResolved, setStepResolved] = useState(false)
+  const videoRef = useRef(null)
+  const [segmentEnd, setSegmentEnd] = useState(null)
+  const segmentCompleteCallbackRef = useRef(null)
+
+  // Video segments in seconds for each step index (0..10)
+  const segments = [
+    [0, 5],    // step 0
+    [5, 10],   // step 1
+    [11, 15],  // step 2
+    [15, 20],  // step 3
+    [21, 24],  // step 4
+    [27, 33],  // step 5
+    [34, 40],  // step 6
+    [41, 49],  // step 7
+    [50, 53],  // step 8
+    [56, 60],  // step 9
+    [62, 64]   // step 10
+  ]
 
   const generateChoices = (stepIndex) => {
     const correctAnswer = steps[stepIndex]
@@ -51,6 +71,36 @@ const HandwashingGame = () => {
     setStepResolved(false)
   }, [currentStep])
 
+  // Pause video automatically at the end of the current segment
+  useEffect(() => {
+    const video = videoRef.current
+    if (!video) return
+    const onTimeUpdate = () => {
+      if (segmentEnd != null && video.currentTime >= segmentEnd - 0.05) {
+        video.pause()
+        setSegmentEnd(null)
+        const cb = segmentCompleteCallbackRef.current
+        segmentCompleteCallbackRef.current = null
+        if (cb) cb()
+      }
+    }
+    video.addEventListener('timeupdate', onTimeUpdate)
+    return () => video.removeEventListener('timeupdate', onTimeUpdate)
+  }, [segmentEnd])
+
+  const playSegmentForIndex = (index, onComplete) => {
+    const video = videoRef.current
+    if (!video) return
+    const [start, end] = segments[index] || []
+    if (start == null || end == null) return
+    try {
+      video.currentTime = start
+      setSegmentEnd(end)
+      segmentCompleteCallbackRef.current = onComplete || null
+      video.play().catch(() => {})
+    } catch {}
+  }
+
   const handleBoxClick = (boxIndex, isCorrect) => {
     if (gameOver || stepResolved) return
     // Don't allow clicking the same box twice
@@ -62,13 +112,17 @@ const HandwashingGame = () => {
     if (isCorrect) {
       // Lock further input for this step immediately
       setStepResolved(true)
-      setTimeout(() => {
-        if (currentStep < steps.length - 1) {
-          setCurrentStep(currentStep + 1)
-        } else {
+      // Play the segment corresponding to the step just answered
+      const isLast = currentStep === steps.length - 1
+      playSegmentForIndex(currentStep, () => {
+        if (isLast) {
           setGameComplete(true)
         }
-      }, 1000)
+      })
+      // Immediately advance to next step (or stay if last, overlay will show on complete)
+      if (!isLast) {
+        setCurrentStep(currentStep + 1)
+      }
     } else {
       // Wrong answer: increment germ count and check for game over
       setWrongCount(prev => {
@@ -98,46 +152,41 @@ const HandwashingGame = () => {
 
   return (
     <div className="handwashing-game">
-      <div className={`game-header ${(gameOver || gameComplete) ? 'blurred' : ''}`}>
-        <h2>Step {currentStep + 1} of {steps.length}</h2>
-        <div className="progress-bar">
-          <div 
-            className="progress-fill" 
-            style={{ width: `${((currentStep + 1) / steps.length) * 100}%` }}
-          ></div>
-        </div>
-        <div className="germs">
+      <div className="status-row">
+        <div className="status-banner">Step {currentStep} of {steps.length - 1}</div>
+        <div className="germs inline">
           {[0,1,2].map((i) => (
             <span key={i} className={`germ ${i < wrongCount ? 'active' : ''}`} aria-label="germ" role="img">🦠</span>
           ))}
         </div>
       </div>
-
-      <div className={`game-layout ${(gameOver || gameComplete) ? 'blurred' : ''}`}>
-        <div className="choice-boxes">
+      <div className={`stage-row ${(gameOver || gameComplete) ? 'blurred' : ''}`}>
+        <div className={`game-header ${(gameOver || gameComplete) ? 'blurred' : ''}`}>
+          <div className="video-stage">
+            <video ref={videoRef} className="bg-video" src={videoSrc} muted playsInline preload="metadata" />
+          </div>
+        </div>
+        <div className="choices-panel">
           <div 
-            className={`choice-box ${selectedBoxes.includes(0) ? (choices[0]?.isCorrect ? 'correct' : 'incorrect') : ''}`}
+            className={`choice-box square ${selectedBoxes.includes(0) ? (choices[0]?.isCorrect ? 'correct' : 'incorrect') : ''}`}
             onClick={() => handleBoxClick(0, choices[0]?.isCorrect)}
           >
             {choices[0]?.text}
           </div>
-          
           <div 
-            className={`choice-box ${selectedBoxes.includes(1) ? (choices[1]?.isCorrect ? 'correct' : 'incorrect') : ''}`}
+            className={`choice-box square ${selectedBoxes.includes(1) ? (choices[1]?.isCorrect ? 'correct' : 'incorrect') : ''}`}
             onClick={() => handleBoxClick(1, choices[1]?.isCorrect)}
           >
             {choices[1]?.text}
           </div>
-          
           <div 
-            className={`choice-box ${selectedBoxes.includes(2) ? (choices[2]?.isCorrect ? 'correct' : 'incorrect') : ''}`}
+            className={`choice-box square ${selectedBoxes.includes(2) ? (choices[2]?.isCorrect ? 'correct' : 'incorrect') : ''}`}
             onClick={() => handleBoxClick(2, choices[2]?.isCorrect)}
           >
             {choices[2]?.text}
           </div>
-          
           <div 
-            className={`choice-box ${selectedBoxes.includes(3) ? (choices[3]?.isCorrect ? 'correct' : 'incorrect') : ''}`}
+            className={`choice-box square ${selectedBoxes.includes(3) ? (choices[3]?.isCorrect ? 'correct' : 'incorrect') : ''}`}
             onClick={() => handleBoxClick(3, choices[3]?.isCorrect)}
           >
             {choices[3]?.text}
