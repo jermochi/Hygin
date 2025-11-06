@@ -22,6 +22,7 @@
 	align-items: center;
 	justify-content: flex-start;
 	overflow: hidden;
+	margin-top: 72px;
 }
 
 .brush-dropzone {
@@ -95,6 +96,7 @@
 	top: -32px;
 	left: 24px;
 	color: #93BFC7; /* match navbar background color */
+	z-index: 5;
 }
 .step-title {
 	font-size: 3.5rem;
@@ -170,6 +172,55 @@
 	justify-content: center;
 	position: relative;
 }
+.germs.hud {
+	position: absolute;
+	top: 0;
+	left: calc(24px + 220px);
+	display: inline-flex;
+	gap: 8px;
+}
+.germs.hud .germ { opacity: 0.25; font-size: 1.8rem; transition: opacity 150ms ease, transform 150ms ease, filter 150ms ease, text-shadow 150ms ease; }
+.germs.hud .germ.active { 
+	opacity: 1; 
+	transform: scale(1.1);
+	/* bright teal glow to clearly "light up" */
+	text-shadow: 0 0 0 #ABE7B2, 0 0 8px #93BFC7, 0 0 14px #93BFC7; 
+}
+
+/* Intro overlay */
+.intro-overlay {
+	position: fixed;
+	inset: 0;
+	display: grid;
+	place-items: center;
+	z-index: 1100;
+}
+.intro-overlay .backdrop { position: absolute; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(6px); }
+.intro-card {
+	position: relative;
+	background: transparent;
+	color: #ffffff;
+	padding: 0;
+	text-align: center;
+}
+.intro-title { font-weight: 900; font-size: 2rem; margin-bottom: 12px; color: #ffffff; }
+.intro-list { margin: 0 0 16px 0; list-style: none; padding: 0; }
+.intro-list li { margin: 8px 0; font-weight: 800; color: #ffffff; }
+.continue-btn { background: rgba(255,255,255,0.1); color: #ffffff; border: 2px solid #ffffff; border-radius: 12px; padding: 10px 18px; font-weight: 900; cursor: pointer; }
+.continue-btn:hover { background: rgba(255,255,255,0.2); }
+
+/* Germ/shine sprites anchored around teeth area */
+.germ-sprite, .shine-sprite {
+	position: absolute;
+	transform: translate(-50%, -50%);
+	width: 260px;
+	height: auto;
+	user-select: none;
+	pointer-events: none;
+    z-index: 3;
+}
+.shine-sprite { animation: fadePop 2s ease-out forwards; }
+@keyframes fadePop { 0%{ opacity: 0; transform: translate(-50%,-50%) scale(0.9);} 20%{opacity:1; transform: translate(-50%,-50%) scale(1.05);} 100%{ opacity:0; transform: translate(-50%,-50%) scale(1);} }
 
 .head-container {
 	position: relative;
@@ -177,7 +228,7 @@
 }
 
 .head-img {
-	width: clamp(300px, 35vw, 500px);
+	width: clamp(420px, 45vw, 720px);
 	height: auto;
 	user-select: none;
 	pointer-events: none;
@@ -187,14 +238,18 @@
 
 .head-img.dirty-mouth {
 	position: relative;
+	z-index: 2;
 }
 
 .head-img.clean-mouth {
-	position: absolute;
-	top: 0;
-	left: 0;
-	width: 100%;
-	height: 100%;
+	position: relative; /* ensure container takes the image's size */
+	top: auto;
+	left: auto;
+	width: auto; /* use base .head-img sizing */
+	height: auto;
+	z-index: 1;
+	transform: scale(2); /* enlarge without affecting layout size */
+	transform-origin: center center;
 }
 
 /* Debug overlay to visualize teeth detection area */
