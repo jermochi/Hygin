@@ -1,0 +1,93 @@
+/* Layout */
+.toothbrush-game {
+	position: relative;
+	width: 100%;
+	height: calc(100vh - 80px);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 4rem;
+}
+
+.brush-dropzone {
+	position: relative;
+	width: clamp(240px, 30vw, 520px);
+	aspect-ratio: 3 / 1;
+	display: grid;
+	place-items: center;
+}
+
+.brush-dropzone.dragging::after {
+	content: '';
+	position: absolute;
+	inset: 0;
+	border: 2px dashed #7aa2ff;
+	border-radius: 12px;
+	pointer-events: none;
+}
+
+.toothbrush-img {
+	width: 100%;
+	height: auto;
+	user-select: none;
+	pointer-events: none; /* prevent image from grabbing drag events */
+}
+
+.hint {
+	position: absolute;
+	bottom: -1.75rem;
+	left: 50%;
+	transform: translateX(-50%);
+	font-size: 0.9rem;
+	color: #667085;
+}
+
+.toothpaste-img {
+	width: clamp(180px, 18vw, 300px); /* enlarged */
+	height: auto;
+	cursor: grab;
+	user-select: none;
+	position: relative;
+	z-index: 20;
+}
+.toothpaste-img:active {
+	cursor: grabbing;
+}
+
+/* Floating follows pointer */
+.toothpaste-img.floating {
+	position: fixed;
+	transform: translate(-50%, -50%) scale(1.05);
+	pointer-events: none;
+}
+
+.dragging-active {
+	cursor: none; /* hide native cursor while dragging */
+}
+
+/* Bristles region overlay (debug) */
+.bristles-region {
+	position: absolute;
+	top: 0;
+	right: 0; /* rightmost portion now */
+	width: 30%;
+	height: 100%;
+	pointer-events: none;
+	background: linear-gradient(270deg, rgba(255,255,255,0.35), rgba(255,255,255,0));
+	mix-blend-mode: overlay;
+	opacity: .0; /* hide by default */
+}
+
+.brush-dropzone.bristles-hot .bristles-region {
+	opacity: .5;
+}
+
+.brush-dropzone.bristles-hot::after {
+	content: '';
+	position: absolute;
+	inset: 0;
+	border: 2px solid #4caf50;
+	border-radius: 12px;
+	pointer-events: none;
+	box-shadow: 0 0 12px rgba(76,175,80,0.5);
+}
