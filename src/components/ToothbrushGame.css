@@ -104,6 +104,7 @@
 	font-size: 1.5rem;
 	font-weight: 600;
 }
+/* brush progress UI removed - counter handled internally */
 
 /* Bristles region overlay (debug) */
 .bristles-region {
@@ -162,4 +163,80 @@
 /* Cleared state placeholder */
 .toothbrush-game.cleared {
 	background: transparent;
+}
+
+/* Step 1: Brushing teeth styles */
+.play-container.step-1 {
+	justify-content: center;
+	position: relative;
+}
+
+.head-container {
+	position: relative;
+	display: inline-block;
+}
+
+.head-img {
+	width: clamp(300px, 35vw, 500px);
+	height: auto;
+	user-select: none;
+	pointer-events: none;
+	display: block;
+	transition: opacity 0.3s ease;
+}
+
+.head-img.dirty-mouth {
+	position: relative;
+}
+
+.head-img.clean-mouth {
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+}
+
+/* Debug overlay to visualize teeth detection area */
+.teeth-detection-area {
+	position: absolute;
+	left: 25%;
+	right: 25%;
+	top: 38%;
+	bottom: 32%;
+	pointer-events: none;
+	border: 2px dashed rgba(76, 175, 80, 0.6);
+	background: rgba(76, 175, 80, 0.1);
+	opacity: 0; /* Hidden - set to 0.5 to debug */
+	z-index: 10;
+}
+
+.toothbrush-draggable {
+	position: absolute;
+	bottom: 32px;
+	right: 48px;
+	width: clamp(200px, 20vw, 280px);
+	height: auto;
+	cursor: grab;
+	user-select: none;
+	transition: transform 0.2s ease;
+}
+
+.toothbrush-draggable:hover {
+	transform: scale(1.05);
+}
+
+.toothbrush-draggable:active {
+	cursor: grabbing;
+}
+
+.toothbrush-floating {
+	position: fixed;
+	width: clamp(200px, 20vw, 280px);
+	height: auto;
+	/* Keep the toothbrush horizontal while dragging (no rotation) */
+	transform: translate(-50%, -50%) rotate(0deg);
+	pointer-events: none;
+	user-select: none;
+	z-index: 1000;
 }
