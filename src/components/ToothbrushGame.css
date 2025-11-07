@@ -213,12 +213,31 @@
 	color: #ffffff;
 	padding: 0;
 	text-align: center;
+	transform: scale(1.5);
+	transform-origin: center center;
 }
-.intro-title { font-weight: 900; font-size: 2rem; margin-bottom: 12px; color: #ffffff; }
+.intro-title { font-weight: 900; font-size: 4rem; margin-bottom: 12px; color: #ffffff; }
 .intro-list { margin: 0 0 16px 0; list-style: none; padding: 0; }
-.intro-list li { margin: 8px 0; font-weight: 800; color: #ffffff; }
-.continue-btn { background: rgba(255,255,255,0.1); color: #ffffff; border: 2px solid #ffffff; border-radius: 12px; padding: 10px 18px; font-weight: 900; cursor: pointer; }
+.intro-list li { margin: 8px 0; font-weight: 800; color: #ffffff; font-size: 2rem; }
+.continue-btn { background: rgba(255,255,255,0.1); color: #ffffff; border: 2px solid #ffffff; border-radius: 18px; padding: 20px 32px; font-weight: 900; cursor: pointer; font-size: 1.8rem; }
 .continue-btn:hover { background: rgba(255,255,255,0.2); }
+
+@media (max-width: 768px) {
+	.intro-card {
+		transform: scale(1.2);
+	}
+	.intro-title {
+		font-size: 2.4rem;
+	}
+	.intro-list li {
+		font-size: 1.4rem;
+	}
+	.continue-btn {
+		font-size: 1.2rem;
+		padding: 12px 20px;
+		border-radius: 14px;
+	}
+}
 
 /* Germ/shine sprites anchored around teeth area */
 .germ-sprite, .shine-sprite {
@@ -230,7 +249,7 @@
 	pointer-events: none;
     z-index: 3;
 }
-.shine-sprite { animation: fadePop 2s ease-out forwards; }
+.shine-sprite { animation: fadePop 1s ease-out forwards; }
 @keyframes fadePop { 0%{ opacity: 0; transform: translate(-50%,-50%) scale(0.9);} 20%{opacity:1; transform: translate(-50%,-50%) scale(1.05);} 100%{ opacity:0; transform: translate(-50%,-50%) scale(1);} }
 
 .head-container {
