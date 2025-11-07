@@ -71,6 +71,12 @@
 	cursor: grabbing;
 }
 
+/* Closed toothpaste appears smaller at 1/3 of the default rendered width to reduce visual weight */
+.toothpaste-img.small {
+  /* 40% of the default responsive width */
+  width: calc(clamp(320px, 28vw, 520px) * 0.40);
+}
+
 /* Floating follows pointer */
 .toothpaste-img.floating {
 	position: fixed;
@@ -81,8 +87,9 @@
 /* Initial spawn position for toothpaste */
 .toothpaste-img.start {
 	position: absolute;
-	top: 16px;
-	right: 24px;
+	/* moved slightly lower on the screen so the tube sits visually lower */
+	top: 160px;
+	right: 80px;
 	transform: translateX(20%);
 }
 
@@ -270,6 +277,20 @@
 	z-index: 10;
 }
 
+/* Visible debug outlines for bristles and germ hitbox */
+.bristles-outline, .germ-hitbox-outline {
+  position: fixed;
+  border: 3px solid rgba(76, 175, 80, 0.95);
+  background: rgba(123, 237, 152, 0.08);
+  box-shadow: 0 0 18px rgba(76,175,80,0.25), inset 0 0 8px rgba(123,237,152,0.06);
+  border-radius: 8px;
+  pointer-events: none;
+  z-index: 2000;
+}
+
+.bristles-outline { border-style: solid; }
+.germ-hitbox-outline { border-style: dashed; border-width: 2px; background: rgba(123,237,152,0.04); }
+
 .toothbrush-draggable {
 	position: absolute;
 	bottom: 32px;
@@ -293,8 +314,8 @@
 	position: fixed;
 	width: clamp(200px, 20vw, 280px);
 	height: auto;
-	/* Keep the toothbrush horizontal while dragging (no rotation) */
-	transform: translate(-50%, -50%) rotate(0deg);
+	/* Keep the toothbrush horizontal while dragging; translation handled inline */
+	transform: rotate(0deg);
 	pointer-events: none;
 	user-select: none;
 	z-index: 1000;
