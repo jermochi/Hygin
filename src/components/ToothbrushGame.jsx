@@ -529,6 +529,7 @@ export default function ToothbrushGame() {
           }
         }
 
+        // Initialize angle on first brush over germ
         lastCircleAngleRef.current = angle
       }
     }
@@ -678,6 +679,22 @@ export default function ToothbrushGame() {
     startBrushingPhase(1)
   }
 
+  const skipToNextStep = () => {
+    if (step === 0) {
+      setHasPaste(true)
+      setStep(1)
+    } else if (step === 1) {
+      setShowSuccess(true)
+      setTimeout(() => {
+        setShowSuccess(false)
+        setStep(2)
+      }, 1200)
+    } else if (step === 2) {
+      setShowSuccess(true)
+      setTimeout(() => setCleared(true), 1200)
+    }
+  }
+
   if (cleared) {
     return (
       <div className="toothbrush-game cleared" />
@@ -689,6 +706,9 @@ export default function ToothbrushGame() {
       ref={containerRef}
       className={`toothbrush-game ${dragging || brushing ? 'dragging-active' : ''}`}
     >
+      <button className="skip-button" onClick={skipToNextStep}>
+        Skip
+      </button>
       <div className="step-instruction">
         <div className="step-title-row">
           <div className="step-title">Step {step}:</div>
