@@ -40,6 +40,7 @@ const GERM_STROKES_TO_REMOVE = 5
 // Step-1 specific stroke requirement (keep step0 behavior unaffected)
 const STEP1_GERM_STROKES = 5
 const STEP2_GERM_STROKES = 5
+const STEP2_MOVEMENT_THRESHOLD = 60
 // Where the cursor should attach to the floating toothbrush (percentages of width/height)
 const BRUSH_HEAD_ANCHOR = { x: 0.85, y: 0.45 }
 // Germ display / hitbox size (1/3 of previous 260px width)
@@ -83,8 +84,8 @@ export default function ToothbrushGame() {
   const handleGermFailureRef = useRef(() => {})
   const brushHintTimeoutRef = useRef(null)
   const shineTimeoutsRef = useRef(new Map())
-  const lastCircleAngleRef = useRef(null)
   const circleProgressRef = useRef(0)
+  const step2LastPointerRef = useRef(null)
 
   useEffect(() => { hudGermsRef.current = hudGerms }, [hudGerms])
   useEffect(() => { stepRef.current = step }, [step])
@@ -193,7 +194,7 @@ export default function ToothbrushGame() {
     currentGermRef.current = newGerm
     setBrushedThisWindow(false)
     brushedThisWindowRef.current = false
-    lastCircleAngleRef.current = null
+    step2LastPointerRef.current = null
     circleProgressRef.current = 0
     
     clearFailureTimer()
@@ -258,7 +259,7 @@ export default function ToothbrushGame() {
 
   const handleGermSuccess = useCallback(() => {
     clearFailureTimer()
-    lastCircleAngleRef.current = null
+    step2LastPointerRef.current = null
     circleProgressRef.current = 0
     const nextCount = successCountRef.current + 1
     setSuccessCount(nextCount)
@@ -282,7 +283,7 @@ export default function ToothbrushGame() {
             setStep(2)
           }, 1200)
         } else if (currentStep === 2) {
-          setTimeout(() => setCleared(true), 1200)
+        setTimeout(() => setCleared(true), 1200)
         }
       } else if (hudGermsRef.current < 3 && nextCount < WIN_CONDITION_COUNT) {
         // spawn after the clear delay so next germ always arrives post-removal
@@ -293,7 +294,7 @@ export default function ToothbrushGame() {
 
   const handleGermFailure = useCallback(() => {
     clearFailureTimer()
-    lastCircleAngleRef.current = null
+    step2LastPointerRef.current = null
     circleProgressRef.current = 0
     setCurrentGerm(prev => prev ? { ...prev, status: 'failed' } : prev)
     let nextHud = hudGermsRef.current
@@ -324,13 +325,65 @@ export default function ToothbrushGame() {
     handleGermFailureRef.current = handleGermFailure
   }, [handleGermFailure])
 
-  // Track pointer while dragging
-  useEffect(() => {
-    const handleMove = (e) => {
-      if (step === 0 && dragging) {
-        // Step 0: Drag toothpaste to brush
+  // ========== Helper Functions ==========
+  
+  // Get bristle center position
+  const getBristleCenter = useCallback(() => {
+    if (!brushRef.current) return { x: 0, y: 0 }
+    const bRect = brushRef.current.getBoundingClientRect()
+    const topPortion = brushing ? BRISTLES_TOP_OFFSET_PORTION_STEP1 : BRISTLES_TOP_OFFSET_PORTION
+    const widthPortion = brushing ? BRISTLES_WIDTH_PORTION_STEP1 : BRISTLES_WIDTH_PORTION
+    const heightPortion = brushing ? BRISTLES_HEIGHT_PORTION_STEP1 : BRISTLES_HEIGHT_PORTION
+    const bTop = bRect.top + bRect.height * topPortion
+    const bWidth = bRect.width * widthPortion
+    const bHeight = bRect.height * heightPortion
+    const bLeft = bRect.right - bWidth
+    return {
+      x: bLeft + bWidth / 2,
+      y: bTop + bHeight / 2
+    }
+  }, [brushing])
+
+  // Get teeth area bounds
+  const getTeethArea = () => {
+    if (!headRef.current) return null
+    const headRect = headRef.current.getBoundingClientRect()
+    return {
+      left: headRect.left + headRect.width * 0.25,
+      right: headRect.right - headRect.width * 0.25,
+      top: headRect.top + headRect.height * 0.38,
+      bottom: headRect.top + headRect.height * 0.68
+    }
+  }
+
+  // Get germ bounds
+  const getGermBounds = (germ) => {
+    if (!germ || !headRef.current) return null
+    if (germRef.current) {
+      const gRect = germRef.current.getBoundingClientRect()
+      return {
+        left: gRect.left,
+        top: gRect.top,
+        width: gRect.width,
+        height: gRect.height
+      }
+    }
+    const size = GERM_DISPLAY_SIZE
+    const headRect = headRef.current.getBoundingClientRect()
+    const centerX = headRect.left + (headRect.width * (germ.xPct ?? 50) / 100)
+    const centerY = headRect.top + (headRect.height * (germ.yPct ?? 53) / 100)
+    return {
+      left: centerX - size / 2,
+      top: centerY - size / 2,
+      width: size,
+      height: size
+    }
+  }
+
+  // ========== Step 0: Drag Toothpaste ==========
+  
+  const handleStep0Move = useCallback((e) => {
         setCursorPos({ x: e.clientX, y: e.clientY })
-        // Collision check with bristles
         if (brushRef.current) {
           const rect = brushRef.current.getBoundingClientRect()
           const top = rect.top + rect.height * BRISTLES_TOP_OFFSET_PORTION
@@ -348,213 +401,209 @@ export default function ToothbrushGame() {
             e.clientY <= bristlesRect.bottom
           setOverBristles(over)
         }
-      } else if ((step === 1 || step === 2) && brushing) {
-        // Step 1 & 2: Drag toothbrush to brush teeth
-        setBrushPos({ x: e.clientX, y: e.clientY })
+  }, [])
 
-        // Use the bristles center (computed from the floating brush element) for detection
-        let bristleCenterX = e.clientX
-        let bristleCenterY = e.clientY
-        if (brushRef.current) {
-          const bRect = brushRef.current.getBoundingClientRect()
-          const topPortion = brushing ? BRISTLES_TOP_OFFSET_PORTION_STEP1 : BRISTLES_TOP_OFFSET_PORTION
-          const widthPortion = brushing ? BRISTLES_WIDTH_PORTION_STEP1 : BRISTLES_WIDTH_PORTION
-          const heightPortion = brushing ? BRISTLES_HEIGHT_PORTION_STEP1 : BRISTLES_HEIGHT_PORTION
-          const bTop = bRect.top + bRect.height * topPortion
-          const bWidth = bRect.width * widthPortion
-          const bHeight = bRect.height * heightPortion
-          const bLeft = bRect.right - bWidth
-          bristleCenterX = bLeft + bWidth / 2
-          bristleCenterY = bTop + bHeight / 2
-        }
+  const handleStep0Up = useCallback(() => {
+    if (overBristles) {
+      setHasPaste(true)
+    }
+    setDragging(false)
+    setOverBristles(false)
+  }, [overBristles])
 
-        if (!headRef.current) {
-          return
-        }
+  // ========== Step 1: Brush Up and Down ==========
+  
+  const handleStep1Move = useCallback((e, bristleCenterX, bristleCenterY) => {
+    const teethArea = getTeethArea()
+    if (!teethArea) return
 
-        const headRect = headRef.current.getBoundingClientRect()
-        const teethArea = {
-          left: headRect.left + headRect.width * 0.25,
-          right: headRect.right - headRect.width * 0.25,
-          top: headRect.top + headRect.height * 0.38,
-          bottom: headRect.top + headRect.height * 0.68
-        }
+          const overTeeth = bristleCenterX >= teethArea.left &&
+            bristleCenterX <= teethArea.right &&
+            bristleCenterY >= teethArea.top &&
+            bristleCenterY <= teethArea.bottom
 
-        const overTeeth = bristleCenterX >= teethArea.left &&
-          bristleCenterX <= teethArea.right &&
-          bristleCenterY >= teethArea.top &&
-          bristleCenterY <= teethArea.bottom
+    if (!overTeeth) {
+      setLastBrushY(null)
+      setBrushDirection(null)
+      return
+    }
 
-        if (!overTeeth) {
-          if (step === 1) {
-            setLastBrushY(null)
-            setBrushDirection(null)
-          } else {
-            lastCircleAngleRef.current = null
-            circleProgressRef.current = 0
-          }
-          return
-        }
+    const germ = currentGermRef.current
+    if (!germ || germ.status !== 'active') {
+      setLastBrushY(bristleCenterY)
+      return
+    }
 
-        const germ = currentGermRef.current
-        if (!germ || germ.status !== 'active') {
-          if (step === 1) {
-            setLastBrushY(bristleCenterY)
-          } else {
-            lastCircleAngleRef.current = null
-            circleProgressRef.current = 0
-          }
-          return
-        }
+    const germBounds = getGermBounds(germ)
+    if (!germBounds) return
 
-        let gLeft, gTop, gWidth, gHeight
-        if (germRef.current) {
-          const gRect = germRef.current.getBoundingClientRect()
-          gLeft = gRect.left
-          gTop = gRect.top
-          gWidth = gRect.width
-          gHeight = gRect.height
-        } else {
-          const size = GERM_DISPLAY_SIZE
-          const centerX = headRect.left + (headRect.width * (germ.xPct ?? 50) / 100)
-          const centerY = headRect.top + (headRect.height * (germ.yPct ?? 53) / 100)
-          gLeft = centerX - size / 2
-          gTop = centerY - size / 2
-          gWidth = size
-          gHeight = size
-        }
+    const overGerm = bristleCenterX >= germBounds.left &&
+      bristleCenterX <= (germBounds.left + germBounds.width) &&
+      bristleCenterY >= germBounds.top &&
+      bristleCenterY <= (germBounds.top + germBounds.height)
 
-        if (gLeft == null) {
-          return
-        }
-
-        const overGerm =
-          bristleCenterX >= gLeft && bristleCenterX <= (gLeft + gWidth) &&
-          bristleCenterY >= gTop && bristleCenterY <= (gTop + gHeight)
-
-        if (step === 1) {
-          if (lastBrushY !== null) {
+    if (lastBrushY !== null) {
             const deltaY = bristleCenterY - lastBrushY
-            const threshold = 15
+      const threshold = 15
 
             if (Math.abs(deltaY) > threshold) {
               const newDirection = deltaY < 0 ? 'up' : 'down'
 
-              if (brushDirection !== newDirection && overGerm) {
-                setBrushedThisWindow(true)
-                brushedThisWindowRef.current = true
+        if (brushDirection !== newDirection && overGerm) {
+                      setBrushedThisWindow(true)
+                      brushedThisWindowRef.current = true
 
-                const perStroke = 1 / STEP1_GERM_STROKES
-                const nextOpacity = Math.max(0, (germ.opacity ?? 1) - perStroke)
+                      const perStroke = 1 / STEP1_GERM_STROKES
+                      const nextOpacity = Math.max(0, (germ.opacity ?? 1) - perStroke)
 
-                if (nextOpacity <= 0) {
-                  spawnShineEffect(germ)
-                  const successGerm = { ...germ, status: 'success', opacity: 0 }
-                  setCurrentGerm(successGerm)
-                  currentGermRef.current = successGerm
-                  handleGermSuccess()
-                } else {
-                  const updatedGerm = { ...germ, opacity: nextOpacity }
-                  setCurrentGerm(updatedGerm)
-                  currentGermRef.current = updatedGerm
-                }
-              }
+                      if (nextOpacity <= 0) {
+            spawnShineEffect(germ)
+                        const successGerm = { ...germ, status: 'success', opacity: 0 }
+                        setCurrentGerm(successGerm)
+                        currentGermRef.current = successGerm
+                        handleGermSuccess()
+                      } else {
+                        const updatedGerm = { ...germ, opacity: nextOpacity }
+                        setCurrentGerm(updatedGerm)
+                        currentGermRef.current = updatedGerm
+                      }
+                    }
 
-              setBrushDirection(newDirection)
-              setLastBrushY(bristleCenterY)
-            }
-          } else {
-            setLastBrushY(bristleCenterY)
-          }
-          return
-        }
+        setBrushDirection(newDirection)
+        setLastBrushY(bristleCenterY)
+      }
+    } else {
+      setLastBrushY(bristleCenterY)
+    }
+  }, [lastBrushY, brushDirection, getTeethArea, getGermBounds, handleGermSuccess, spawnShineEffect])
 
-        if (!overGerm) {
-          lastCircleAngleRef.current = null
-          circleProgressRef.current = 0
-          return
-        }
+  const handleStep1Up = useCallback(() => {
+    setBrushing(false)
+    setLastBrushY(null)
+    setBrushDirection(null)
+  }, [])
 
-        const germCenterX = gLeft + gWidth / 2
-        const germCenterY = gTop + gHeight / 2
-        const dx = bristleCenterX - germCenterX
-        const dy = bristleCenterY - germCenterY
-        const radius = Math.sqrt(dx * dx + dy * dy)
-        const minRadius = Math.max(gWidth, gHeight) * 0.2
+  // ========== Step 2: Brush in Circles (or any motion!) ==========
+  
+  const handleStep2Move = useCallback((e, bristleCenterX, bristleCenterY) => {
+    const pointerX = e.clientX
+    const pointerY = e.clientY
+    const teethArea = getTeethArea()
+    if (!teethArea) return
 
-        if (radius < minRadius) {
-          lastCircleAngleRef.current = null
-          return
-        }
+    const overTeeth = pointerX >= teethArea.left &&
+      pointerX <= teethArea.right &&
+      pointerY >= teethArea.top &&
+      pointerY <= teethArea.bottom
 
-        const angle = Math.atan2(dy, dx)
-        const lastAngle = lastCircleAngleRef.current
+    if (!overTeeth) {
+      circleProgressRef.current = 0
+      step2LastPointerRef.current = null
+      return
+    }
 
-        if (lastAngle != null) {
-          let delta = angle - lastAngle
-          while (delta <= -Math.PI) delta += Math.PI * 2
-          while (delta > Math.PI) delta -= Math.PI * 2
+    const germ = currentGermRef.current
+    if (!germ || germ.status !== 'active') {
+      circleProgressRef.current = 0
+      step2LastPointerRef.current = null
+      return
+    }
 
-          const minDelta = 12 * (Math.PI / 180)
-          const absDelta = Math.abs(delta)
+    const germBounds = getGermBounds(germ)
+    if (!germBounds) return
 
-          if (absDelta > minDelta) {
-            const degreesDelta = absDelta * (180 / Math.PI)
-            const newProgress = circleProgressRef.current + degreesDelta
-            circleProgressRef.current = newProgress
+    const expandedPadding = 12
+    const overGerm = pointerX >= (germBounds.left - expandedPadding) &&
+      pointerX <= (germBounds.left + germBounds.width + expandedPadding) &&
+      pointerY >= (germBounds.top - expandedPadding) &&
+      pointerY <= (germBounds.top + germBounds.height + expandedPadding)
 
-            if (newProgress >= 360) {
-              circleProgressRef.current = newProgress - 360
-              setBrushedThisWindow(true)
-              brushedThisWindowRef.current = true
+    if (!overGerm) {
+      circleProgressRef.current = 0
+      step2LastPointerRef.current = null
+      return
+    }
 
-              const perStroke = 1 / STEP2_GERM_STROKES
-              const nextOpacity = Math.max(0, (germ.opacity ?? 1) - perStroke)
-
-              if (nextOpacity <= 0) {
-                spawnShineEffect(germ)
-                const successGerm = { ...germ, status: 'success', opacity: 0 }
-                setCurrentGerm(successGerm)
-                currentGermRef.current = successGerm
-                handleGermSuccess()
-                lastCircleAngleRef.current = null
-                circleProgressRef.current = 0
-                return
-              }
-
-              const updatedGerm = { ...germ, opacity: nextOpacity }
-              setCurrentGerm(updatedGerm)
-              currentGermRef.current = updatedGerm
-            }
-          }
-        }
-
-        // Initialize angle on first brush over germ
-        lastCircleAngleRef.current = angle
+    const lastPointer = step2LastPointerRef.current
+    if (lastPointer) {
+      const movement = Math.hypot(pointerX - lastPointer.x, pointerY - lastPointer.y)
+      if (movement > 1) {
+        circleProgressRef.current += movement
       }
     }
+    step2LastPointerRef.current = { x: pointerX, y: pointerY }
+
+    if (!lastPointer) {
+      return
+    }
+
+    if (circleProgressRef.current >= STEP2_MOVEMENT_THRESHOLD) {
+      // Enough movement - reduce opacity
+      circleProgressRef.current = 0
+      step2LastPointerRef.current = { x: pointerX, y: pointerY }
+      setBrushedThisWindow(true)
+      brushedThisWindowRef.current = true
+
+      const perStroke = 1 / STEP2_GERM_STROKES
+      const nextOpacity = Math.max(0, (germ.opacity ?? 1) - perStroke)
+
+      if (nextOpacity <= 0) {
+        spawnShineEffect(germ)
+        const successGerm = { ...germ, status: 'success', opacity: 0 }
+        setCurrentGerm(successGerm)
+        currentGermRef.current = successGerm
+        handleGermSuccess()
+        return
+      }
+
+      const updatedGerm = { ...germ, opacity: nextOpacity }
+      setCurrentGerm(updatedGerm)
+      currentGermRef.current = updatedGerm
+    }
+
+  }, [getTeethArea, getGermBounds, handleGermSuccess, spawnShineEffect])
+
+  const handleStep2Up = useCallback(() => {
+    setBrushing(false)
+    step2LastPointerRef.current = null
+    circleProgressRef.current = 0
+  }, [])
+
+  // ========== Main Event Handlers ==========
+  
+  // Track pointer while dragging
+  useEffect(() => {
+    const handleMove = (e) => {
+      if (step === 0 && dragging) {
+        handleStep0Move(e)
+      } else if (step === 1 && brushing) {
+        setBrushPos({ x: e.clientX, y: e.clientY })
+        const bristleCenter = getBristleCenter()
+        handleStep1Move(e, bristleCenter.x, bristleCenter.y)
+      } else if (step === 2 && brushing) {
+        setBrushPos({ x: e.clientX, y: e.clientY })
+        const bristleCenter = getBristleCenter()
+        handleStep2Move(e, bristleCenter.x, bristleCenter.y)
+      }
+    }
+
     const handleUp = () => {
       if (step === 0 && dragging) {
-        if (overBristles) {
-          setHasPaste(true)
-        }
-        setDragging(false)
-        setOverBristles(false)
-      } else if ((step === 1 || step === 2) && brushing) {
-        setBrushing(false)
-        setLastBrushY(null)
-        setBrushDirection(null)
-        lastCircleAngleRef.current = null
-        circleProgressRef.current = 0
+        handleStep0Up()
+      } else if (step === 1 && brushing) {
+        handleStep1Up()
+      } else if (step === 2 && brushing) {
+        handleStep2Up()
       }
     }
+
     window.addEventListener('pointermove', handleMove)
     window.addEventListener('pointerup', handleUp)
     return () => {
       window.removeEventListener('pointermove', handleMove)
       window.removeEventListener('pointerup', handleUp)
     }
-  }, [step, dragging, overBristles, brushing, lastBrushY, brushDirection, handleGermSuccess, spawnShineEffect])
+  }, [step, dragging, brushing, handleStep0Move, handleStep0Up, handleStep1Move, handleStep1Up, handleStep2Move, handleStep2Up, getBristleCenter])
 
   const startDrag = (e) => {
     if (hasPaste || step !== 0) return
@@ -573,21 +622,21 @@ export default function ToothbrushGame() {
     setBrushPos({ x: e.clientX, y: e.clientY })
     setBrushDirection(null)
     if (step === 1) {
-      // Try to initialize lastBrushY to the bristle center if possible so first stroke counts
-      if (brushRef.current) {
-        const bRect = brushRef.current.getBoundingClientRect()
-        const bTop = bRect.top + bRect.height * BRISTLES_TOP_OFFSET_PORTION
-        const bWidth = bRect.width * BRISTLES_WIDTH_PORTION
-        const bHeight = bRect.height * BRISTLES_HEIGHT_PORTION
-        const bLeft = bRect.right - bWidth
-        const bristleCenterY = bTop + bHeight / 2
-        setLastBrushY(bristleCenterY)
-      } else {
-        setLastBrushY(e.clientY)
+    // Try to initialize lastBrushY to the bristle center if possible so first stroke counts
+    if (brushRef.current) {
+      const bRect = brushRef.current.getBoundingClientRect()
+      const bTop = bRect.top + bRect.height * BRISTLES_TOP_OFFSET_PORTION
+      const bWidth = bRect.width * BRISTLES_WIDTH_PORTION
+      const bHeight = bRect.height * BRISTLES_HEIGHT_PORTION
+      const bLeft = bRect.right - bWidth
+      const bristleCenterY = bTop + bHeight / 2
+      setLastBrushY(bristleCenterY)
+    } else {
+      setLastBrushY(e.clientY)
       }
     } else {
       setLastBrushY(null)
-      lastCircleAngleRef.current = null
+      step2LastPointerRef.current = null
       circleProgressRef.current = 0
     }
   }
@@ -622,7 +671,7 @@ export default function ToothbrushGame() {
       successCountRef.current = 0
       currentGermRef.current = null
       brushedThisWindowRef.current = false
-      lastCircleAngleRef.current = null
+      step2LastPointerRef.current = null
       circleProgressRef.current = 0
 
       if (spawnTimersRef.current.windowTimer) {
@@ -874,7 +923,7 @@ export default function ToothbrushGame() {
                 successCountRef.current = 0
                 currentGermRef.current = null
                 brushedThisWindowRef.current = false
-                lastCircleAngleRef.current = null
+                step2LastPointerRef.current = null
                 circleProgressRef.current = 0
               }}
             >
