@@ -172,11 +172,15 @@
 	justify-content: center;
 	position: relative;
 }
+.step-title-row {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+}
 .germs.hud {
-	position: absolute;
-	top: 0;
-	left: calc(24px + 220px);
+	position: static;
 	display: inline-flex;
+	align-items: center;
 	gap: 8px;
 }
 .germs.hud .germ { opacity: 0.25; font-size: 1.8rem; transition: opacity 150ms ease, transform 150ms ease, filter 150ms ease, text-shadow 150ms ease; }
