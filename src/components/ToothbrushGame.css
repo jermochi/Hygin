@@ -225,6 +225,21 @@
 	display: block;
 	object-fit: cover;
 }
+.play-container.step-1.step-4 {
+	padding: 0;
+	align-items: stretch;
+	justify-content: center;
+}
+.play-container.step-1.step-4 .head-container {
+	width: 100%;
+	height: 100%;
+}
+.play-container.step-1.step-4 .head-img.open-mouth {
+	width: 100%;
+	height: 100%;
+	display: block;
+	object-fit: cover;
+}
 .step-title-row {
 	display: flex;
 	align-items: center;
@@ -259,13 +274,13 @@
 	color: #ffffff;
 	padding: 0;
 	text-align: center;
-	transform: scale(1.5);
+	transform: scale(1.2);
 	transform-origin: center center;
 }
-.intro-title { font-weight: 900; font-size: 4rem; margin-bottom: 12px; color: #ffffff; }
-.intro-list { margin: 0 0 16px 0; list-style: none; padding: 0; }
-.intro-list li { margin: 8px 0; font-weight: 800; color: #ffffff; font-size: 2rem; }
-.continue-btn { background: rgba(255,255,255,0.1); color: #ffffff; border: 2px solid #ffffff; border-radius: 18px; padding: 20px 32px; font-weight: 900; cursor: pointer; font-size: 1.8rem; }
+.intro-title { font-weight: 900; font-size: 3rem; margin-bottom: 10px; color: #ffffff; }
+.intro-list { margin: 0 0 12px 0; list-style: none; padding: 0; }
+.intro-list li { margin: 6px 0; font-weight: 800; color: #ffffff; font-size: 1.6rem; }
+.continue-btn { background: rgba(255,255,255,0.1); color: #ffffff; border: 2px solid #ffffff; border-radius: 18px; padding: 16px 28px; font-weight: 900; cursor: pointer; font-size: 1.5rem; }
 .continue-btn:hover { background: rgba(255,255,255,0.2); }
 
 @media (max-width: 768px) {
@@ -338,19 +353,18 @@
 	transform: none;
 	transform-origin: center center;
 }
-
-/* Step 4: Open mouth chewing surfaces - make bigger */
 .head-img.open-mouth {
-  position: relative;
-  top: auto;
-  left: auto;
-  width: auto; /* use base head-img width clamp */
-  height: auto;
-  z-index: 1;
-	transform: scale(1.0); /* enlarge but not overwhelming */
-  transform-origin: center center;
+	position: relative;
+	top: auto;
+	left: auto;
+	width: 100%;
+	height: auto;
+	z-index: 1;
+	transform: none;
+	transform-origin: center center;
 }
 
+/* Step 4: Open mouth chewing surfaces - make bigger */
 /* Debug overlay to visualize teeth detection area */
 .teeth-detection-area {
 	position: absolute;

@@ -9,7 +9,8 @@ import goodJobImg from '../assets/goodjob.png'
 import cleanMouth from '../assets/clean-mouth.png'
 import shineImg from '../assets/shine.png'
 import toothbrushBackview from '../assets/toothbrush-angle-b.png'
-import openMouth from '../assets/open_mouth.png'
+import toothbrushAngled from '../assets/toothbrush_angled.png'
+import openMouth from '../assets/open-mouth.png'
 import germ1 from '../assets/1.png'
 import germ2 from '../assets/2.png'
 import germ3 from '../assets/3.png'
@@ -40,7 +41,7 @@ const GERM_IMAGES = [germ1, germ2, germ3, germ4, germ5, germ6, germ7, germ8]
 // How many brush direction-change strokes are required to remove a single germ
 const GERM_STROKES_TO_REMOVE = 3
 // Step-1 specific stroke requirement (keep step0 behavior unaffected)
-const STEP1_GERM_STROKES = 3
+const STEP1_GERM_STROKES = 2
 const STEP2_GERM_STROKES = 3
 const STEP2_MOVEMENT_THRESHOLD = 60
 const STEP4_GERM_STROKES = 3
@@ -48,16 +49,19 @@ const STEP4_GERM_STROKES = 3
 const BRUSH_HEAD_ANCHOR = { x: 0.85, y: 0.45 }
 // Germ display / hitbox size (1/3 of previous 260px width)
 const GERM_DISPLAY_SIZE = Math.round(260 / 3)
-const STEP4_GERM_SIZE = Math.round(GERM_DISPLAY_SIZE * 0.6)
 const INSIDE_TOP_Y_RANGE = { min: 0.18, max: 0.36 }
 const INSIDE_BOTTOM_Y_RANGE = { min: 0.66, max: 0.88 }
 const INSIDE_TOP_SPAWN_RANGE = { min: 0.22, max: 0.30 }
 const INSIDE_BOTTOM_SPAWN_RANGE = { min: 0.72, max: 0.80 }
-// Step 4 (open mouth) spawn bands for chewing/occlusal surfaces
-const STEP4_BAND_TOP = { min: 0.26, max: 0.34 }
-const STEP4_BAND_BOTTOM = { min: 0.80, max: 0.86 }
-const STEP4_X_RANGE = { min: 0.30, max: 0.70 }
-const STEP4_STRIDE = 2
+const STEP4_STRIPES = [
+  { xMin: 0.24, xMax: 0.36, yMin: 0.38, yMax: 0.50 }, // upper left
+  { xMin: 0.64, xMax: 0.76, yMin: 0.38, yMax: 0.50 }, // upper right
+  { xMin: 0.24, xMax: 0.36, yMin: 0.68, yMax: 0.82 }, // lower left
+  { xMin: 0.64, xMax: 0.76, yMin: 0.68, yMax: 0.82 }  // lower right
+]
+const STEP4_STRIDE = 1
+const STEP4_GERM_SIZE = Math.round(GERM_DISPLAY_SIZE * 0.6)
+const STEP4_DIRECTION_THRESHOLD = 12
 
 export default function ToothbrushGame() {
   const [step, setStep] = useState(0) // 0: apply paste, 1: brush teeth
@@ -73,8 +77,6 @@ export default function ToothbrushGame() {
   const [brushing, setBrushing] = useState(false)
   const [lastBrushY, setLastBrushY] = useState(null)
   const [brushDirection, setBrushDirection] = useState(null) // 'up' or 'down'
-  const [lastBrushX, setLastBrushX] = useState(null)
-  const [brushXDirection, setBrushXDirection] = useState(null) // 'left' or 'right'
   const [showIntro, setShowIntro] = useState(false)
   const [showBrushHint, setShowBrushHint] = useState(false)
   const [hintMessage, setHintMessage] = useState('')
@@ -118,8 +120,7 @@ export default function ToothbrushGame() {
     width: 0,
     height: 0,
     mask: null,
-    topPoints: [],
-    bottomPoints: []
+    stripes: STEP4_STRIPES.map(() => [])
   })
   const pointerPosRef = useRef({
     x: typeof window !== 'undefined' ? window.innerWidth / 2 : 0,
@@ -307,7 +308,7 @@ export default function ToothbrushGame() {
       const width = img.naturalWidth || img.width
       const height = img.naturalHeight || img.height
       if (!width || !height) {
-        openMouthDataRef.current = { width: 0, height: 0, mask: null, topPoints: [], bottomPoints: [] }
+        openMouthDataRef.current = { width: 0, height: 0, mask: null, stripes: STEP4_STRIPES.map(() => []) }
         return
       }
       const canvas = document.createElement('canvas')
@@ -321,8 +322,7 @@ export default function ToothbrushGame() {
       if (!imageData) return
       const { data } = imageData
       const mask = new Uint8Array(width * height)
-      const topPoints = []
-      const bottomPoints = []
+      const stripeBuckets = STEP4_STRIPES.map(() => [])
       for (let y = 0; y < height; y += STEP4_STRIDE) {
         for (let x = 0; x < width; x += STEP4_STRIDE) {
           const idx = (y * width + x) * 4
@@ -332,18 +332,22 @@ export default function ToothbrushGame() {
           const g = data[idx + 1]
           const b = data[idx + 2]
           const brightness = (r + g + b) / 3
-          // Treat very light pixels as teeth
-          if (brightness < 230) continue
+          // Treat very light pixels as teeth (allow slightly darker shading)
+          if (brightness < 210) continue
           mask[y * width + x] = 1
           const nx = (x + 0.5) / width
           const ny = (y + 0.5) / height
-          if (nx >= STEP4_X_RANGE.min && nx <= STEP4_X_RANGE.max) {
-            if (ny >= STEP4_BAND_TOP.min && ny <= STEP4_BAND_TOP.max) topPoints.push({ x: nx, y: ny })
-            if (ny >= STEP4_BAND_BOTTOM.min && ny <= STEP4_BAND_BOTTOM.max) bottomPoints.push({ x: nx, y: ny })
-          }
+          STEP4_STRIPES.forEach((region, index) => {
+            if (
+              nx >= region.xMin && nx <= region.xMax &&
+              ny >= region.yMin && ny <= region.yMax
+            ) {
+              stripeBuckets[index].push({ x: nx, y: ny })
+            }
+          })
         }
       }
-      openMouthDataRef.current = { width, height, mask, topPoints, bottomPoints }
+      openMouthDataRef.current = { width, height, mask, stripes: stripeBuckets }
     }
     img.onload = handleLoad
     return () => { img.onload = null }
@@ -382,17 +386,26 @@ export default function ToothbrushGame() {
     const updateBristles = () => {
       if (!brushRef.current) return
       const rect = brushRef.current.getBoundingClientRect()
-      // choose offsets depending on whether we're actively brushing (step 1) or not
-      const topPortion = brushing ? BRISTLES_TOP_OFFSET_PORTION_STEP1 : BRISTLES_TOP_OFFSET_PORTION
-      const widthPortion = brushing ? BRISTLES_WIDTH_PORTION_STEP1 : BRISTLES_WIDTH_PORTION
-      const heightPortion = brushing ? BRISTLES_HEIGHT_PORTION_STEP1 : BRISTLES_HEIGHT_PORTION
-      const top = rect.top + rect.height * topPortion
-      const width = rect.width * widthPortion
-      const left = rect.right - width
+      const brushingStep = brushing || stepRef.current >= 4
+      const topPortion = brushingStep ? BRISTLES_TOP_OFFSET_PORTION_STEP1 : BRISTLES_TOP_OFFSET_PORTION
+      const widthPortion = brushingStep ? BRISTLES_WIDTH_PORTION_STEP1 : BRISTLES_WIDTH_PORTION
+      const heightPortion = brushingStep ? BRISTLES_HEIGHT_PORTION_STEP1 : BRISTLES_HEIGHT_PORTION
 
-      // compute the center of the bristles and derive an anchor (fraction of image)
+      let top = rect.top + rect.height * topPortion
+      let width = rect.width * widthPortion
+      let left = rect.right - width
+      let bristleHeight = rect.height * heightPortion
+
+      if (stepRef.current >= 4) {
+        const angledW = rect.width * 0.30
+        width = angledW
+        left = rect.left + rect.width * 0.36 - width / 2
+        bristleHeight = rect.height * 0.20
+        top = rect.top + rect.height * 0.00
+      }
+
       const bristleCenterX = left + width / 2
-      const bristleCenterY = top + (rect.height * heightPortion) / 2
+      const bristleCenterY = top + bristleHeight / 2
       const anchorX = (bristleCenterX - rect.left) / rect.width
       const anchorY = (bristleCenterY - rect.top) / rect.height
       setBrushAnchor({ x: anchorX, y: anchorY })
@@ -504,27 +517,21 @@ export default function ToothbrushGame() {
           yPct = clampedY * 100
         }
       } else if (currentStep === 4) {
-        // Prefer spawning directly on detected teeth pixels within occlusal bands.
-        const pools = []
-        if (openMouthDataRef.current.topPoints?.length) pools.push('top')
-        if (openMouthDataRef.current.bottomPoints?.length) pools.push('bottom')
-        if (pools.length) {
-          const which = pools[Math.random() < 0.5 ? 0 : pools.length - 1]
-          const arr = which === 'top' ? openMouthDataRef.current.topPoints : openMouthDataRef.current.bottomPoints
-          const candidate = arr[Math.floor(Math.random() * arr.length)]
+        const stripes = openMouthDataRef.current.stripes ?? []
+        const filled = stripes.filter(bucket => bucket?.length)
+        if (filled.length) {
+          const bucket = filled[Math.floor(Math.random() * filled.length)]
+          const candidate = bucket[Math.floor(Math.random() * bucket.length)]
           if (candidate) {
             xPct = (candidate.x ?? 0.5) * 100
             yPct = (candidate.y ?? 0.5) * 100
           }
         } else {
-          // Fallback to geometric bands if mask not ready
-          const band = Math.random() < 0.5 ? STEP4_BAND_TOP : STEP4_BAND_BOTTOM
-          const yNorm = band.min + Math.random() * (band.max - band.min)
-          const xNorm = STEP4_X_RANGE.min + Math.random() * (STEP4_X_RANGE.max - STEP4_X_RANGE.min)
-          const xAbs = r.left + r.width * xNorm
-          const yAbs = r.top + r.height * yNorm
-          xPct = ((xAbs - r.left) / r.width) * 100
-          yPct = ((yAbs - r.top) / r.height) * 100
+          const region = STEP4_STRIPES[Math.floor(Math.random() * STEP4_STRIPES.length)]
+          const xNorm = region.xMin + Math.random() * (region.xMax - region.xMin)
+          const yNorm = region.yMin + Math.random() * (region.yMax - region.yMin)
+          xPct = (xNorm ?? 0.5) * 100
+          yPct = (yNorm ?? 0.5) * 100
         }
       } else {
         const teethLeft = r.left + r.width * 0.25
@@ -711,6 +718,16 @@ export default function ToothbrushGame() {
   const getBristleCenter = useCallback(() => {
     if (!brushRef.current) return { x: 0, y: 0 }
     const bRect = brushRef.current.getBoundingClientRect()
+    if (stepRef.current >= 4) {
+      const width = bRect.width * 0.30
+      const left = bRect.left + bRect.width * 0.36 - width / 2
+      const height = bRect.height * 0.20
+      const top = bRect.top + bRect.height * 0.00
+      return {
+        x: left + width / 2,
+        y: top + height / 2
+      }
+    }
     const topPortion = brushing ? BRISTLES_TOP_OFFSET_PORTION_STEP1 : BRISTLES_TOP_OFFSET_PORTION
     const widthPortion = brushing ? BRISTLES_WIDTH_PORTION_STEP1 : BRISTLES_WIDTH_PORTION
     const heightPortion = brushing ? BRISTLES_HEIGHT_PORTION_STEP1 : BRISTLES_HEIGHT_PORTION
@@ -752,6 +769,18 @@ export default function ToothbrushGame() {
   }
 
   const isInsideTeethPixel = (normX, normY) => {
+    if (
+      stepRef.current === 4 &&
+      STEP4_STRIPES.some(region =>
+        normX >= region.xMin &&
+        normX <= region.xMax &&
+        normY >= region.yMin &&
+        normY <= region.yMax
+      )
+    ) {
+      return true
+    }
+
     const data = insideTeethDataRef.current
     if (!data || !data.mask || !data.width || !data.height) return true
     if (normX < 0 || normX > 1 || normY < 0 || normY > 1) return false
@@ -770,6 +799,19 @@ export default function ToothbrushGame() {
     const y = Math.min(data.height - 1, Math.max(0, Math.round(normY * (data.height - 1))))
     return data.mask[y * data.width + x] === 1
   }
+
+  const getStep4Regions = useCallback(() => {
+    if (!headRef.current) return []
+    const rect = headRef.current.getBoundingClientRect()
+    const padX = rect.width * 0.01
+    const padY = rect.height * 0.01
+    return STEP4_STRIPES.map(region => ({
+      left: rect.left + rect.width * region.xMin - padX,
+      right: rect.left + rect.width * region.xMax + padX,
+      top: rect.top + rect.height * region.yMin - padY,
+      bottom: rect.top + rect.height * region.yMax + padY
+    }))
+  }, [])
 
   // Get germ bounds
   const getGermBounds = (germ) => {
@@ -852,6 +894,14 @@ export default function ToothbrushGame() {
     const germBounds = getGermBounds(germ)
     if (!germBounds) return
 
+    // ignore horizontal brushing for step 1 by requiring brush to stay roughly centered over the germ
+    const germCenterX = germBounds.left + germBounds.width / 2
+    if (Math.abs(bristleCenterX - germCenterX) > germBounds.width * 0.35) {
+      setLastBrushY(bristleCenterY)
+      setBrushDirection(null)
+      return
+    }
+
     const overGerm = bristleCenterX >= germBounds.left &&
       bristleCenterX <= (germBounds.left + germBounds.width) &&
       bristleCenterY >= germBounds.top &&
@@ -859,7 +909,7 @@ export default function ToothbrushGame() {
 
     if (lastBrushY !== null) {
             const deltaY = bristleCenterY - lastBrushY
-      const threshold = 15
+      const threshold = 10
 
             if (Math.abs(deltaY) > threshold) {
               const newDirection = deltaY < 0 ? 'up' : 'down'
@@ -995,25 +1045,27 @@ export default function ToothbrushGame() {
     circleProgressRef.current = 0
   }, [])
 
-  // ========== Step 4: Brush Back and Forth (left/right) ==========
+  // ========== Step 4: Brush Back and Forth (up/down) ==========
   const handleStep4Move = useCallback((e, bristleCenterX, bristleCenterY) => {
-    const teethArea = getTeethArea()
-    if (!teethArea) return
+    const regions = getStep4Regions()
+    if (!regions.length) return
 
-    const overTeeth = bristleCenterX >= teethArea.left &&
-      bristleCenterX <= teethArea.right &&
-      bristleCenterY >= teethArea.top &&
-      bristleCenterY <= teethArea.bottom
+    const inRegion = regions.some(region =>
+      bristleCenterX >= region.left &&
+      bristleCenterX <= region.right &&
+      bristleCenterY >= region.top &&
+      bristleCenterY <= region.bottom
+    )
 
-    if (!overTeeth) {
-      setLastBrushX(null)
-      setBrushXDirection(null)
+    if (!inRegion) {
+      setLastBrushY(null)
+      setBrushDirection(null)
       return
     }
 
     const germ = currentGermRef.current
     if (!germ || germ.status !== 'active') {
-      setLastBrushX(bristleCenterX)
+      setLastBrushY(bristleCenterY)
       return
     }
 
@@ -1025,12 +1077,11 @@ export default function ToothbrushGame() {
       bristleCenterY >= germBounds.top &&
       bristleCenterY <= (germBounds.top + germBounds.height)
 
-    if (lastBrushX !== null) {
-      const deltaX = bristleCenterX - lastBrushX
-      const threshold = 15
-      if (Math.abs(deltaX) > threshold) {
-        const newDir = deltaX < 0 ? 'left' : 'right'
-        if (brushXDirection !== newDir && overGerm) {
+    if (lastBrushY !== null) {
+      const deltaY = bristleCenterY - lastBrushY
+      if (Math.abs(deltaY) > STEP4_DIRECTION_THRESHOLD) {
+        const newDirection = deltaY < 0 ? 'up' : 'down'
+        if (brushDirection !== newDirection && overGerm) {
           setBrushedThisWindow(true)
           brushedThisWindowRef.current = true
 
@@ -1048,18 +1099,18 @@ export default function ToothbrushGame() {
             currentGermRef.current = updatedGerm
           }
         }
-        setBrushXDirection(newDir)
-        setLastBrushX(bristleCenterX)
+        setBrushDirection(newDirection)
+        setLastBrushY(bristleCenterY)
       }
     } else {
-      setLastBrushX(bristleCenterX)
+      setLastBrushY(bristleCenterY)
     }
-  }, [lastBrushX, brushXDirection, getTeethArea, getGermBounds, handleGermSuccess, spawnShineEffect])
+  }, [getStep4Regions, lastBrushY, brushDirection, getGermBounds, handleGermSuccess, spawnShineEffect])
 
   const handleStep4Up = useCallback(() => {
     setBrushing(false)
-    setLastBrushX(null)
-    setBrushXDirection(null)
+    setLastBrushY(null)
+    setBrushDirection(null)
   }, [])
 
   // ========== Main Event Handlers ==========
@@ -1136,8 +1187,6 @@ export default function ToothbrushGame() {
       setBrushedThisWindow(false)
       setBrushDirection(null)
       setLastBrushY(null)
-      setBrushXDirection(null)
-      setLastBrushX(null)
       setShineEffects([])
       setShowBrushHint(false)
       hudGermsRef.current = 0
@@ -1198,13 +1247,13 @@ export default function ToothbrushGame() {
         step2LastPointerRef.current = null
         circleProgressRef.current = 0
       } else if (step === 4) {
-        setLastBrushX(null)
+        setLastBrushY(null)
       }
     }
   }, [step, brushingActive, brushing])
 
   useEffect(() => {
-    if (brushing && step === 1 && lastBrushY === null) {
+    if (brushing && (step === 1 || step === 4) && lastBrushY === null) {
       const raf = requestAnimationFrame(() => {
         const center = getBristleCenter()
         if (center?.y !== undefined) {
@@ -1216,18 +1265,6 @@ export default function ToothbrushGame() {
   }, [brushing, step, lastBrushY, getBristleCenter])
 
   // Initialize X position for step 4
-  useEffect(() => {
-    if (brushing && step === 4 && lastBrushX === null) {
-      const raf = requestAnimationFrame(() => {
-        const center = getBristleCenter()
-        if (center?.x !== undefined) {
-          setLastBrushX(center.x)
-        }
-      })
-      return () => cancelAnimationFrame(raf)
-    }
-  }, [brushing, step, lastBrushX, getBristleCenter])
-
   // Step 1: Start game loop
   useEffect(() => {
     if ((step !== 1 && step !== 2 && step !== 3 && step !== 4) || !brushingActive) return
@@ -1399,13 +1436,14 @@ export default function ToothbrushGame() {
 
           {brushing && (
             <img
-              src={toothbrushBackview}
+              src={step >= 4 ? toothbrushAngled : toothbrushBackview}
               alt="Toothbrush (brushing)"
               ref={brushRef}
               className="toothbrush-floating"
               style={{
                 left: brushPos.x,
                 top: brushPos.y,
+                width: step >= 4 ? 'clamp(110px, 11vw, 160px)' : undefined,
                 transform: `translate(-${(brushAnchor.x ?? BRUSH_HEAD_ANCHOR.x) * 100}%, -${(brushAnchor.y ?? BRUSH_HEAD_ANCHOR.y) * 100}%) rotate(0deg)`
               }}
             />
