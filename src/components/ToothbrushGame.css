@@ -390,6 +390,22 @@
 	z-index: 10;
 }
 
+.debug-chip {
+	position: fixed;
+	top: 90px;
+	left: 24px;
+	padding: 6px 12px;
+	background: rgba(0, 0, 0, 0.6);
+	color: #fff;
+	border-radius: 999px;
+	font-weight: 600;
+	font-size: 0.9rem;
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+	box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+	z-index: 1400;
+}
+
 /* Visible debug outlines for bristles and germ hitbox */
 .bristles-outline, .germ-hitbox-outline {
   position: fixed;
@@ -403,6 +419,30 @@
 
 .bristles-outline { border-style: solid; }
 .germ-hitbox-outline { border-style: dashed; border-width: 2px; background: rgba(123,237,152,0.04); }
+
+.germ-hitbox-debug {
+	position: absolute;
+	transform: translate(-50%, -50%);
+	border: 2px dashed rgba(255, 193, 7, 0.9);
+	background: rgba(255, 193, 7, 0.18);
+	border-radius: 8px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	color: #2e2a10;
+	font-weight: 700;
+	pointer-events: none;
+	z-index: 4;
+}
+
+.germ-hitbox-label {
+	font-size: 0.7rem;
+	line-height: 1;
+	padding: 4px 6px;
+	background: rgba(255, 255, 255, 0.85);
+	border-radius: 6px;
+	box-shadow: 0 2px 6px rgba(34, 34, 34, 0.2);
+}
 
 .toothbrush-draggable {
 	position: absolute;

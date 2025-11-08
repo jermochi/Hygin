@@ -52,11 +52,14 @@ const GERM_STROKES_TO_REMOVE = 3
 const STEP1_GERM_STROKES = 3
 const STEP2_GERM_STROKES = 3
 const STEP2_MOVEMENT_THRESHOLD = 60
-const STEP4_GERM_STROKES = 3
+const STEP4_GERM_STROKES = 2
 const STEP5_GERM_STROKES = 3
 const VERTICAL_STROKE_THRESHOLD = 8
 const VERTICAL_HORIZONTAL_TOLERANCE = 28
 const VERTICAL_DOMINANCE_RATIO = 1.05
+const STEP4_VERTICAL_THRESHOLD = 6
+const STEP4_HORIZONTAL_TOLERANCE = 40
+const STEP4_DOMINANCE_RATIO = 0.9
 const STEP45_BRUSH_WIDTH = 'clamp(100px, 10vw, 150px)'
 // Where the cursor should attach to the floating toothbrush (percentages of width/height)
 const BRUSH_HEAD_ANCHOR = { x: 0.85, y: 0.45 }
@@ -69,12 +72,20 @@ const INSIDE_TOP_SPAWN_RANGE = { min: 0.22, max: 0.30 }
 const INSIDE_BOTTOM_SPAWN_RANGE = { min: 0.72, max: 0.80 }
 // Step 4 (open mouth) spawn bands for chewing/occlusal surfaces
 const STEP4_LIGHT_BLUE_ZONES = [
-  { minX: 0.20, maxX: 0.36, minY: 0.28, maxY: 0.42 },
-  { minX: 0.62, maxX: 0.82, minY: 0.28, maxY: 0.42 },
-  { minX: 0.20, maxX: 0.36, minY: 0.72, maxY: 0.86 },
-  { minX: 0.62, maxX: 0.82, minY: 0.72, maxY: 0.86 }
+  { minX: 0.17, maxX: 0.38, minY: 0.26, maxY: 0.41 },
+  { minX: 0.62, maxX: 0.83, minY: 0.26, maxY: 0.41 },
+  { minX: 0.17, maxX: 0.38, minY: 0.68, maxY: 0.82 },
+  { minX: 0.62, maxX: 0.83, minY: 0.68, maxY: 0.82 }
 ]
 const STEP4_STRIDE = 2
+const STEP4_MANUAL_SPAWNS = [
+  { x: 0.26, y: 0.33 },
+  { x: 0.74, y: 0.33 },
+  { x: 0.27, y: 0.76 },
+  { x: 0.73, y: 0.76 }
+]
+const STEP4_SPAWN_JITTER = { x: 0.03, y: 0.03 }
+const clamp01 = (value) => Math.min(1, Math.max(0, value))
 
 // tongue data will be loaded from brush_tongue.png and used for step 5
 
@@ -106,6 +117,7 @@ export default function ToothbrushGame() {
   const [brushAnchor, setBrushAnchor] = useState(BRUSH_HEAD_ANCHOR)
   const [successCount, setSuccessCount] = useState(0)
   const [insideTeethReady, setInsideTeethReady] = useState(false)
+  const [showHitboxes, setShowHitboxes] = useState(false)
   const spawnTimersRef = useRef({ windowTimer: null, nextSpawnTimer: null })
 
   // Live refs to avoid stale state inside timeouts
@@ -499,6 +511,23 @@ export default function ToothbrushGame() {
     }
   }, [step])
 
+  // Toggle germ hitbox visualization with "H"
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      if (event.repeat) return
+      if (!event.key || event.key.toLowerCase() !== 'h') return
+      const target = event.target
+      if (target && (target.closest?.('input, textarea, [contenteditable="true"]') || ['INPUT', 'TEXTAREA'].includes(target.tagName))) {
+        return
+      }
+      event.preventDefault()
+      setShowHitboxes((prev) => !prev)
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [])
+
   const getActiveBristleRect = useCallback((rect) => {
     let widthPortion = BRISTLES_WIDTH_PORTION
     let heightPortion = BRISTLES_HEIGHT_PORTION
@@ -581,7 +610,8 @@ export default function ToothbrushGame() {
     clearNextSpawnTimer()
     const pick = GERM_IMAGES[Math.floor(Math.random() * GERM_IMAGES.length)]
 
-    let xPct = 50, yPct = 53
+  let xPct = 50, yPct = 53
+  let placementHandled = false
     if (headRef.current) {
       const r = headRef.current.getBoundingClientRect()
       const currentStep = stepRef.current
@@ -662,8 +692,11 @@ export default function ToothbrushGame() {
           if (candidate) {
             xPct = (candidate.x ?? 0.5) * 100
             yPct = (candidate.y ?? 0.5) * 100
+            placementHandled = true
           }
-        } else {
+        }
+
+        if (!placementHandled) {
           // Fallback: sample inside the predefined zones but ensure mask coverage when available.
           const trySampleInZone = (zone) => {
             for (let attempt = 0; attempt < 20; attempt++) {
@@ -696,12 +729,27 @@ export default function ToothbrushGame() {
           if (placed) {
             xPct = placed.xPct
             yPct = placed.yPct
+            placementHandled = true
+          }
+        }
+
+        if (!placementHandled) {
+          const anchor = STEP4_MANUAL_SPAWNS[Math.floor(Math.random() * STEP4_MANUAL_SPAWNS.length)]
+          if (anchor) {
+            const jitterX = (Math.random() * 2 - 1) * STEP4_SPAWN_JITTER.x
+            const jitterY = (Math.random() * 2 - 1) * STEP4_SPAWN_JITTER.y
+            const finalX = clamp01(anchor.x + jitterX)
+            const finalY = clamp01(anchor.y + jitterY)
+            xPct = finalX * 100
+            yPct = finalY * 100
+            placementHandled = true
           } else {
-            // Final fallback: center-top of mouth
+            // final fallback keep previous behavior
             const xAbs = r.left + r.width * 0.5
             const yAbs = r.top + r.height * 0.32
             xPct = ((xAbs - r.left) / r.width) * 100
             yPct = ((yAbs - r.top) / r.height) * 100
+            placementHandled = true
           }
         }
       } else if (currentStep === 5) {
@@ -836,7 +884,7 @@ export default function ToothbrushGame() {
     }
     setBrushingActive(false)
     const message = phaseStep === 4
-      ? 'BRUSH BACK AND FORTH'
+      ? 'BRUSH UP AND DOWN'
       : phaseStep === 3
         ? 'BRUSH THE INSIDES'
         : phaseStep === 2
@@ -953,6 +1001,23 @@ export default function ToothbrushGame() {
   const getTeethArea = () => {
     if (!headRef.current) return null
     const headRect = headRef.current.getBoundingClientRect()
+
+    if (stepRef.current === 4) {
+      const zones = STEP4_LIGHT_BLUE_ZONES
+      const paddingX = 0.02
+      const paddingY = 0.02
+      const minX = Math.max(0, Math.min(...zones.map(zone => zone.minX)) - paddingX)
+      const maxX = Math.min(1, Math.max(...zones.map(zone => zone.maxX)) + paddingX)
+      const minY = Math.max(0, Math.min(...zones.map(zone => zone.minY)) - paddingY)
+      const maxY = Math.min(1, Math.max(...zones.map(zone => zone.maxY)) + paddingY)
+
+      return {
+        left: headRect.left + headRect.width * minX,
+        right: headRect.left + headRect.width * maxX,
+        top: headRect.top + headRect.height * minY,
+        bottom: headRect.top + headRect.height * maxY
+      }
+    }
 
     if (stepRef.current === 3 && insideTeethDataRef.current.bounds) {
       const { bounds, topRange, bottomRange } = insideTeethDataRef.current
@@ -1101,16 +1166,21 @@ export default function ToothbrushGame() {
       const deltaY = bristleCenterY - lastBrushY
       const verticalDistance = Math.abs(deltaY)
       const lastX = verticalLastBrushXRef.current
+      const isStep4 = stepRef.current === 4
+      const verticalThreshold = isStep4 ? STEP4_VERTICAL_THRESHOLD : VERTICAL_STROKE_THRESHOLD
+      const horizontalTolerance = isStep4 ? STEP4_HORIZONTAL_TOLERANCE : VERTICAL_HORIZONTAL_TOLERANCE
+      const dominanceRatio = isStep4 ? STEP4_DOMINANCE_RATIO : VERTICAL_DOMINANCE_RATIO
+
       const horizontalDistance = lastX === null ? 0 : Math.abs(bristleCenterX - lastX)
-      if (horizontalDistance > VERTICAL_HORIZONTAL_TOLERANCE && verticalDistance < VERTICAL_STROKE_THRESHOLD) {
+      if (horizontalDistance > horizontalTolerance && verticalDistance < verticalThreshold) {
         setLastBrushY(bristleCenterY)
         verticalLastBrushXRef.current = bristleCenterX
         return
       }
-      const meetsThreshold = verticalDistance >= VERTICAL_STROKE_THRESHOLD
+      const meetsThreshold = verticalDistance >= verticalThreshold
       const hasVerticalPreference =
-        horizontalDistance <= VERTICAL_HORIZONTAL_TOLERANCE ||
-        verticalDistance >= horizontalDistance * VERTICAL_DOMINANCE_RATIO
+        horizontalDistance <= horizontalTolerance ||
+        verticalDistance >= horizontalDistance * dominanceRatio
 
       if (meetsThreshold && hasVerticalPreference) {
         const newDirection = deltaY < 0 ? 'up' : 'down'
@@ -1489,6 +1559,9 @@ export default function ToothbrushGame() {
       ref={containerRef}
       className={`toothbrush-game ${dragging || brushing ? 'dragging-active' : ''}`}
     >
+      {showHitboxes && (
+        <div className="debug-chip">Hitboxes ON — press H to hide</div>
+      )}
       <button className="skip-button" onClick={skipToNextStep}>
         Skip
       </button>
@@ -1581,6 +1654,20 @@ export default function ToothbrushGame() {
                   width: `${step === 4 ? STEP4_GERM_SIZE : GERM_DISPLAY_SIZE}px`
                 }}
               />
+            )}
+
+            {showHitboxes && currentGerm && currentGerm.status === 'active' && (
+              <div
+                className="germ-hitbox-debug"
+                style={{
+                  left: `${currentGerm.xPct ?? 50}%`,
+                  top: `${currentGerm.yPct ?? 53}%`,
+                  width: `${step === 4 ? STEP4_GERM_SIZE : GERM_DISPLAY_SIZE}px`,
+                  height: `${step === 4 ? STEP4_GERM_SIZE : GERM_DISPLAY_SIZE}px`
+                }}
+              >
+                <span className="germ-hitbox-label">Germ Hitbox</span>
+              </div>
             )}
 
             {shineEffects.map(effect => (
