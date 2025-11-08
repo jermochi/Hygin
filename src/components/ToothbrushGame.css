@@ -364,6 +364,17 @@
 	transform-origin: center center;
 }
 
+.head-img.tongue-mouth {
+	position: relative;
+	top: auto;
+	left: auto;
+	width: 100%;
+	height: auto;
+	z-index: 1;
+	transform: scale(1.15);
+	transform-origin: center center;
+}
+
 /* Step 4: Open mouth chewing surfaces - make bigger */
 /* Debug overlay to visualize teeth detection area */
 .teeth-detection-area {
