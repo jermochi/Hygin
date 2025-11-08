@@ -36,10 +36,10 @@ const SUCCESS_CLEAR_DELAY_MS = 1200
 const FAILURE_CLEAR_DELAY_MS = 600
 const GERM_IMAGES = [germ1, germ2, germ3, germ4, germ5, germ6, germ7, germ8]
 // How many brush direction-change strokes are required to remove a single germ
-const GERM_STROKES_TO_REMOVE = 5
+const GERM_STROKES_TO_REMOVE = 3
 // Step-1 specific stroke requirement (keep step0 behavior unaffected)
-const STEP1_GERM_STROKES = 5
-const STEP2_GERM_STROKES = 5
+const STEP1_GERM_STROKES = 3
+const STEP2_GERM_STROKES = 3
 const STEP2_MOVEMENT_THRESHOLD = 60
 // Where the cursor should attach to the floating toothbrush (percentages of width/height)
 const BRUSH_HEAD_ANCHOR = { x: 0.85, y: 0.45 }
@@ -181,10 +181,26 @@ export default function ToothbrushGame() {
     let xPct = 50, yPct = 53
     if (headRef.current) {
       const r = headRef.current.getBoundingClientRect()
-      const padX = r.width * 0.10
-      const padY = r.height * 0.20
-      const xAbs = r.left + padX + Math.random() * (r.width - 2 * padX)
-      const yAbs = r.top + padY + Math.random() * (r.height - 2 * padY)
+      const teethLeft = r.left + r.width * 0.25
+      const teethRight = r.right - r.width * 0.25
+      const teethTop = r.top + r.height * 0.38
+      const teethBottom = r.top + r.height * 0.68
+
+      const teethWidth = Math.max(teethRight - teethLeft, 1)
+      const teethHeight = Math.max(teethBottom - teethTop, 1)
+
+      const padX = teethWidth * 0.08
+      const padY = teethHeight * 0.08
+      const spawnWidth = Math.max(teethWidth - 2 * padX, 0)
+      const spawnHeight = Math.max(teethHeight - 2 * padY, 0)
+
+      const xAbs = spawnWidth > 0
+        ? teethLeft + padX + Math.random() * spawnWidth
+        : teethLeft + teethWidth / 2
+      const yAbs = spawnHeight > 0
+        ? teethTop + padY + Math.random() * spawnHeight
+        : teethTop + teethHeight / 2
+
       xPct = ((xAbs - r.left) / r.width) * 100
       yPct = ((yAbs - r.top) / r.height) * 100
     }
