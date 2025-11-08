@@ -17,6 +17,7 @@ import germ5 from '../assets/5.png'
 import germ6 from '../assets/6.png'
 import germ7 from '../assets/7.png'
 import germ8 from '../assets/8.png'
+import insideTeeth from '../assets/inside_teeth.png'
 
 // Bristles hitbox portions (upper-right of brush head)
 const BRISTLES_WIDTH_PORTION = 0.40
@@ -45,6 +46,10 @@ const STEP2_MOVEMENT_THRESHOLD = 60
 const BRUSH_HEAD_ANCHOR = { x: 0.85, y: 0.45 }
 // Germ display / hitbox size (1/3 of previous 260px width)
 const GERM_DISPLAY_SIZE = Math.round(260 / 3)
+const INSIDE_TOP_Y_RANGE = { min: 0.18, max: 0.36 }
+const INSIDE_BOTTOM_Y_RANGE = { min: 0.66, max: 0.88 }
+const INSIDE_TOP_SPAWN_RANGE = { min: 0.22, max: 0.30 }
+const INSIDE_BOTTOM_SPAWN_RANGE = { min: 0.72, max: 0.80 }
 
 export default function ToothbrushGame() {
   const [step, setStep] = useState(0) // 0: apply paste, 1: brush teeth
@@ -72,6 +77,7 @@ export default function ToothbrushGame() {
   // dynamic brush anchor so the pointer sits on the bristles center
   const [brushAnchor, setBrushAnchor] = useState(BRUSH_HEAD_ANCHOR)
   const [successCount, setSuccessCount] = useState(0)
+  const [insideTeethReady, setInsideTeethReady] = useState(false)
   const spawnTimersRef = useRef({ windowTimer: null, nextSpawnTimer: null })
 
   // Live refs to avoid stale state inside timeouts
@@ -86,6 +92,21 @@ export default function ToothbrushGame() {
   const shineTimeoutsRef = useRef(new Map())
   const circleProgressRef = useRef(0)
   const step2LastPointerRef = useRef(null)
+  const insideTeethDataRef = useRef({
+    width: 0,
+    height: 0,
+    mask: null,
+    points: [],
+    bounds: null,
+    topRange: INSIDE_TOP_Y_RANGE,
+    bottomRange: INSIDE_BOTTOM_Y_RANGE,
+    topSpawnPoints: [],
+    bottomSpawnPoints: []
+  })
+  const pointerPosRef = useRef({
+    x: typeof window !== 'undefined' ? window.innerWidth / 2 : 0,
+    y: typeof window !== 'undefined' ? window.innerHeight / 2 : 0
+  })
 
   useEffect(() => { hudGermsRef.current = hudGerms }, [hudGerms])
   useEffect(() => { stepRef.current = step }, [step])
@@ -93,6 +114,170 @@ export default function ToothbrushGame() {
   useEffect(() => { currentGermRef.current = currentGerm }, [currentGerm])
   useEffect(() => { successCountRef.current = successCount }, [successCount])
   useEffect(() => { brushedThisWindowRef.current = brushedThisWindow }, [brushedThisWindow])
+
+  useEffect(() => {
+    const img = new Image()
+    img.crossOrigin = 'anonymous'
+    img.src = insideTeeth
+
+    const handleLoad = () => {
+      const width = img.naturalWidth || img.width
+      const height = img.naturalHeight || img.height
+      if (!width || !height) {
+        setInsideTeethReady(false)
+        insideTeethDataRef.current = { width: 0, height: 0, mask: null, points: [], bounds: null }
+        return
+      }
+
+      const canvas = document.createElement('canvas')
+      canvas.width = width
+      canvas.height = height
+      const ctx = canvas.getContext('2d')
+      if (!ctx) {
+        setInsideTeethReady(false)
+        insideTeethDataRef.current = { width: 0, height: 0, mask: null, points: [], bounds: null }
+        return
+      }
+
+      ctx.drawImage(img, 0, 0, width, height)
+
+      let imageData = null
+      try {
+        imageData = ctx.getImageData(0, 0, width, height)
+      } catch (err) {
+        setInsideTeethReady(false)
+        insideTeethDataRef.current = { width: 0, height: 0, mask: null, points: [], bounds: null }
+        return
+      }
+      if (!imageData) {
+        setInsideTeethReady(false)
+        insideTeethDataRef.current = { width: 0, height: 0, mask: null, points: [], bounds: null }
+        return
+      }
+
+      const { data } = imageData
+      const mask = new Uint8Array(width * height)
+      const points = []
+      const stride = 3
+
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          const idx = (y * width + x) * 4
+          const alpha = data[idx + 3]
+          if (alpha < 200) continue
+          const r = data[idx]
+          const g = data[idx + 1]
+          const b = data[idx + 2]
+          const brightness = (r + g + b) / 3
+          if (brightness < 210) continue
+
+          mask[y * width + x] = 1
+          const normX = (x + 0.5) / width
+          const normY = (y + 0.5) / height
+
+          if (x % stride === 0 && y % stride === 0) {
+            points.push({ x: normX, y: normY })
+          }
+        }
+      }
+
+      if (!points.length) {
+        setInsideTeethReady(false)
+        insideTeethDataRef.current = {
+          width: 0,
+          height: 0,
+          mask: null,
+          points: [],
+          bounds: null,
+          topRange: INSIDE_TOP_Y_RANGE,
+          bottomRange: INSIDE_BOTTOM_Y_RANGE,
+          topSpawnPoints: [],
+          bottomSpawnPoints: []
+        }
+        return
+      }
+
+      const isInTeethBand = (normY) =>
+        (normY >= INSIDE_TOP_Y_RANGE.min && normY <= INSIDE_TOP_Y_RANGE.max) ||
+        (normY >= INSIDE_BOTTOM_Y_RANGE.min && normY <= INSIDE_BOTTOM_Y_RANGE.max)
+
+      const teethPoints = points.filter(({ y }) => isInTeethBand(y))
+      const finalPoints = teethPoints.length ? teethPoints : points
+
+      if (!finalPoints.length) {
+        setInsideTeethReady(false)
+        insideTeethDataRef.current = {
+          width: 0,
+          height: 0,
+          mask: null,
+          points: [],
+          bounds: null,
+          topRange: INSIDE_TOP_Y_RANGE,
+          bottomRange: INSIDE_BOTTOM_Y_RANGE,
+          topSpawnPoints: [],
+          bottomSpawnPoints: []
+        }
+        return
+      }
+
+      const computeBounds = (pts) => {
+        let minX = 1
+        let maxX = 0
+        let minY = 1
+        let maxY = 0
+        pts.forEach(({ x, y }) => {
+          minX = Math.min(minX, x)
+          maxX = Math.max(maxX, x)
+          minY = Math.min(minY, y)
+          maxY = Math.max(maxY, y)
+        })
+        return { minX, maxX, minY, maxY }
+      }
+
+      const topSpawnPoints = finalPoints.filter(
+        ({ y }) => y >= INSIDE_TOP_SPAWN_RANGE.min && y <= INSIDE_TOP_SPAWN_RANGE.max
+      )
+      const bottomSpawnPoints = finalPoints.filter(
+        ({ y }) => y >= INSIDE_BOTTOM_SPAWN_RANGE.min && y <= INSIDE_BOTTOM_SPAWN_RANGE.max
+      )
+
+      insideTeethDataRef.current = {
+        width,
+        height,
+        mask,
+        points: finalPoints,
+        bounds: computeBounds(finalPoints),
+        topRange: INSIDE_TOP_Y_RANGE,
+        bottomRange: INSIDE_BOTTOM_Y_RANGE,
+        topSpawnPoints,
+        bottomSpawnPoints
+      }
+      setInsideTeethReady(true)
+    }
+
+    const handleError = () => {
+      setInsideTeethReady(false)
+      insideTeethDataRef.current = {
+        width: 0,
+        height: 0,
+        mask: null,
+        points: [],
+        bounds: null,
+        topRange: INSIDE_TOP_Y_RANGE,
+        bottomRange: INSIDE_BOTTOM_Y_RANGE,
+        topSpawnPoints: [],
+        bottomSpawnPoints: []
+      }
+    }
+
+    img.onload = handleLoad
+    img.onerror = handleError
+
+    return () => {
+      img.onload = null
+      img.onerror = null
+    }
+  }, [])
 
   useEffect(() => {
     return () => {
@@ -181,28 +366,97 @@ export default function ToothbrushGame() {
     let xPct = 50, yPct = 53
     if (headRef.current) {
       const r = headRef.current.getBoundingClientRect()
-      const teethLeft = r.left + r.width * 0.25
-      const teethRight = r.right - r.width * 0.25
-      const teethTop = r.top + r.height * 0.38
-      const teethBottom = r.top + r.height * 0.68
+      const currentStep = stepRef.current
 
-      const teethWidth = Math.max(teethRight - teethLeft, 1)
-      const teethHeight = Math.max(teethBottom - teethTop, 1)
+      if (
+        currentStep === 3 &&
+        insideTeethDataRef.current &&
+        Array.isArray(insideTeethDataRef.current.points) &&
+        insideTeethDataRef.current.points.length
+      ) {
+        const { points, width, height, mask, topSpawnPoints, bottomSpawnPoints } = insideTeethDataRef.current
+        const marginXNorm = r.width > 0 ? (GERM_DISPLAY_SIZE / 2) / r.width : 0
+        const marginYNorm = r.height > 0 ? (GERM_DISPLAY_SIZE / 2) / r.height : 0
+        const offsets = [
+          { dx: 0, dy: 0 },
+          { dx: marginXNorm, dy: 0 },
+          { dx: -marginXNorm, dy: 0 },
+          { dx: 0, dy: marginYNorm },
+          { dx: 0, dy: -marginYNorm }
+        ]
 
-      const padX = teethWidth * 0.08
-      const padY = teethHeight * 0.08
-      const spawnWidth = Math.max(teethWidth - 2 * padX, 0)
-      const spawnHeight = Math.max(teethHeight - 2 * padY, 0)
+        const pools = []
+        if (topSpawnPoints?.length) pools.push(topSpawnPoints)
+        if (bottomSpawnPoints?.length) pools.push(bottomSpawnPoints)
 
-      const xAbs = spawnWidth > 0
-        ? teethLeft + padX + Math.random() * spawnWidth
-        : teethLeft + teethWidth / 2
-      const yAbs = spawnHeight > 0
-        ? teethTop + padY + Math.random() * spawnHeight
-        : teethTop + teethHeight / 2
+        const pickPool = () => {
+          if (!pools.length) return points
+          return pools[Math.floor(Math.random() * pools.length)]
+        }
 
-      xPct = ((xAbs - r.left) / r.width) * 100
-      yPct = ((yAbs - r.top) / r.height) * 100
+        const selectCandidate = () => {
+          const activePool = pickPool()
+          for (let attempt = 0; attempt < 20; attempt++) {
+            const candidate = activePool[Math.floor(Math.random() * activePool.length)]
+            if (!candidate) continue
+            const valid = offsets.every(({ dx, dy }) => {
+              const nx = candidate.x + dx
+              const ny = candidate.y + dy
+              if (nx < 0 || nx > 1 || ny < 0 || ny > 1) return false
+              if (!mask || !width || !height) return true
+              const px = Math.min(width - 1, Math.max(0, Math.round(nx * (width - 1))))
+              const py = Math.min(height - 1, Math.max(0, Math.round(ny * (height - 1))))
+              return mask[py * width + px] === 1
+            })
+            if (valid) {
+              return candidate
+            }
+          }
+          const fallbackPool = points
+          return fallbackPool[Math.floor(Math.random() * fallbackPool.length)] ?? null
+        }
+
+        const point = selectCandidate()
+        if (point) {
+          xPct = (point.x ?? 0.5) * 100
+          let clampedY = point.y ?? 0.5
+          if (point.y <= INSIDE_TOP_Y_RANGE.max) {
+            clampedY = Math.min(
+              Math.max(point.y, INSIDE_TOP_SPAWN_RANGE.min),
+              INSIDE_TOP_SPAWN_RANGE.max
+            )
+          } else {
+            clampedY = Math.min(
+              Math.max(point.y, INSIDE_BOTTOM_SPAWN_RANGE.min),
+              INSIDE_BOTTOM_SPAWN_RANGE.max
+            )
+          }
+          yPct = clampedY * 100
+        }
+      } else {
+        const teethLeft = r.left + r.width * 0.25
+        const teethRight = r.right - r.width * 0.25
+        const teethTop = r.top + r.height * 0.38
+        const teethBottom = r.top + r.height * 0.68
+
+        const teethWidth = Math.max(teethRight - teethLeft, 1)
+        const teethHeight = Math.max(teethBottom - teethTop, 1)
+
+        const padX = teethWidth * 0.08
+        const padY = teethHeight * 0.08
+        const spawnWidth = Math.max(teethWidth - 2 * padX, 0)
+        const spawnHeight = Math.max(teethHeight - 2 * padY, 0)
+
+        const xAbs = spawnWidth > 0
+          ? teethLeft + padX + Math.random() * spawnWidth
+          : teethLeft + teethWidth / 2
+        const yAbs = spawnHeight > 0
+          ? teethTop + padY + Math.random() * spawnHeight
+          : teethTop + teethHeight / 2
+
+        xPct = ((xAbs - r.left) / r.width) * 100
+        yPct = ((yAbs - r.top) / r.height) * 100
+      }
     }
 
     const newGerm = { id: Date.now(), img: pick, status: 'active', xPct, yPct, opacity: 1 }
@@ -226,7 +480,7 @@ export default function ToothbrushGame() {
     spawnTimersRef.current.nextSpawnTimer = setTimeout(() => {
       spawnTimersRef.current.nextSpawnTimer = null
       if (
-        (stepRef.current === 1 || stepRef.current === 2) &&
+        (stepRef.current === 1 || stepRef.current === 2 || stepRef.current === 3) &&
         brushingActiveRef.current &&
         currentGermRef.current === null &&
         hudGermsRef.current < 3 &&
@@ -264,7 +518,12 @@ export default function ToothbrushGame() {
       brushHintTimeoutRef.current = null
     }
     setBrushingActive(false)
-    setHintMessage(phaseStep === 2 ? 'BRUSH IN CIRCLES' : 'BRUSH UP AND DOWN')
+    const message = phaseStep === 3
+      ? 'BRUSH THE INSIDES'
+      : phaseStep === 2
+        ? 'BRUSH IN CIRCLES'
+        : 'BRUSH UP AND DOWN'
+    setHintMessage(message)
     setShowBrushHint(true)
     brushHintTimeoutRef.current = setTimeout(() => {
       setShowBrushHint(false)
@@ -299,7 +558,12 @@ export default function ToothbrushGame() {
             setStep(2)
           }, 1200)
         } else if (currentStep === 2) {
-        setTimeout(() => setCleared(true), 1200)
+          setTimeout(() => {
+            setShowSuccess(false)
+            setStep(3)
+          }, 1200)
+        } else if (currentStep === 3) {
+          setTimeout(() => setCleared(true), 1200)
         }
       } else if (hudGermsRef.current < 3 && nextCount < WIN_CONDITION_COUNT) {
         // spawn after the clear delay so next germ always arrives post-removal
@@ -364,12 +628,47 @@ export default function ToothbrushGame() {
   const getTeethArea = () => {
     if (!headRef.current) return null
     const headRect = headRef.current.getBoundingClientRect()
+
+    if (stepRef.current === 3 && insideTeethDataRef.current.bounds) {
+      const { bounds, topRange, bottomRange } = insideTeethDataRef.current
+      const minX = bounds?.minX ?? 0.1
+      const maxX = bounds?.maxX ?? 0.9
+      const topBand = topRange ?? INSIDE_TOP_Y_RANGE
+      const bottomBand = bottomRange ?? INSIDE_BOTTOM_Y_RANGE
+      return {
+        left: headRect.left + headRect.width * minX,
+        right: headRect.left + headRect.width * maxX,
+        top: headRect.top + headRect.height * (topBand?.min ?? INSIDE_TOP_Y_RANGE.min),
+        bottom: headRect.top + headRect.height * (bottomBand?.max ?? INSIDE_BOTTOM_Y_RANGE.max)
+      }
+    }
+
     return {
       left: headRect.left + headRect.width * 0.25,
       right: headRect.right - headRect.width * 0.25,
       top: headRect.top + headRect.height * 0.38,
       bottom: headRect.top + headRect.height * 0.68
     }
+  }
+
+  const isInsideTeethPixel = (normX, normY) => {
+    const data = insideTeethDataRef.current
+    if (!data || !data.mask || !data.width || !data.height) return true
+    if (normX < 0 || normX > 1 || normY < 0 || normY > 1) return false
+
+    if (
+      stepRef.current === 3 &&
+      !(
+        (normY >= INSIDE_TOP_Y_RANGE.min && normY <= INSIDE_TOP_Y_RANGE.max) ||
+        (normY >= INSIDE_BOTTOM_Y_RANGE.min && normY <= INSIDE_BOTTOM_Y_RANGE.max)
+      )
+    ) {
+      return false
+    }
+
+    const x = Math.min(data.width - 1, Math.max(0, Math.round(normX * (data.width - 1))))
+    const y = Math.min(data.height - 1, Math.max(0, Math.round(normY * (data.height - 1))))
+    return data.mask[y * data.width + x] === 1
   }
 
   // Get germ bounds
@@ -518,6 +817,17 @@ export default function ToothbrushGame() {
       return
     }
 
+    if (stepRef.current === 3 && headRef.current) {
+      const headRect = headRef.current.getBoundingClientRect()
+      const relX = (pointerX - headRect.left) / headRect.width
+      const relY = (pointerY - headRect.top) / headRect.height
+      if (!isInsideTeethPixel(relX, relY)) {
+        circleProgressRef.current = 0
+        step2LastPointerRef.current = null
+        return
+      }
+    }
+
     const germ = currentGermRef.current
     if (!germ || germ.status !== 'active') {
       circleProgressRef.current = 0
@@ -577,7 +887,7 @@ export default function ToothbrushGame() {
       currentGermRef.current = updatedGerm
     }
 
-  }, [getTeethArea, getGermBounds, handleGermSuccess, spawnShineEffect])
+  }, [getTeethArea, getGermBounds, handleGermSuccess, spawnShineEffect, isInsideTeethPixel])
 
   const handleStep2Up = useCallback(() => {
     setBrushing(false)
@@ -590,13 +900,14 @@ export default function ToothbrushGame() {
   // Track pointer while dragging
   useEffect(() => {
     const handleMove = (e) => {
+      pointerPosRef.current = { x: e.clientX, y: e.clientY }
       if (step === 0 && dragging) {
         handleStep0Move(e)
       } else if (step === 1 && brushing) {
         setBrushPos({ x: e.clientX, y: e.clientY })
         const bristleCenter = getBristleCenter()
         handleStep1Move(e, bristleCenter.x, bristleCenter.y)
-      } else if (step === 2 && brushing) {
+      } else if ((step === 2 || step === 3) && brushing) {
         setBrushPos({ x: e.clientX, y: e.clientY })
         const bristleCenter = getBristleCenter()
         handleStep2Move(e, bristleCenter.x, bristleCenter.y)
@@ -608,7 +919,7 @@ export default function ToothbrushGame() {
         handleStep0Up()
       } else if (step === 1 && brushing) {
         handleStep1Up()
-      } else if (step === 2 && brushing) {
+      } else if ((step === 2 || step === 3) && brushing) {
         handleStep2Up()
       }
     }
@@ -625,36 +936,6 @@ export default function ToothbrushGame() {
     if (hasPaste || step !== 0) return
     setDragging(true)
     setCursorPos({ x: e.clientX, y: e.clientY })
-  }
-
-  const startBrushing = (e) => {
-    if (step !== 1 && step !== 2) return
-    try {
-      if (e.currentTarget && e.currentTarget.setPointerCapture) {
-        e.currentTarget.setPointerCapture(e.pointerId)
-      }
-    } catch (err) {}
-    setBrushing(true)
-    setBrushPos({ x: e.clientX, y: e.clientY })
-    setBrushDirection(null)
-    if (step === 1) {
-    // Try to initialize lastBrushY to the bristle center if possible so first stroke counts
-    if (brushRef.current) {
-      const bRect = brushRef.current.getBoundingClientRect()
-      const bTop = bRect.top + bRect.height * BRISTLES_TOP_OFFSET_PORTION
-      const bWidth = bRect.width * BRISTLES_WIDTH_PORTION
-      const bHeight = bRect.height * BRISTLES_HEIGHT_PORTION
-      const bLeft = bRect.right - bWidth
-      const bristleCenterY = bTop + bHeight / 2
-      setLastBrushY(bristleCenterY)
-    } else {
-      setLastBrushY(e.clientY)
-      }
-    } else {
-      setLastBrushY(null)
-      step2LastPointerRef.current = null
-      circleProgressRef.current = 0
-    }
   }
 
   // When paste is applied, move to next step
@@ -674,7 +955,7 @@ export default function ToothbrushGame() {
 
   // Reset brushing state when entering brushing steps
   useEffect(() => {
-    if (step === 1 || step === 2) {
+    if (step === 1 || step === 2 || step === 3) {
       setBrushingActive(false)
       setHudGerms(0)
       setSuccessCount(0)
@@ -683,6 +964,7 @@ export default function ToothbrushGame() {
       setBrushDirection(null)
       setLastBrushY(null)
       setShineEffects([])
+      setShowBrushHint(false)
       hudGermsRef.current = 0
       successCountRef.current = 0
       currentGermRef.current = null
@@ -714,15 +996,51 @@ export default function ToothbrushGame() {
     if (step === 2) {
       setHintMessage('BRUSH IN CIRCLES')
       startBrushingPhase(2)
+    } else if (step === 3) {
+      setHintMessage('BRUSH THE INSIDES')
     }
   }, [step, startBrushingPhase])
 
+  useEffect(() => {
+    if (step === 3 && insideTeethReady) {
+      startBrushingPhase(3)
+    }
+  }, [step, insideTeethReady, startBrushingPhase])
+
+  useEffect(() => {
+    if ((step === 1 || step === 2 || step === 3) && brushingActive && !brushing) {
+      setBrushing(true)
+      setBrushDirection(null)
+      const pos = pointerPosRef.current
+      setBrushPos({ x: pos.x, y: pos.y })
+      if (step === 1) {
+        setLastBrushY(null)
+      } else {
+        setLastBrushY(null)
+        step2LastPointerRef.current = null
+        circleProgressRef.current = 0
+      }
+    }
+  }, [step, brushingActive, brushing])
+
+  useEffect(() => {
+    if (brushing && step === 1 && lastBrushY === null) {
+      const raf = requestAnimationFrame(() => {
+        const center = getBristleCenter()
+        if (center?.y !== undefined) {
+          setLastBrushY(center.y)
+        }
+      })
+      return () => cancelAnimationFrame(raf)
+    }
+  }, [brushing, step, lastBrushY, getBristleCenter])
+
   // Step 1: Start game loop
   useEffect(() => {
-    if ((step !== 1 && step !== 2) || !brushingActive) return
+    if ((step !== 1 && step !== 2 && step !== 3) || !brushingActive) return
     const initial = setTimeout(() => {
       if (
-        (stepRef.current === 1 || stepRef.current === 2) &&
+        (stepRef.current === 1 || stepRef.current === 2 || stepRef.current === 3) &&
         brushingActiveRef.current &&
         currentGermRef.current === null &&
         hudGermsRef.current < 3 &&
@@ -756,6 +1074,12 @@ export default function ToothbrushGame() {
       }, 1200)
     } else if (step === 2) {
       setShowSuccess(true)
+      setTimeout(() => {
+        setShowSuccess(false)
+        setStep(3)
+      }, 1200)
+    } else if (step === 3) {
+      setShowSuccess(true)
       setTimeout(() => setCleared(true), 1200)
     }
   }
@@ -777,7 +1101,7 @@ export default function ToothbrushGame() {
       <div className="step-instruction">
         <div className="step-title-row">
           <div className="step-title">Step {step}:</div>
-          {(step === 1 || step === 2) && (
+          {(step === 1 || step === 2 || step === 3) && (
             <div className="germs hud">
               {[0,1,2].map((i) => (
                 <span key={i} className={`germ ${i < hudGerms ? 'active' : ''}`} aria-label="germ" role="img">🦠</span>
@@ -790,7 +1114,9 @@ export default function ToothbrushGame() {
             ? 'Drag the toothpaste to apply it to the toothbrush'
             : step === 1
               ? 'Brush the teeth up and down until clean'
-              : 'Brush the outer surface using circular motion'}
+              : step === 2
+                ? 'Brush the outer surface using circular motion'
+                : 'Brush the inside surfaces to make them sparkle'}
         </div>
       </div>
 
@@ -831,14 +1157,14 @@ export default function ToothbrushGame() {
       )}
 
       {/* Step 1: Brush teeth */}
-      {(step === 1 || step === 2) && (
-        <div className={`play-container step-1${step === 2 ? ' step-2' : ''}`}>
+      {(step === 1 || step === 2 || step === 3) && (
+        <div className={`play-container step-1${step === 2 ? ' step-2' : ''}${step === 3 ? ' step-3' : ''}`}>
           <div className="head-container">
             <img
               ref={headRef}
-              src={cleanMouth}
-              alt="Clean teeth"
-              className="head-img clean-mouth"
+              src={step === 3 ? insideTeeth : cleanMouth}
+              alt={step === 3 ? 'Inside teeth' : 'Clean teeth'}
+              className={`head-img ${step === 3 ? 'inside-mouth' : 'clean-mouth'}`}
               draggable={false}
             />
             {/* Debug overlay to visualize teeth detection area */}
@@ -858,17 +1184,6 @@ export default function ToothbrushGame() {
               />
             ))}
           </div>
-
-          {!brushing && (
-            <img
-              ref={brushRef}
-              src={toothbrushBackview}
-              alt="Toothbrush"
-              className="toothbrush-draggable"
-              onPointerDown={startBrushing}
-              draggable={false}
-            />
-          )}
 
           {brushing && (
             <img
@@ -919,7 +1234,7 @@ export default function ToothbrushGame() {
         </div>
       )}
 
-      {hudGerms >= 3 && (step === 1 || step === 2) && (
+      {hudGerms >= 3 && (step === 1 || step === 2 || step === 3) && (
         <div className="intro-overlay">
           <div className="backdrop" />
           <div className="intro-card">
