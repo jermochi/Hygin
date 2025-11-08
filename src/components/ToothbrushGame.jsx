@@ -12,6 +12,10 @@ import toothbrushBackview from '../assets/toothbrush-angle-b.png'
 import toothbrushAngled from '../assets/toothbrush_angled.png'
 import openMouth from '../assets/open-mouth.png'
 import brushTongue from '../assets/brush_tongue.png'
+import mouthClosed from '../assets/mouth-closed.png'
+import mouthWater from '../assets/mouth-water.png'
+import rinseWater from '../assets/water.png'
+import sparklingTeeth from '../assets/sparkling-teeth.png'
 import germ1 from '../assets/1.png'
 import germ2 from '../assets/2.png'
 import germ3 from '../assets/3.png'
@@ -98,6 +102,7 @@ export default function ToothbrushGame() {
   const [overBristles, setOverBristles] = useState(false)
   const [showSuccess, setShowSuccess] = useState(false)
   const [cleared, setCleared] = useState(false)
+  const [finalComplete, setFinalComplete] = useState(false)
 
   // Step 1: Brushing state
   const [brushPos, setBrushPos] = useState({ x: 0, y: 0 })
@@ -118,6 +123,10 @@ export default function ToothbrushGame() {
   const [successCount, setSuccessCount] = useState(0)
   const [insideTeethReady, setInsideTeethReady] = useState(false)
   const [showHitboxes, setShowHitboxes] = useState(false)
+  const [waterDragging, setWaterDragging] = useState(false)
+  const [waterCursorPos, setWaterCursorPos] = useState({ x: 0, y: 0 })
+  const [waterPoured, setWaterPoured] = useState(false)
+  const [overRinseMouth, setOverRinseMouth] = useState(false)
   const spawnTimersRef = useRef({ windowTimer: null, nextSpawnTimer: null })
 
   // Live refs to avoid stale state inside timeouts
@@ -511,6 +520,18 @@ export default function ToothbrushGame() {
     }
   }, [step])
 
+  useEffect(() => {
+    if (step === 6) {
+      setWaterDragging(false)
+      setOverRinseMouth(false)
+      setWaterPoured(false)
+      setWaterCursorPos({ x: 0, y: 0 })
+      setShowBrushHint(false)
+      setBrushingActive(false)
+      brushingActiveRef.current = false
+    }
+  }, [step])
+
   // Toggle germ hitbox visualization with "H"
   useEffect(() => {
     const handleKeyDown = (event) => {
@@ -586,6 +607,7 @@ export default function ToothbrushGame() {
   const containerRef = useRef(null)
   const headRef = useRef(null)
   const germRef = useRef(null)
+  const rinseMouthRef = useRef(null)
 
   const clearFailureTimer = useCallback(() => {
     if (spawnTimersRef.current.windowTimer) {
@@ -942,7 +964,12 @@ export default function ToothbrushGame() {
             setStep(5)
           }, 1200)
         } else if (currentStep === 5) {
-          setTimeout(() => setCleared(true), 1200)
+          setBrushingActive(false)
+          brushingActiveRef.current = false
+          setTimeout(() => {
+            setShowSuccess(false)
+            setStep(6)
+          }, 1200)
         }
       } else if (hudGermsRef.current < 3 && nextCount < WIN_CONDITION_COUNT) {
         // spawn after the clear delay so next germ always arrives post-removal
@@ -1325,6 +1352,36 @@ export default function ToothbrushGame() {
     circleProgressRef.current = 0
   }, [])
 
+  const handleStep6Move = useCallback((e) => {
+    setWaterCursorPos({ x: e.clientX, y: e.clientY })
+    if (!rinseMouthRef.current) {
+      setOverRinseMouth(false)
+      return
+    }
+    const rect = rinseMouthRef.current.getBoundingClientRect()
+    const paddingX = rect.width * 0.1
+    const paddingY = rect.height * 0.2
+    const left = rect.left - paddingX
+    const right = rect.right + paddingX
+    const top = rect.top - paddingY
+    const bottom = rect.bottom + paddingY
+    const isOver = e.clientX >= left && e.clientX <= right && e.clientY >= top && e.clientY <= bottom
+    setOverRinseMouth(isOver)
+  }, [])
+
+  const handleStep6Up = useCallback(() => {
+    if (overRinseMouth && !waterPoured) {
+      setWaterPoured(true)
+      setShowSuccess(true)
+      setTimeout(() => {
+        setShowSuccess(false)
+        setFinalComplete(true)
+      }, SUCCESS_CLEAR_DELAY_MS)
+    }
+    setWaterDragging(false)
+    setOverRinseMouth(false)
+  }, [overRinseMouth, waterPoured])
+
   // ========== Main Event Handlers ==========
   
   // Track pointer while dragging
@@ -1341,6 +1398,8 @@ export default function ToothbrushGame() {
         setBrushPos({ x: e.clientX, y: e.clientY })
         const bristleCenter = getBristleCenter()
         handleStep2Move(e, bristleCenter.x, bristleCenter.y)
+      } else if (step === 6 && waterDragging) {
+        handleStep6Move(e)
       }
     }
 
@@ -1351,6 +1410,8 @@ export default function ToothbrushGame() {
         handleVerticalUp()
       } else if ((step === 2 || step === 3) && brushing) {
         handleStep2Up()
+      } else if (step === 6 && waterDragging) {
+        handleStep6Up()
       }
     }
 
@@ -1360,12 +1421,18 @@ export default function ToothbrushGame() {
       window.removeEventListener('pointermove', handleMove)
       window.removeEventListener('pointerup', handleUp)
     }
-  }, [step, dragging, brushing, handleStep0Move, handleStep0Up, handleVerticalStrokeMove, handleVerticalUp, handleStep2Move, handleStep2Up, getBristleCenter])
+  }, [step, dragging, brushing, waterDragging, handleStep0Move, handleStep0Up, handleVerticalStrokeMove, handleVerticalUp, handleStep2Move, handleStep2Up, handleStep6Move, handleStep6Up, getBristleCenter])
 
   const startDrag = (e) => {
     if (hasPaste || step !== 0) return
     setDragging(true)
     setCursorPos({ x: e.clientX, y: e.clientY })
+  }
+
+  const startWaterDrag = (e) => {
+    if (step !== 6 || waterPoured) return
+    setWaterDragging(true)
+    setWaterCursorPos({ x: e.clientX, y: e.clientY })
   }
 
   // When paste is applied, move to next step
@@ -1544,20 +1611,69 @@ export default function ToothbrushGame() {
       }, 1200)
     } else if (step === 5) {
       setShowSuccess(true)
-      setTimeout(() => setCleared(true), 1200)
+      setTimeout(() => {
+        setShowSuccess(false)
+        setStep(6)
+      }, 1200)
+    } else if (step === 6) {
+      setFinalComplete(true)
     }
   }
 
-  if (cleared) {
-    return (
-      <div className="toothbrush-game cleared" />
-    )
+  const resetAll = () => {
+    // Clear timers and timeouts
+    if (spawnTimersRef.current.windowTimer) {
+      clearTimeout(spawnTimersRef.current.windowTimer)
+      spawnTimersRef.current.windowTimer = null
+    }
+    if (spawnTimersRef.current.nextSpawnTimer) {
+      clearTimeout(spawnTimersRef.current.nextSpawnTimer)
+      spawnTimersRef.current.nextSpawnTimer = null
+    }
+    if (brushHintTimeoutRef.current) {
+      clearTimeout(brushHintTimeoutRef.current)
+      brushHintTimeoutRef.current = null
+    }
+    if (shineTimeoutsRef.current.size) {
+      shineTimeoutsRef.current.forEach(t => clearTimeout(t))
+      shineTimeoutsRef.current.clear()
+    }
+    setStep(0)
+    setHasPaste(false)
+    setShowIntro(false)
+    setBrushingActive(false)
+    setHudGerms(0)
+    setSuccessCount(0)
+    setCurrentGerm(null)
+    setBrushedThisWindow(false)
+    hudGermsRef.current = 0
+    successCountRef.current = 0
+    currentGermRef.current = null
+    brushedThisWindowRef.current = false
+    step2LastPointerRef.current = null
+    circleProgressRef.current = 0
+    setWaterDragging(false)
+    setWaterPoured(false)
+    setOverRinseMouth(false)
+    setFinalComplete(false)
+    setCleared(false)
+    setShowSuccess(false)
+  }
+
+  const goHome = () => {
+    try {
+      // Hard redirect to app root (dev: http://localhost:5173/)
+      window.location.assign('/')
+    } catch {
+      // Fallback: update location directly
+      window.location.href = '/'
+    }
   }
 
   return (
     <div
       ref={containerRef}
-      className={`toothbrush-game ${dragging || brushing ? 'dragging-active' : ''}`}
+      className={`toothbrush-game ${dragging || brushing ? 'dragging-active' : ''} ${step === 6 ? 'rinse-cursor' : ''}`}
     >
       {showHitboxes && (
         <div className="debug-chip">Hitboxes ON — press H to hide</div>
@@ -1586,8 +1702,10 @@ export default function ToothbrushGame() {
                 : step === 3
                   ? 'Brush the inside surfaces to make them sparkle'
                   : step === 4
-                  ? 'Brush the chewing surfaces up and down until clean'
-                    : 'Brush the tongue up and down to remove germs'}
+                    ? 'Brush the chewing surfaces up and down until clean'
+                    : step === 5
+                      ? 'Brush the tongue up and down to remove germs'
+                      : 'Rinse out your mouth using water'}
         </div>
       </div>
 
@@ -1698,6 +1816,54 @@ export default function ToothbrushGame() {
         </div>
       )}
 
+      {step === 6 && !finalComplete && (
+        <div className="play-container rinse-step">
+          <div className={`rinse-mouth ${overRinseMouth ? 'target-hot' : ''}`}>
+            <img
+              ref={rinseMouthRef}
+              src={waterPoured ? mouthWater : mouthClosed}
+              alt={waterPoured ? 'Mouth rinsed with water' : 'Closed mouth'}
+              className="rinse-mouth-img"
+              draggable={false}
+            />
+          </div>
+
+          {!waterPoured && !waterDragging && (
+            <img
+              src={rinseWater}
+              alt="Glass of water"
+              className="water-glass"
+              onPointerDown={startWaterDrag}
+              draggable={false}
+            />
+          )}
+
+          {waterDragging && (
+            <img
+              src={rinseWater}
+              alt="Glass of water"
+              className="water-glass floating"
+              style={{ left: waterCursorPos.x, top: waterCursorPos.y }}
+              draggable={false}
+            />
+          )}
+        </div>
+      )}
+
+      {finalComplete && (
+        <div className="intro-overlay">
+          <div className="backdrop" />
+          <div className="intro-card">
+            <img src={sparklingTeeth} alt="Sparkling teeth" className="final-sparkle" />
+            <div className="intro-title" style={{ marginTop: '12px' }}>Brush your teeth twice a day</div>
+            <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', marginTop: '12px' }}>
+              <button className="continue-btn" onClick={goHome}>Main Menu</button>
+              <button className="continue-btn" onClick={() => { setFinalComplete(false); setStep(1); }}>Try Again</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {showSuccess && (
         <div className="success-overlay">
           <div className="backdrop" />
@@ -1731,7 +1897,7 @@ export default function ToothbrushGame() {
         </div>
       )}
 
-  {hudGerms >= 3 && (step === 1 || step === 2 || step === 3 || step === 4 || step === 5) && (
+      {hudGerms >= 3 && (step === 1 || step === 2 || step === 3 || step === 4 || step === 5) && (
         <div className="intro-overlay">
           <div className="backdrop" />
           <div className="intro-card">
@@ -1753,6 +1919,9 @@ export default function ToothbrushGame() {
                 brushedThisWindowRef.current = false
                 step2LastPointerRef.current = null
                 circleProgressRef.current = 0
+                setWaterDragging(false)
+                setWaterPoured(false)
+                setOverRinseMouth(false)
               }}
             >
               Try Again

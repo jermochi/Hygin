@@ -56,6 +56,17 @@
 	margin-top: 72px;
 }
 
+.play-container.rinse-step {
+	justify-content: center;
+	align-items: center;
+	gap: clamp(1rem, 3vw, 3rem);
+}
+
+.play-container.rinse-step .rinse-mouth,
+.play-container.rinse-step .water-glass { 
+	margin: 0 clamp(1rem, 2vw, 2rem);
+}
+
 .brush-dropzone {
 	position: relative;
 	width: clamp(880px, 42vw, 880px);
@@ -239,6 +250,71 @@
 	height: 100%;
 	display: block;
 	object-fit: cover;
+}
+.rinse-mouth {
+	position: relative;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.rinse-mouth::after {
+	content: '';
+	position: absolute;
+	inset: 12%;
+	border-radius: 50%;
+	background: radial-gradient(rgba(147, 191, 199, 0.22), rgba(147, 191, 199, 0));
+	opacity: 0;
+	transition: opacity 160ms ease;
+	pointer-events: none;
+}
+
+.rinse-mouth.target-hot::after {
+	opacity: 1;
+}
+
+.rinse-mouth-img {
+	width: clamp(640px, 56vw, 860px);
+	height: auto;
+	user-select: none;
+	pointer-events: none;
+}
+
+.water-glass {
+	width: clamp(260px, 22vw, 360px);
+	height: auto;
+	cursor: grab;
+	user-select: none;
+	transition: transform 200ms ease;
+	z-index: 10;
+}
+
+.water-glass:hover {
+	transform: translateY(-4px);
+}
+
+.water-glass:active {
+	cursor: grabbing;
+}
+
+.water-glass.floating {
+	position: fixed;
+	left: 0;
+	top: 0;
+	transform: translate(-50%, -60%) scale(1.05);
+	pointer-events: none;
+	z-index: 1400;
+}
+
+/* Ensure pointer is visible during step 6 */
+.toothbrush-game.rinse-cursor { cursor: auto; }
+
+/* Final overlay larger image */
+.final-sparkle {
+	position: relative;
+	width: min(72vw, 780px);
+	height: auto;
+	animation: popIn 500ms ease-out both;
 }
 .step-title-row {
 	display: flex;
