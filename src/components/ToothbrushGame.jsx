@@ -9,8 +9,8 @@ import goodJobImg from '../assets/goodjob.png'
 import cleanMouth from '../assets/clean-mouth.png'
 import shineImg from '../assets/shine.png'
 import toothbrushBackview from '../assets/toothbrush-angle-b.png'
-import toothbrushAngled from '../assets/toothbrush_angled.png'
-import openMouth from '../assets/open-mouth.png'
+import openMouth from '../assets/open_mouth.png'
+import brushTongue from '../assets/brush_tongue.png'
 import germ1 from '../assets/1.png'
 import germ2 from '../assets/2.png'
 import germ3 from '../assets/3.png'
@@ -45,6 +45,7 @@ const STEP1_GERM_STROKES = 2
 const STEP2_GERM_STROKES = 3
 const STEP2_MOVEMENT_THRESHOLD = 60
 const STEP4_GERM_STROKES = 3
+const STEP5_GERM_STROKES = 3
 // Where the cursor should attach to the floating toothbrush (percentages of width/height)
 const BRUSH_HEAD_ANCHOR = { x: 0.85, y: 0.45 }
 // Germ display / hitbox size (1/3 of previous 260px width)
@@ -62,6 +63,9 @@ const STEP4_STRIPES = [
 const STEP4_STRIDE = 1
 const STEP4_GERM_SIZE = Math.round(GERM_DISPLAY_SIZE * 0.6)
 const STEP4_DIRECTION_THRESHOLD = 12
+
+// tongue data will be loaded from brush_tongue.png and used for step 5
+
 
 export default function ToothbrushGame() {
   const [step, setStep] = useState(0) // 0: apply paste, 1: brush teeth
@@ -114,6 +118,15 @@ export default function ToothbrushGame() {
     bottomRange: INSIDE_BOTTOM_Y_RANGE,
     topSpawnPoints: [],
     bottomSpawnPoints: []
+  })
+  // tongue mask data (for step 5)
+  const tongueDataRef = useRef({
+    width: 0,
+    height: 0,
+    mask: null,
+    points: [],
+    bounds: null,
+    spawnPoints: []
   })
   // Precomputed teeth mask for open mouth (step 4)
   const openMouthDataRef = useRef({
@@ -353,6 +366,100 @@ export default function ToothbrushGame() {
     return () => { img.onload = null }
   }, [])
 
+  // Build mask for tongue image (step 5)
+  useEffect(() => {
+    const img = new Image()
+    img.crossOrigin = 'anonymous'
+    img.src = brushTongue
+
+    const handleLoad = () => {
+      const width = img.naturalWidth || img.width
+      const height = img.naturalHeight || img.height
+      if (!width || !height) {
+        tongueDataRef.current = { width: 0, height: 0, mask: null, points: [], bounds: null, spawnPoints: [] }
+        return
+      }
+      const canvas = document.createElement('canvas')
+      canvas.width = width
+      canvas.height = height
+      const ctx = canvas.getContext('2d')
+      if (!ctx) return
+      ctx.drawImage(img, 0, 0, width, height)
+      let imageData = null
+      try { imageData = ctx.getImageData(0, 0, width, height) } catch { imageData = null }
+      if (!imageData) {
+        tongueDataRef.current = { width: 0, height: 0, mask: null, points: [], bounds: null, spawnPoints: [] }
+        return
+      }
+      const { data } = imageData
+      const mask = new Uint8Array(width * height)
+      const points = []
+      const stride = 3
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          const idx = (y * width + x) * 4
+          const a = data[idx + 3]
+          if (a < 200) continue
+          const r = data[idx]
+          const g = data[idx + 1]
+          const b = data[idx + 2]
+          const brightness = (r + g + b) / 3
+          // Check for tongue-like colors (pinkish/reddish, not white)
+          if (brightness < 130 || brightness > 200) continue // Skip dark or very bright (teeth)
+          if (r < 150 || r < g + 30) continue // Require red channel to be strong
+          if (y < height * 0.4) continue // Skip upper portion entirely (teeth area)
+          mask[y * width + x] = 1
+          if (x % stride === 0 && y % stride === 0) {
+            points.push({ x: (x + 0.5) / width, y: (y + 0.5) / height })
+          }
+        }
+      }
+
+      const computeBounds = (pts) => {
+        if (!pts || !pts.length) return null
+        let minX = 1, maxX = 0, minY = 1, maxY = 0
+        pts.forEach(({ x, y }) => {
+          minX = Math.min(minX, x)
+          maxX = Math.max(maxX, x)
+          minY = Math.min(minY, y)
+          maxY = Math.max(maxY, y)
+        })
+        return { minX, maxX, minY, maxY }
+      }
+
+      const bounds = computeBounds(points)
+      // Compute centroid of points to identify the tongue's center
+      const centroid = points.reduce((acc, p) => {
+        acc.x += p.x; acc.y += p.y; return acc
+      }, { x: 0, y: 0 })
+      centroid.x /= points.length
+      centroid.y /= points.length
+
+      // Restrict spawn points to lower portion of the tongue area
+      const spawnPoints = points.filter(p => (
+        p.y >= 0.45 && p.y <= 0.85 && // Keep in middle-lower region
+        p.x >= 0.2 && p.x <= 0.8 // Avoid far edges
+      ))
+
+      // Fallback to a strict central band if needed
+      const fallback = points.filter(p => p.y >= 0.55 && p.y <= 0.75)
+
+      tongueDataRef.current = {
+        width,
+        height,
+        mask,
+        points,
+        bounds,
+        centroid,
+        spawnPoints: spawnPoints.length ? spawnPoints : (fallback.length ? fallback : points)
+      }
+    }
+
+    img.onload = handleLoad
+    img.onerror = () => { tongueDataRef.current = { width: 0, height: 0, mask: null, points: [], bounds: null, spawnPoints: [] } }
+    return () => { img.onload = null }
+  }, [])
+
   useEffect(() => {
     return () => {
       if (brushHintTimeoutRef.current) {
@@ -516,12 +623,15 @@ export default function ToothbrushGame() {
           }
           yPct = clampedY * 100
         }
-      } else if (currentStep === 4) {
-        const stripes = openMouthDataRef.current.stripes ?? []
-        const filled = stripes.filter(bucket => bucket?.length)
-        if (filled.length) {
-          const bucket = filled[Math.floor(Math.random() * filled.length)]
-          const candidate = bucket[Math.floor(Math.random() * bucket.length)]
+  } else if (currentStep === 4) {
+        // Prefer spawning directly on detected teeth pixels within occlusal bands.
+        const pools = []
+        if (openMouthDataRef.current.topPoints?.length) pools.push('top')
+        if (openMouthDataRef.current.bottomPoints?.length) pools.push('bottom')
+        if (pools.length) {
+          const which = pools[Math.random() < 0.5 ? 0 : pools.length - 1]
+          const arr = which === 'top' ? openMouthDataRef.current.topPoints : openMouthDataRef.current.bottomPoints
+          const candidate = arr[Math.floor(Math.random() * arr.length)]
           if (candidate) {
             xPct = (candidate.x ?? 0.5) * 100
             yPct = (candidate.y ?? 0.5) * 100
@@ -532,6 +642,52 @@ export default function ToothbrushGame() {
           const yNorm = region.yMin + Math.random() * (region.yMax - region.yMin)
           xPct = (xNorm ?? 0.5) * 100
           yPct = (yNorm ?? 0.5) * 100
+        }
+      } else if (currentStep === 5) {
+        // Spawn germs preferentially on tongue mask points if available.
+        const tongue = tongueDataRef.current
+        if (tongue && Array.isArray(tongue.points) && tongue.points.length) {
+          const { points, width, height, mask } = tongue
+          const marginXNorm = r.width > 0 ? (GERM_DISPLAY_SIZE / 2) / r.width : 0
+          const marginYNorm = r.height > 0 ? (GERM_DISPLAY_SIZE / 2) / r.height : 0
+          const offsets = [
+            { dx: 0, dy: 0 },
+            { dx: marginXNorm, dy: 0 },
+            { dx: -marginXNorm, dy: 0 },
+            { dx: 0, dy: marginYNorm },
+            { dx: 0, dy: -marginYNorm }
+          ]
+
+          const selectCandidate = () => {
+            for (let attempt = 0; attempt < 40; attempt++) {
+              const candidate = points[Math.floor(Math.random() * points.length)]
+              if (!candidate) continue
+              const valid = offsets.every(({ dx, dy }) => {
+                const nx = candidate.x + dx
+                const ny = candidate.y + dy
+                if (nx < 0 || nx > 1 || ny < 0 || ny > 1) return false
+                if (!mask || !width || !height) return true
+                const px = Math.min(width - 1, Math.max(0, Math.round(nx * (width - 1))))
+                const py = Math.min(height - 1, Math.max(0, Math.round(ny * (height - 1))))
+                return mask[py * width + px] === 1
+              })
+              if (valid) return candidate
+            }
+            return points[Math.floor(Math.random() * points.length)] ?? null
+          }
+
+          const point = selectCandidate()
+          if (point) {
+            // Map normalized image coordinates to percentage of head image
+            xPct = (point.x ?? 0.5) * 100
+            yPct = (point.y ?? 0.5) * 100
+          }
+        } else if (headRef.current) {
+          // fallback to lower-central area of the head image
+          const xAbs = r.left + r.width * 0.5
+          const yAbs = r.top + r.height * 0.72
+          xPct = ((xAbs - r.left) / r.width) * 100
+          yPct = ((yAbs - r.top) / r.height) * 100
         }
       } else {
         const teethLeft = r.left + r.width * 0.25
@@ -580,7 +736,7 @@ export default function ToothbrushGame() {
     spawnTimersRef.current.nextSpawnTimer = setTimeout(() => {
       spawnTimersRef.current.nextSpawnTimer = null
       if (
-        (stepRef.current === 1 || stepRef.current === 2 || stepRef.current === 3 || stepRef.current === 4) &&
+        (stepRef.current === 1 || stepRef.current === 2 || stepRef.current === 3 || stepRef.current === 4 || stepRef.current === 5) &&
         brushingActiveRef.current &&
         currentGermRef.current === null &&
         hudGermsRef.current < 3 &&
@@ -624,7 +780,9 @@ export default function ToothbrushGame() {
         ? 'BRUSH THE INSIDES'
         : phaseStep === 2
           ? 'BRUSH IN CIRCLES'
-          : 'BRUSH UP AND DOWN'
+          : phaseStep === 5
+            ? 'BRUSH THE TONGUE'
+            : 'BRUSH UP AND DOWN'
     setHintMessage(message)
     setShowBrushHint(true)
     brushHintTimeoutRef.current = setTimeout(() => {
@@ -670,6 +828,11 @@ export default function ToothbrushGame() {
             setStep(4)
           }, 1200)
         } else if (currentStep === 4) {
+          setTimeout(() => {
+            setShowSuccess(false)
+            setStep(5)
+          }, 1200)
+        } else if (currentStep === 5) {
           setTimeout(() => setCleared(true), 1200)
         }
       } else if (hudGermsRef.current < 3 && nextCount < WIN_CONDITION_COUNT) {
@@ -757,6 +920,19 @@ export default function ToothbrushGame() {
         right: headRect.left + headRect.width * maxX,
         top: headRect.top + headRect.height * (topBand?.min ?? INSIDE_TOP_Y_RANGE.min),
         bottom: headRect.top + headRect.height * (bottomBand?.max ?? INSIDE_BOTTOM_Y_RANGE.max)
+      }
+    }
+    if (stepRef.current === 5 && tongueDataRef.current && tongueDataRef.current.bounds) {
+      const { bounds } = tongueDataRef.current
+      const minX = bounds?.minX ?? 0.2
+      const maxX = bounds?.maxX ?? 0.8
+      const minY = bounds?.minY ?? 0.6
+      const maxY = bounds?.maxY ?? 0.92
+      return {
+        left: headRect.left + headRect.width * minX,
+        right: headRect.left + headRect.width * maxX,
+        top: headRect.top + headRect.height * minY,
+        bottom: headRect.top + headRect.height * maxY
       }
     }
 
@@ -918,7 +1094,8 @@ export default function ToothbrushGame() {
                       setBrushedThisWindow(true)
                       brushedThisWindowRef.current = true
 
-                      const perStroke = 1 / STEP1_GERM_STROKES
+                        const strokesNeeded = stepRef.current === 5 ? STEP5_GERM_STROKES : STEP1_GERM_STROKES
+                        const perStroke = 1 / strokesNeeded
                       const nextOpacity = Math.max(0, (germ.opacity ?? 1) - perStroke)
 
                       if (nextOpacity <= 0) {
@@ -1121,7 +1298,7 @@ export default function ToothbrushGame() {
       pointerPosRef.current = { x: e.clientX, y: e.clientY }
       if (step === 0 && dragging) {
         handleStep0Move(e)
-      } else if (step === 1 && brushing) {
+      } else if ((step === 1 || step === 5) && brushing) {
         setBrushPos({ x: e.clientX, y: e.clientY })
         const bristleCenter = getBristleCenter()
         handleStep1Move(e, bristleCenter.x, bristleCenter.y)
@@ -1179,7 +1356,7 @@ export default function ToothbrushGame() {
 
   // Reset brushing state when entering brushing steps
   useEffect(() => {
-    if (step === 1 || step === 2 || step === 3 || step === 4) {
+    if (step === 1 || step === 2 || step === 3 || step === 4 || step === 5) {
       setBrushingActive(false)
       setHudGerms(0)
       setSuccessCount(0)
@@ -1225,6 +1402,9 @@ export default function ToothbrushGame() {
     } else if (step === 4) {
       setHintMessage('BRUSH BACK AND FORTH')
       startBrushingPhase(4)
+    } else if (step === 5) {
+      setHintMessage('BRUSH THE TONGUE')
+      startBrushingPhase(5)
     }
   }, [step, startBrushingPhase])
 
@@ -1232,10 +1412,14 @@ export default function ToothbrushGame() {
     if (step === 3 && insideTeethReady) {
       startBrushingPhase(3)
     }
+    if (step === 5) {
+      // tongue image doesn't require extra readiness; start phase immediately
+      startBrushingPhase(5)
+    }
   }, [step, insideTeethReady, startBrushingPhase])
 
   useEffect(() => {
-    if ((step === 1 || step === 2 || step === 3 || step === 4) && brushingActive && !brushing) {
+    if ((step === 1 || step === 2 || step === 3 || step === 4 || step === 5) && brushingActive && !brushing) {
       setBrushing(true)
       setBrushDirection(null)
       const pos = pointerPosRef.current
@@ -1247,13 +1431,16 @@ export default function ToothbrushGame() {
         step2LastPointerRef.current = null
         circleProgressRef.current = 0
       } else if (step === 4) {
+        setLastBrushX(null)
+      } else if (step === 5) {
+        // tongue uses up/down strokes like step 1
         setLastBrushY(null)
       }
     }
   }, [step, brushingActive, brushing])
 
   useEffect(() => {
-    if (brushing && (step === 1 || step === 4) && lastBrushY === null) {
+    if (brushing && (step === 1 || step === 5) && lastBrushY === null) {
       const raf = requestAnimationFrame(() => {
         const center = getBristleCenter()
         if (center?.y !== undefined) {
@@ -1267,10 +1454,10 @@ export default function ToothbrushGame() {
   // Initialize X position for step 4
   // Step 1: Start game loop
   useEffect(() => {
-    if ((step !== 1 && step !== 2 && step !== 3 && step !== 4) || !brushingActive) return
+    if ((step !== 1 && step !== 2 && step !== 3 && step !== 4 && step !== 5) || !brushingActive) return
     const initial = setTimeout(() => {
       if (
-        (stepRef.current === 1 || stepRef.current === 2 || stepRef.current === 3 || stepRef.current === 4) &&
+        (stepRef.current === 1 || stepRef.current === 2 || stepRef.current === 3 || stepRef.current === 4 || stepRef.current === 5) &&
         brushingActiveRef.current &&
         currentGermRef.current === null &&
         hudGermsRef.current < 3 &&
@@ -1316,6 +1503,12 @@ export default function ToothbrushGame() {
       }, 1200)
     } else if (step === 4) {
       setShowSuccess(true)
+      setTimeout(() => {
+        setShowSuccess(false)
+        setStep(5)
+      }, 1200)
+    } else if (step === 5) {
+      setShowSuccess(true)
       setTimeout(() => setCleared(true), 1200)
     }
   }
@@ -1337,7 +1530,7 @@ export default function ToothbrushGame() {
       <div className="step-instruction">
         <div className="step-title-row">
           <div className="step-title">Step {step}:</div>
-          {(step === 1 || step === 2 || step === 3 || step === 4) && (
+          {(step === 1 || step === 2 || step === 3 || step === 4 || step === 5) && (
             <div className="germs hud">
               {[0,1,2].map((i) => (
                 <span key={i} className={`germ ${i < hudGerms ? 'active' : ''}`} aria-label="germ" role="img">🦠</span>
@@ -1354,7 +1547,9 @@ export default function ToothbrushGame() {
                 ? 'Brush the outer surface using circular motion'
                 : step === 3
                   ? 'Brush the inside surfaces to make them sparkle'
-                  : 'Brush the chewing surfaces with back and forth strokes'}
+                  : step === 4
+                    ? 'Brush the chewing surfaces with back and forth strokes'
+                    : 'Brush the tongue up and down to remove germs'}
         </div>
       </div>
 
@@ -1395,16 +1590,16 @@ export default function ToothbrushGame() {
       )}
 
       {/* Step 1: Brush teeth */}
-      {(step === 1 || step === 2 || step === 3 || step === 4) && (
-        <div className={`play-container step-1${step === 2 ? ' step-2' : ''}${step === 3 ? ' step-3' : ''}${step === 4 ? ' step-4' : ''}`}>
+      {(step === 1 || step === 2 || step === 3 || step === 4 || step === 5) && (
+        <div className={`play-container step-1${step === 2 ? ' step-2' : ''}${step === 3 ? ' step-3' : ''}${step === 4 ? ' step-4' : ''}${step === 5 ? ' step-5' : ''}`}>
           <div className="head-container">
-            <img
-              ref={headRef}
-              src={step === 3 ? insideTeeth : step === 4 ? openMouth : cleanMouth}
-              alt={step === 3 ? 'Inside teeth' : step === 4 ? 'Open mouth' : 'Clean teeth'}
-              className={`head-img ${step === 3 ? 'inside-mouth' : step === 4 ? 'open-mouth' : 'clean-mouth'}`}
-              draggable={false}
-            />
+              <img
+                ref={headRef}
+                src={step === 3 ? insideTeeth : step === 4 ? openMouth : step === 5 ? brushTongue : cleanMouth}
+                alt={step === 3 ? 'Inside teeth' : step === 4 ? 'Open mouth' : step === 5 ? 'Tongue' : 'Clean teeth'}
+                className={`head-img ${step === 3 ? 'inside-mouth' : step === 4 ? 'open-mouth' : step === 5 ? 'tongue-mouth' : 'clean-mouth'}`}
+                draggable={false}
+              />
             {/* Debug overlay to visualize teeth detection area */}
             {/* <div className="teeth-detection-area" aria-hidden="true" /> */}
             
@@ -1484,7 +1679,7 @@ export default function ToothbrushGame() {
         </div>
       )}
 
-      {hudGerms >= 3 && (step === 1 || step === 2 || step === 3 || step === 4) && (
+  {hudGerms >= 3 && (step === 1 || step === 2 || step === 3 || step === 4 || step === 5) && (
         <div className="intro-overlay">
           <div className="backdrop" />
           <div className="intro-card">
