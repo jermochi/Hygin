@@ -6,9 +6,14 @@ import toothbrushNoPaste from '../assets/toothbrush-no-toothpaste.png'
 import toothbrushCursor from '../assets/toothbrush-toothpaste.png'
 import toothpasteClose from '../assets/toothpaste-closed.png'
 import toothpasteOpen from '../assets/toothpaste-open.png'
+import toothpasteSfx from '../assets/sounds/toothpaste.wav'
 import goodJobImg from '../assets/goodjob.png'
 import cleanMouth from '../assets/clean-mouth.png'
 import shineImg from '../assets/shine.png'
+import goodJobSfx from '../assets/sounds/good-job.wav'
+import toothbrushSfx from '../assets/sounds/toothbrush.wav'
+import successSfx from '../assets/sounds/success-sound.wav'
+import gargleWaterSfx from '../assets/sounds/gargle-water.wav'
 import toothbrushBackview from '../assets/toothbrush-angle-b.png'
 import toothbrushAngled from '../assets/toothbrush_angled.png'
 import openMouth from '../assets/open-mouth.png'
@@ -162,6 +167,11 @@ export default function ToothbrushGame() {
     bounds: null,
     spawnPoints: []
   })
+  
+  // Reference for the brushing sound effect
+  const brushingSoundRef = useRef(null)
+  const prevBrushPosRef = useRef({ x: 0, y: 0 })
+  const brushMovementTimeoutRef = useRef(null)
   // Precomputed teeth mask for open mouth (step 4)
   const openMouthDataRef = useRef({
     width: 0,
@@ -181,6 +191,74 @@ export default function ToothbrushGame() {
   useEffect(() => { currentGermRef.current = currentGerm }, [currentGerm])
   useEffect(() => { successCountRef.current = successCount }, [successCount])
   useEffect(() => { brushedThisWindowRef.current = brushedThisWindow }, [brushedThisWindow])
+
+  // Initialize brushing sound
+  useEffect(() => {
+    const audio = new Audio(toothbrushSfx);
+    audio.loop = true;
+    brushingSoundRef.current = audio;
+
+    return () => {
+      if (brushMovementTimeoutRef.current) {
+        clearTimeout(brushMovementTimeoutRef.current);
+      }
+      if (brushingSoundRef.current) {
+        brushingSoundRef.current.pause();
+        brushingSoundRef.current = null;
+      }
+    };
+  }, []);
+
+  // Watch for brush position changes and handle sound
+  useEffect(() => {
+    if (brushing && brushingActive) {
+      // Calculate if there was actual movement
+      const dx = brushPos.x - prevBrushPosRef.current.x;
+      const dy = brushPos.y - prevBrushPosRef.current.y;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+      
+      // Update previous position
+      prevBrushPosRef.current = { x: brushPos.x, y: brushPos.y };
+
+      // Only play sound if there's significant movement (more than 1 pixel)
+      if (distance > 1) {
+        if (brushingSoundRef.current && brushingSoundRef.current.paused) {
+          brushingSoundRef.current.play().catch(err => console.log('Audio play failed:', err));
+        }
+        
+        // Clear any existing timeout
+        if (brushMovementTimeoutRef.current) {
+          clearTimeout(brushMovementTimeoutRef.current);
+        }
+        
+        // Set new timeout to stop sound after movement stops
+        brushMovementTimeoutRef.current = setTimeout(() => {
+          if (brushingSoundRef.current && !brushingSoundRef.current.paused) {
+            brushingSoundRef.current.pause();
+            if (brushingSoundRef.current.currentTime) {
+              brushingSoundRef.current.currentTime = 0;
+            }
+          }
+        }, 50); // Stop sound after 50ms of no movement
+      }
+    } else {
+      // If we're not brushing or not active, stop the sound immediately
+      if (brushingSoundRef.current && !brushingSoundRef.current.paused) {
+        brushingSoundRef.current.pause();
+        if (brushingSoundRef.current.currentTime) {
+          brushingSoundRef.current.currentTime = 0;
+        }
+      }
+    }
+  }, [brushPos, brushing, brushingActive]);
+
+  // Play good job sound when success screen shows
+  useEffect(() => {
+    if (showSuccess) {
+      const audio = new Audio(goodJobSfx);
+      audio.play().catch(err => console.log('Audio play failed:', err));
+    }
+  }, [showSuccess])
 
   useEffect(() => {
     const img = new Image()
@@ -896,6 +974,10 @@ export default function ToothbrushGame() {
 
     setShineEffects(prev => [...prev, { id: effectId, xPct, yPct }])
 
+    // Play success sound
+    const audio = new Audio(successSfx);
+    audio.play().catch(err => console.log('Audio play failed:', err));
+
     if (shineTimeoutsRef.current.has(effectId)) {
       clearTimeout(shineTimeoutsRef.current.get(effectId))
     }
@@ -1161,6 +1243,9 @@ export default function ToothbrushGame() {
   const handleStep0Up = useCallback(() => {
     if (overBristles) {
       setHasPaste(true)
+      // Play toothpaste sound effect
+      const audio = new Audio(toothpasteSfx);
+      audio.play().catch(err => console.log('Audio play failed:', err));
     }
     setDragging(false)
     setOverBristles(false)
@@ -1382,6 +1467,9 @@ export default function ToothbrushGame() {
   const handleStep6Up = useCallback(() => {
     if (overRinseMouth && !waterPoured) {
       setWaterPoured(true)
+      // Play gargle water sound effect
+      const gargleSound = new Audio(gargleWaterSfx);
+      gargleSound.play().catch(err => console.log('Audio play failed:', err));
       // Add delay before showing "good job"
       setTimeout(() => {
         setShowSuccess(true)
