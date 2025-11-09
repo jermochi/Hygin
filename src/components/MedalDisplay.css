@@ -1,0 +1,45 @@
+.medal-display {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-left: auto;
+}
+
+.medal-item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s ease, filter 0.3s ease;
+}
+
+.medal-image {
+  height: 48px;
+  width: auto;
+  user-select: none;
+  pointer-events: none;
+}
+
+.medal-item.unearned .medal-image {
+  filter: grayscale(100%) opacity(0.4);
+}
+
+.medal-item.earned .medal-image {
+  filter: none;
+  opacity: 1;
+}
+
+.medal-item.earned:hover {
+  transform: scale(1.1);
+}
+
+/* Responsive adjustments */
+@media (max-width: 600px) {
+  .medal-display {
+    gap: 8px;
+  }
+  
+  .medal-image {
+    height: 36px;
+  }
+}
+

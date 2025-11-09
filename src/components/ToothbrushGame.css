@@ -59,12 +59,14 @@
 .play-container.rinse-step {
 	justify-content: center;
 	align-items: center;
-	gap: clamp(1rem, 3vw, 3rem);
+	gap: clamp(2rem, 4vw, 4rem);
+	padding: 32px clamp(2rem, 4vw, 4rem);
 }
 
 .play-container.rinse-step .rinse-mouth,
 .play-container.rinse-step .water-glass { 
-	margin: 0 clamp(1rem, 2vw, 2rem);
+	margin: 0;
+	flex-shrink: 0;
 }
 
 .brush-dropzone {
@@ -274,14 +276,14 @@
 }
 
 .rinse-mouth-img {
-	width: clamp(640px, 56vw, 860px);
+	width: clamp(500px, 45vw, 700px);
 	height: auto;
 	user-select: none;
 	pointer-events: none;
 }
 
 .water-glass {
-	width: clamp(260px, 22vw, 360px);
+	width: clamp(280px, 25vw, 380px);
 	height: auto;
 	cursor: grab;
 	user-select: none;

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import './HandwashingGame.css'
 import videoSrc from '../assets/handwashing.mp4'
+import { markGameCompleted, GAME_IDS } from '../utils/gameCompletion'
 
 const HandwashingGame = () => {
   const steps = [
@@ -147,6 +148,15 @@ const HandwashingGame = () => {
     setWrongCount(0)
     setGameOver(false)
   }
+
+  // Mark game as completed when gameComplete becomes true
+  useEffect(() => {
+    if (gameComplete) {
+      markGameCompleted(GAME_IDS.HANDWASHING)
+      // Dispatch custom event to update medal display
+      window.dispatchEvent(new Event('gameCompleted'))
+    }
+  }, [gameComplete])
 
   // We now show completion as an overlay instead of a full replace
 

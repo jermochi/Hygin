@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react'
 import './ToothbrushGame.css'
+import { markGameCompleted, GAME_IDS } from '../utils/gameCompletion'
 
 import toothbrushNoPaste from '../assets/toothbrush-no-toothpaste.png'
 import toothbrushCursor from '../assets/toothbrush-toothpaste.png'
@@ -531,6 +532,15 @@ export default function ToothbrushGame() {
       brushingActiveRef.current = false
     }
   }, [step])
+
+  // Mark game as completed when finalComplete becomes true
+  useEffect(() => {
+    if (finalComplete) {
+      markGameCompleted(GAME_IDS.TOOTHBRUSHING)
+      // Dispatch custom event to update medal display
+      window.dispatchEvent(new Event('gameCompleted'))
+    }
+  }, [finalComplete])
 
   // Toggle germ hitbox visualization with "H"
   useEffect(() => {
@@ -1372,11 +1382,14 @@ export default function ToothbrushGame() {
   const handleStep6Up = useCallback(() => {
     if (overRinseMouth && !waterPoured) {
       setWaterPoured(true)
-      setShowSuccess(true)
+      // Add delay before showing "good job"
       setTimeout(() => {
-        setShowSuccess(false)
-        setFinalComplete(true)
-      }, SUCCESS_CLEAR_DELAY_MS)
+        setShowSuccess(true)
+        setTimeout(() => {
+          setShowSuccess(false)
+          setFinalComplete(true)
+        }, SUCCESS_CLEAR_DELAY_MS)
+      }, 1000) // 1 second delay after water touches mouth
     }
     setWaterDragging(false)
     setOverRinseMouth(false)
@@ -1855,6 +1868,7 @@ export default function ToothbrushGame() {
           <div className="backdrop" />
           <div className="intro-card">
             <img src={sparklingTeeth} alt="Sparkling teeth" className="final-sparkle" />
+            <div className="intro-title" style={{ marginTop: '12px', fontSize: '4rem', fontWeight: 900 }}>CONGRATULATIONS!</div>
             <div className="intro-title" style={{ marginTop: '12px' }}>Brush your teeth twice a day</div>
             <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', marginTop: '12px' }}>
               <button className="continue-btn" onClick={goHome}>Main Menu</button>

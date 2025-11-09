@@ -4,6 +4,7 @@ import characterImage from '../assets/character.png'
 import './LandingPage.css'
 import logo from '../assets/logo.png'
 import logoSvg from '../assets/logo-dark.png'
+import MedalDisplay from './MedalDisplay'
 
 const LandingPage = () => {
   return (
@@ -12,6 +13,7 @@ const LandingPage = () => {
         <div className="logo">
           <img src={logo} alt="Hygin Logo" className="logo-image" />
         </div>
+        <MedalDisplay />
       </header>
       
       <main className="main-content">
