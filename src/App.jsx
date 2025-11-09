@@ -1,14 +1,16 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
-import { useState, useEffect, useRef } from 'react'
+import { useEffect, useRef, useContext } from 'react'
 import LandingPage from './components/LandingPage'
 import GamePage from './components/GamePage'
 import './App.css'
 import HygieneFallingIcons from './components/HygieneFallingIcons'
 import bgMusic from './assets/sounds/bg-music.wav'
 import { useHoverSound } from './utils/useHoverSound'
+import { AudioSettingsProvider } from './context/AudioSettingsProvider'
+import { AudioSettingsContext } from './context/AudioSettingsContext'
 
-function App() {
-  const [isMuted, setIsMuted] = useState(false);
+function AppContent() {
+  const { isMuted, toggleMute, registerAudio, unregisterAudio } = useContext(AudioSettingsContext);
   const audioRef = useRef(null);
   
   // Initialize hover sound
@@ -17,6 +19,9 @@ function App() {
   useEffect(() => {
     audioRef.current = new Audio(bgMusic);
     audioRef.current.loop = true;
+    
+    // Register this audio element with the context
+    registerAudio(audioRef.current);
 
     const startAudio = () => {
       if (audioRef.current) {
@@ -40,20 +45,11 @@ function App() {
       );
       if (audioRef.current) {
         audioRef.current.pause();
+        unregisterAudio(audioRef.current);
         audioRef.current = null;
       }
     };
-  }, []);
-
-  useEffect(() => {
-    if (audioRef.current) {
-      audioRef.current.muted = isMuted;
-    }
-  }, [isMuted]);
-
-  const toggleMute = () => {
-    setIsMuted(!isMuted);
-  };
+  }, [registerAudio, unregisterAudio]);
   return (
     <Router>
       <div className="app">
@@ -69,6 +65,14 @@ function App() {
         </Routes>
       </div>
     </Router>
+  )
+}
+
+function App() {
+  return (
+    <AudioSettingsProvider>
+      <AppContent />
+    </AudioSettingsProvider>
   )
 }
 

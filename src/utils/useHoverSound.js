@@ -1,12 +1,17 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useContext } from 'react';
 import hoverSoundFx from '../assets/sounds/hover-soundfx.wav';
+import { AudioSettingsContext } from '../context/AudioSettingsContext';
 
 export const useHoverSound = () => {
   const audioRef = useRef(null);
+  const { registerAudio, unregisterAudio } = useContext(AudioSettingsContext);
 
   useEffect(() => {
     // Initialize the audio
     audioRef.current = new Audio(hoverSoundFx);
+    
+    // Register this audio element with the context
+    registerAudio(audioRef.current);
     
     // Function to play the sound
     const playSound = () => {
@@ -46,8 +51,9 @@ export const useHoverSound = () => {
     return () => {
       document.removeEventListener('mouseover', handleHover);
       if (audioRef.current) {
+        unregisterAudio(audioRef.current);
         audioRef.current = null;
       }
     };
-  }, []);
+  }, [registerAudio, unregisterAudio]);
 };

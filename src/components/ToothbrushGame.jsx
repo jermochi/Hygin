@@ -1,6 +1,7 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react'
+import React, { useState, useRef, useEffect, useCallback, useContext } from 'react'
 import './ToothbrushGame.css'
 import { markGameCompleted, GAME_IDS } from '../utils/gameCompletion'
+import { AudioSettingsContext } from '../context/AudioSettingsContext'
 
 import toothbrushNoPaste from '../assets/toothbrush-no-toothpaste.png'
 import toothbrushCursor from '../assets/toothbrush-toothpaste.png'
@@ -101,6 +102,17 @@ const clamp01 = (value) => Math.min(1, Math.max(0, value))
 
 
 export default function ToothbrushGame() {
+  const { registerAudio, unregisterAudio } = useContext(AudioSettingsContext);
+  
+  // Helper to play a one-time sound effect
+  const playSound = useCallback((soundSrc) => {
+    const audio = new Audio(soundSrc);
+    registerAudio(audio);
+    audio.play().catch(err => console.log('Audio play failed:', err));
+    audio.onended = () => unregisterAudio(audio);
+    return audio;
+  }, [registerAudio, unregisterAudio]);
+  
   const [step, setStep] = useState(0) // 0: apply paste, 1: brush teeth
   const [hasPaste, setHasPaste] = useState(false)
   const [dragging, setDragging] = useState(false)
@@ -197,6 +209,9 @@ export default function ToothbrushGame() {
     const audio = new Audio(toothbrushSfx);
     audio.loop = true;
     brushingSoundRef.current = audio;
+    
+    // Register with audio context
+    registerAudio(audio);
 
     return () => {
       if (brushMovementTimeoutRef.current) {
@@ -204,10 +219,11 @@ export default function ToothbrushGame() {
       }
       if (brushingSoundRef.current) {
         brushingSoundRef.current.pause();
+        unregisterAudio(brushingSoundRef.current);
         brushingSoundRef.current = null;
       }
     };
-  }, []);
+  }, [registerAudio, unregisterAudio]);
 
   // Watch for brush position changes and handle sound
   useEffect(() => {
@@ -255,10 +271,9 @@ export default function ToothbrushGame() {
   // Play good job sound when success screen shows
   useEffect(() => {
     if (showSuccess) {
-      const audio = new Audio(goodJobSfx);
-      audio.play().catch(err => console.log('Audio play failed:', err));
+      playSound(goodJobSfx);
     }
-  }, [showSuccess])
+  }, [showSuccess, playSound])
 
   useEffect(() => {
     const img = new Image()
@@ -975,8 +990,7 @@ export default function ToothbrushGame() {
     setShineEffects(prev => [...prev, { id: effectId, xPct, yPct }])
 
     // Play success sound
-    const audio = new Audio(successSfx);
-    audio.play().catch(err => console.log('Audio play failed:', err));
+    playSound(successSfx);
 
     if (shineTimeoutsRef.current.has(effectId)) {
       clearTimeout(shineTimeoutsRef.current.get(effectId))
@@ -988,7 +1002,7 @@ export default function ToothbrushGame() {
     }, 1000)
 
     shineTimeoutsRef.current.set(effectId, timeout)
-  }, [])
+  }, [playSound])
 
   const startBrushingPhase = useCallback((phaseStep) => {
     setShowIntro(false)
@@ -1244,12 +1258,11 @@ export default function ToothbrushGame() {
     if (overBristles) {
       setHasPaste(true)
       // Play toothpaste sound effect
-      const audio = new Audio(toothpasteSfx);
-      audio.play().catch(err => console.log('Audio play failed:', err));
+      playSound(toothpasteSfx);
     }
     setDragging(false)
     setOverBristles(false)
-  }, [overBristles])
+  }, [overBristles, playSound])
 
   // ========== Shared Vertical Stroke Handler (Steps 1, 4, 5) ==========
   
@@ -1468,8 +1481,7 @@ export default function ToothbrushGame() {
     if (overRinseMouth && !waterPoured) {
       setWaterPoured(true)
       // Play gargle water sound effect
-      const gargleSound = new Audio(gargleWaterSfx);
-      gargleSound.play().catch(err => console.log('Audio play failed:', err));
+      playSound(gargleWaterSfx);
       // Add delay before showing "good job"
       setTimeout(() => {
         setShowSuccess(true)
@@ -1481,7 +1493,7 @@ export default function ToothbrushGame() {
     }
     setWaterDragging(false)
     setOverRinseMouth(false)
-  }, [overRinseMouth, waterPoured])
+  }, [overRinseMouth, waterPoured, playSound])
 
   // ========== Main Event Handlers ==========
   
