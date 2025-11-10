@@ -3,6 +3,7 @@ import { useEffect, useRef, useContext } from 'react'
 import LandingPage from './components/LandingPage'
 import GamePage from './components/GamePage'
 import './App.css'
+import './App.css'
 import HygieneFallingIcons from './components/HygieneFallingIcons'
 import bgMusic from './assets/sounds/bg-music.wav'
 import { useHoverSound } from './utils/useHoverSound'
@@ -15,7 +16,7 @@ function AppContent() {
   
   // Initialize hover sound
   useHoverSound();
-
+  //testcommebnt
   useEffect(() => {
     audioRef.current = new Audio(bgMusic);
     audioRef.current.loop = true;
