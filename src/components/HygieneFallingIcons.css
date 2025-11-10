@@ -5,7 +5,9 @@
     width: 100%;
     height: 100%;
     pointer-events: none;
-    z-index: 1; /* Make sure this is behind your content */
+    /* Keep icons visible but behind the main app content. Use 0 so
+       content with default stacking stays above it. */
+    z-index: 0;
     overflow: hidden;
     opacity: 0.5;
     /* Remove the background gradient here if you want to see your app's background */

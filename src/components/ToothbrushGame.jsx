@@ -60,7 +60,7 @@ const GERM_IMAGES = [germ1, germ2, germ3, germ4, germ5, germ6, germ7, germ8]
 // How many brush direction-change strokes are required to remove a single germ
 const GERM_STROKES_TO_REMOVE = 3
 // Step-1 specific stroke requirement (keep step0 behavior unaffected)
-const STEP1_GERM_STROKES = 3
+const STEP1_GERM_STROKES = 5
 const STEP2_GERM_STROKES = 3
 const STEP2_MOVEMENT_THRESHOLD = 60
 const STEP4_GERM_STROKES = 2
@@ -71,11 +71,13 @@ const VERTICAL_DOMINANCE_RATIO = 1.05
 const STEP4_VERTICAL_THRESHOLD = 6
 const STEP4_HORIZONTAL_TOLERANCE = 40
 const STEP4_DOMINANCE_RATIO = 0.9
-const STEP45_BRUSH_WIDTH = 'clamp(100px, 10vw, 150px)'
+// Reduce Step 4/5 brush width so it's not too large
+const STEP45_BRUSH_WIDTH = 'clamp(80px, 8vw, 120px)'
 // Where the cursor should attach to the floating toothbrush (percentages of width/height)
 const BRUSH_HEAD_ANCHOR = { x: 0.85, y: 0.45 }
 // Germ display / hitbox size (1/3 of previous 260px width)
 const GERM_DISPLAY_SIZE = Math.round(260 / 3)
+// Keep Step 4 germ size smaller (revert to original 0.6 multiplier)
 const STEP4_GERM_SIZE = Math.round(GERM_DISPLAY_SIZE * 0.6)
 const INSIDE_TOP_Y_RANGE = { min: 0.18, max: 0.36 }
 const INSIDE_BOTTOM_Y_RANGE = { min: 0.66, max: 0.88 }
@@ -712,6 +714,8 @@ export default function ToothbrushGame() {
   const headRef = useRef(null)
   const germRef = useRef(null)
   const rinseMouthRef = useRef(null)
+  const brushAnchorResetTimeoutRef = useRef(null)
+  const initialBrushPosRef = useRef(null)
 
   const clearFailureTimer = useCallback(() => {
     if (spawnTimersRef.current.windowTimer) {
@@ -792,20 +796,87 @@ export default function ToothbrushGame() {
 
         const point = selectCandidate()
         if (point) {
-          xPct = (point.x ?? 0.5) * 100
-          let clampedY = point.y ?? 0.5
-          if (point.y <= INSIDE_TOP_Y_RANGE.max) {
-            clampedY = Math.min(
-              Math.max(point.y, INSIDE_TOP_SPAWN_RANGE.min),
-              INSIDE_TOP_SPAWN_RANGE.max
-            )
-          } else {
-            clampedY = Math.min(
-              Math.max(point.y, INSIDE_BOTTOM_SPAWN_RANGE.min),
-              INSIDE_BOTTOM_SPAWN_RANGE.max
-            )
+          // Validate mapped points against the inside-teeth mask and attempt
+          // a few retries if a chosen candidate doesn't map cleanly to a masked pixel
+          const data = insideTeethDataRef.current || {}
+          const { mask: itMask, width: itWidth, height: itHeight, points: itPoints, bounds: itBounds } = data
+          let candidate = point
+          let attempts = 0
+          let mapped = false
+          let finalNormX = candidate.x ?? 0.5
+          let finalNormY = candidate.y ?? 0.5
+
+          // Apply strict bounding based on actual mask bounds to prevent out-of-bounds spawns
+          if (itBounds) {
+            const safeMinX = Math.max(itBounds.minX ?? 0.15, 0.15)
+            const safeMaxX = Math.min(itBounds.maxX ?? 0.85, 0.85)
+            finalNormX = Math.max(safeMinX, Math.min(safeMaxX, finalNormX))
           }
-          yPct = clampedY * 100
+
+          while (!mapped && attempts < 20) {
+            const normX = finalNormX
+            // clamp Y into the correct top/bottom spawn band first
+            let normY = finalNormY
+            if (normY <= INSIDE_TOP_Y_RANGE.max) {
+              normY = Math.min(Math.max(normY, INSIDE_TOP_SPAWN_RANGE.min), INSIDE_TOP_SPAWN_RANGE.max)
+            } else {
+              normY = Math.min(Math.max(normY, INSIDE_BOTTOM_SPAWN_RANGE.min), INSIDE_BOTTOM_SPAWN_RANGE.max)
+            }
+
+            // If we have an actual mask, validate the pixel maps to a tooth pixel
+            if (itMask && itWidth && itHeight) {
+              const px = Math.min(itWidth - 1, Math.max(0, Math.round(normX * (itWidth - 1))))
+              const py = Math.min(itHeight - 1, Math.max(0, Math.round(normY * (itHeight - 1))))
+              if (itMask[py * itWidth + px] === 1) {
+                mapped = true
+                finalNormX = normX
+                finalNormY = normY
+                break
+              }
+            } else {
+              // No mask available - accept candidate after clamping
+              mapped = true
+              finalNormX = normX
+              finalNormY = normY
+              break
+            }
+
+            // Pick another candidate from pools if available
+            const pool = (topSpawnPoints && topSpawnPoints.length) || (bottomSpawnPoints && bottomSpawnPoints.length) ?
+              (Math.random() < 0.5 ? topSpawnPoints : bottomSpawnPoints) : (points || itPoints)
+            if (Array.isArray(pool) && pool.length) {
+              const next = pool[Math.floor(Math.random() * pool.length)]
+              if (next) {
+                candidate = next
+                finalNormX = candidate.x ?? finalNormX
+                finalNormY = candidate.y ?? finalNormY
+                // Apply bounds again
+                if (itBounds) {
+                  const safeMinX = Math.max(itBounds.minX ?? 0.15, 0.15)
+                  const safeMaxX = Math.min(itBounds.maxX ?? 0.85, 0.85)
+                  finalNormX = Math.max(safeMinX, Math.min(safeMaxX, finalNormX))
+                }
+              }
+            }
+            attempts++
+          }
+
+          // If after retries we didn't find a mapped pixel, fallback to a safe center point
+          if (!mapped) {
+            // Prefer a top or bottom spawn band center depending on the original candidate
+            const useTop = (point.y ?? 0.5) <= (INSIDE_TOP_Y_RANGE.max)
+            finalNormX = 0.5
+            finalNormY = useTop
+              ? (INSIDE_TOP_SPAWN_RANGE.min + INSIDE_TOP_SPAWN_RANGE.max) / 2
+              : (INSIDE_BOTTOM_SPAWN_RANGE.min + INSIDE_BOTTOM_SPAWN_RANGE.max) / 2
+          }
+
+          // Clamp final coordinates strictly within reasonable bounds (prevent edge spawns)
+          finalNormX = Math.max(0.2, Math.min(0.8, finalNormX))
+          finalNormY = Math.max(0.2, Math.min(0.85, finalNormY))
+
+          xPct = (finalNormX ?? 0.5) * 100
+          yPct = (finalNormY ?? 0.5) * 100
         }
   } else if (currentStep === 4) {
         // Prefer spawning directly on detected teeth pixels within occlusal bands.
@@ -1026,7 +1097,111 @@ export default function ToothbrushGame() {
     brushHintTimeoutRef.current = setTimeout(() => {
       setShowBrushHint(false)
       brushHintTimeoutRef.current = null
-      setBrushingActive(true)
+        // Set an initial brush position so the toothbrush spawns below the mouth
+        // and centered when brushing starts (prevents overlap with the head)
+        try {
+          let startX = null
+          let startY = null
+          let headHeight = null
+          if (headRef && headRef.current) {
+            const hr = headRef.current.getBoundingClientRect()
+            headHeight = hr.height
+
+            // For Step 4 and Step 5, position brush to the right side instead of center to keep it in bounds
+            if (phaseStep === 4 || phaseStep === 5) {
+              // Position to the right of center, but not too far to avoid going out of bounds
+              startX = hr.left + hr.width * 0.70 // 70% from left (right side)
+            } else {
+              startX = hr.left + hr.width / 2
+            }
+            // place just below the mouth; we'll add a small positive offset below
+            // the mouth so the brush appears clearly under it
+            startY = hr.bottom
+          } else if (playContainerRef && playContainerRef.current) {
+            const pr = playContainerRef.current.getBoundingClientRect()
+            if (phaseStep === 4 || phaseStep === 5) {
+              // Position to the right for Step 4 and 5
+              startX = pr.left + pr.width * 0.65
+            } else {
+              startX = pr.left + pr.width / 2
+            }
+            // fallback: put the brush at ~68% of the play container height
+            startY = pr.top + pr.height * 0.68
+          }
+          if (startX !== null && startY !== null) {
+            // determine final spawn Y: place just below the mouth with a small offset
+            // Use a MUCH larger offset for Step 3 so the toothbrush isn't too close to the mouth
+            let spawnYOffset = headHeight ? Math.min(24, headHeight * 0.08) : 24
+            if (phaseStep === 3) {
+              // Step 3: use a significantly larger offset (about 20% of head height or at least 80px)
+              spawnYOffset = headHeight ? Math.max(80, headHeight * 0.20) : 80
+            } else if (phaseStep === 4) {
+              // Step 4: use moderate offset and keep right-side positioning
+              spawnYOffset = headHeight ? Math.max(50, headHeight * 0.14) : 50
+            } else if (phaseStep === 5) {
+              // Step 5: keep right-side positioning like Step 4 but place the brush a bit higher
+              // so it sits inside the play container without overlapping the mouth
+              spawnYOffset = headHeight ? Math.max(36, headHeight * 0.10) : 36
+            }
+
+            // For Steps 3/4/5 place brush below mouth; for others slightly lifted
+            let spawnY = (phaseStep === 3 || phaseStep === 4 || phaseStep === 5) ? (startY + spawnYOffset) : (startY + spawnYOffset - 10)
+
+            // Clamp spawnY to be inside the play container (if available) or viewport
+            try {
+              const maxContainerBottom = playContainerRef && playContainerRef.current
+                ? playContainerRef.current.getBoundingClientRect().bottom - 48
+                : (typeof window !== 'undefined' ? window.innerHeight - 80 : spawnY)
+              spawnY = Math.min(spawnY, maxContainerBottom)
+              // Also ensure spawnY stays at least a bit below the mouth bottom
+              if (headRef && headRef.current) {
+                const hr = headRef.current.getBoundingClientRect()
+                const minY = hr.bottom + 18
+                spawnY = Math.max(spawnY, minY)
+              }
+            } catch (err) {
+              // ignore and keep computed spawnY
+            }
+
+            // store the initial brush image position so we can snap back later
+            // center horizontally relative to the viewport (screen) for most steps
+            // but for Step 4, keep the right-side positioning
+              try {
+                // keep Step 4 and Step 5 right-side positioning; center other steps
+                if (typeof window !== 'undefined' && phaseStep !== 4 && phaseStep !== 5) {
+                  startX = window.innerWidth / 2
+                }
+              } catch (err) {
+                // ignore and keep previous startX
+              }
+
+            initialBrushPosRef.current = { x: startX, y: spawnY }
+
+            // temporarily center the toothbrush image by using a centered anchor
+            // so the visual image (not the bristles hitbox) is centered at startX
+            setBrushAnchor({ x: 0.5, y: 0.5 })
+            setBrushPos({ x: startX, y: spawnY })
+            pointerPosRef.current = { x: startX, y: spawnY }
+
+            // clear any previous reset timeout
+            if (brushAnchorResetTimeoutRef.current) {
+              clearTimeout(brushAnchorResetTimeoutRef.current)
+              brushAnchorResetTimeoutRef.current = null
+            }
+
+            // after a short delay restore the computed bristle anchor so brushing logic
+            // uses the accurate bristle hitpoint; delay allows initial spawn centering
+            // to be visible to the user
+            brushAnchorResetTimeoutRef.current = setTimeout(() => {
+              setBrushAnchor(BRUSH_HEAD_ANCHOR)
+              brushAnchorResetTimeoutRef.current = null
+            }, 700)
+          }
+        } catch (err) {
+          // ignore if DOM not ready
+        }
+
+        setBrushingActive(true)
     }, 2000)
   }, [])
 
@@ -1363,6 +1538,22 @@ export default function ToothbrushGame() {
     setLastBrushY(null)
     setBrushDirection(null)
     verticalLastBrushXRef.current = null
+    // Snap brush back to its initial visual spawn position (centered by image)
+    if (initialBrushPosRef.current) {
+      // clear any existing anchor reset timer
+      if (brushAnchorResetTimeoutRef.current) {
+        clearTimeout(brushAnchorResetTimeoutRef.current)
+        brushAnchorResetTimeoutRef.current = null
+      }
+      setBrushAnchor({ x: 0.5, y: 0.5 })
+      setBrushPos(initialBrushPosRef.current)
+      pointerPosRef.current = { ...initialBrushPosRef.current }
+      // restore bristle anchor after a short delay
+      brushAnchorResetTimeoutRef.current = setTimeout(() => {
+        setBrushAnchor(BRUSH_HEAD_ANCHOR)
+        brushAnchorResetTimeoutRef.current = null
+      }, 400)
+    }
     // Keep brushingActive true so brushing can restart when tapping inside
   }, [])
 
@@ -1387,8 +1578,9 @@ export default function ToothbrushGame() {
 
     if (stepRef.current === 3 && headRef.current) {
       const headRect = headRef.current.getBoundingClientRect()
-      const relX = (pointerX - headRect.left) / headRect.width
-      const relY = (pointerY - headRect.top) / headRect.height
+      // Use bristle center for detection, not pointer position
+      const relX = (bristleCenterX - headRect.left) / headRect.width
+      const relY = (bristleCenterY - headRect.top) / headRect.height
       if (!isInsideTeethPixel(relX, relY)) {
         circleProgressRef.current = 0
         step2LastPointerRef.current = null
@@ -1406,7 +1598,8 @@ export default function ToothbrushGame() {
     const germBounds = getGermBounds(germ)
     if (!germBounds) return
 
-    const expandedPadding = 12
+    // Use larger padding for Step 3 to make detection easier
+    const expandedPadding = stepRef.current === 3 ? 20 : 12
     const overGerm = pointerX >= (germBounds.left - expandedPadding) &&
       pointerX <= (germBounds.left + germBounds.width + expandedPadding) &&
       pointerY >= (germBounds.top - expandedPadding) &&
@@ -1462,6 +1655,20 @@ export default function ToothbrushGame() {
     setBrushing(false)
     step2LastPointerRef.current = null
     circleProgressRef.current = 0
+    // Snap brush back to initial spawn position
+    if (initialBrushPosRef.current) {
+      if (brushAnchorResetTimeoutRef.current) {
+        clearTimeout(brushAnchorResetTimeoutRef.current)
+        brushAnchorResetTimeoutRef.current = null
+      }
+      setBrushAnchor({ x: 0.5, y: 0.5 })
+      setBrushPos(initialBrushPosRef.current)
+      pointerPosRef.current = { ...initialBrushPosRef.current }
+      brushAnchorResetTimeoutRef.current = setTimeout(() => {
+        setBrushAnchor(BRUSH_HEAD_ANCHOR)
+        brushAnchorResetTimeoutRef.current = null
+      }, 400)
+    }
     // Keep brushingActive true so brushing can restart when tapping inside
   }, [])
 
@@ -1606,6 +1813,11 @@ export default function ToothbrushGame() {
       window.removeEventListener('pointerup', handleUp)
       window.removeEventListener('touchmove', handleTouchMove)
       window.removeEventListener('touchstart', handleTouchStart)
+      // clear any pending brush anchor reset
+      if (brushAnchorResetTimeoutRef.current) {
+        clearTimeout(brushAnchorResetTimeoutRef.current)
+        brushAnchorResetTimeoutRef.current = null
+      }
     }
   }, [step, dragging, brushing, waterDragging, handleStep0Move, handleStep0Up, handleVerticalStrokeMove, handleVerticalUp, handleStep2Move, handleStep2Up, handleStep6Move, handleStep6Up, getBristleCenter])
 

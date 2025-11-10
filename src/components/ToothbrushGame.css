@@ -51,6 +51,8 @@
 
 .play-container {
 	position: relative;
+	/* Make sure play container sits above decorative falling icons */
+	z-index: 10;
 	width: min(95vw, 1200px);
 	min-height: clamp(50vh, 60vh, 70vh);
 	padding: clamp(1rem, 4vw, 32px) clamp(1rem, 6vw, 48px);
@@ -101,6 +103,29 @@
 @media (max-width: 480px) {
 	.brush-dropzone {
 		width: min(100%, clamp(300px, 80vw, 600px));
+	}
+}
+
+/* Mobile layout adjustments: put toothpaste at the top and toothbrush toward bottom */
+@media (max-width: 480px) {
+	/* Move brush dropzone down so the toothbrush visually sits lower on the screen */
+	.brush-dropzone {
+		/* push the toothbrush nearer to the bottom of the play area */
+		transform: translateY(70%);
+		/* align contents to the end of the container vertically */
+		align-items: end;
+		justify-items: center;
+		aspect-ratio: 3 / 1;
+	}
+
+	/* make the floating paste slightly smaller on very small screens */
+	.toothpaste-img.small {
+		width: calc(clamp(200px, 40vw, 520px) * 0.36);
+	}
+
+	/* Ensure toothbrush image scales appropriately when dropped near bottom */
+	.toothbrush-img {
+		max-width: clamp(220px, 80vw, 640px);
 	}
 }
 
@@ -170,6 +195,16 @@
 	top: 160px;
 	right: 80px;
 	transform: translateX(20%);
+}
+
+/* Override toothpaste position for mobile */
+@media (max-width: 480px) {
+	.toothpaste-img.start {
+		top: 90px !important; /* near the top */
+		right: auto !important;
+		left: 50% !important;
+		transform: translateX(-50%) !important; /* center horizontally */
+	}
 }
 
 .dragging-active {
@@ -283,7 +318,8 @@
 	padding: clamp(1rem, 3vw, 2rem);
 	align-items: center;
 	justify-content: center;
-	min-height: auto;
+	/* Keep a generous minimum height for step 3 so the play card isn't squashed */
+	min-height: clamp(48vh, 60vh, 76vh);
 	height: auto;
 	touch-action: auto;
 }
@@ -305,7 +341,8 @@
 	padding: clamp(1rem, 3vw, 2rem);
 	align-items: center;
 	justify-content: center;
-	min-height: auto;
+	/* Keep generous height for step 4 like step 3 */
+	min-height: clamp(48vh, 60vh, 76vh);
 	height: auto;
 }
 .play-container.step-1.step-4 .head-container {
@@ -314,13 +351,29 @@
 	display: flex;
 	justify-content: center;
 	align-items: center;
+	/* raise the mouth more so it sits higher in the card and reduces empty space */
+	transform: translateY(-10vh);
 }
 .play-container.step-1.step-4 .head-img.open-mouth {
-	width: clamp(280px, 65vw, 700px);
-	max-width: 95%;
+	/* Increase mouth size more to fill the card and reduce empty space */
+	/* Make the open-mouth image larger across breakpoints (user requested larger) */
+	width: clamp(920px, 105vw, 1800px);
+	/* but never exceed the play container width */
+	max-width: 100%;
 	height: auto;
 	display: block;
 	object-fit: contain;
+}
+
+/* Step 5: raise the mouth (tongue image) so brush can sit in same relative area as step 4 */
+.play-container.step-1.step-5 .head-container {
+	width: 100%;
+	height: auto;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	/* match Step 4's vertical raise so the brush and mouth visually align */
+	transform: translateY(-8vh);
 }
 .rinse-mouth {
 	position: relative;
@@ -345,14 +398,16 @@
 }
 
 .rinse-mouth-img {
-	width: clamp(300px, 70vw, 700px);
+	/* Larger rinse mouth for better visibility on most devices */
+	width: clamp(360px, 75vw, 820px);
 	height: auto;
 	user-select: none;
 	pointer-events: none;
 }
 
 .water-glass {
-	width: clamp(180px, 35vw, 380px);
+	/* Slightly larger glass so it's comfortable to grab on tablets/phones */
+	width: clamp(200px, 36vw, 360px);
 	height: auto;
 	cursor: grab;
 	user-select: none;
@@ -384,7 +439,9 @@
 /* Final overlay larger image */
 .final-sparkle {
 	position: relative;
-	width: min(90vw, 780px);
+	display: block;
+	margin: 0 auto 8px auto;
+	width: min(70vw, 600px);
 	height: auto;
 	animation: popIn 500ms ease-out both;
 }
@@ -433,6 +490,9 @@
 	transform-origin: center center;
 	z-index: 1101;
 	pointer-events: auto;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
 }
 .intro-title { 
 	font-weight: 900; 
@@ -516,7 +576,8 @@
 }
 
 .germ-sprite.step-4-germ {
-	width: clamp(35px, 8vw, 45px) !important;
+	/* Keep Step 4 germs smaller (original size) */
+	width: clamp(35px, 8vw, 48px) !important;
 }
 
 /* Mobile-specific sizing for smaller screens */
@@ -526,7 +587,31 @@
 	}
 	
 	.germ-sprite.step-4-germ {
-		width: clamp(30px, 7vw, 40px) !important;
+		/* Keep germs smaller for Step 4 on mobile */
+		width: clamp(30px, 7vw, 42px) !important;
+	}
+
+	/* Rinse-step: stack mouth and glass on small screens to avoid overflow */
+	.play-container.rinse-step {
+		flex-direction: column;
+		padding: clamp(1rem, 3vw, 2rem);
+		gap: clamp(1rem, 3vw, 2rem);
+	}
+
+	.play-container.rinse-step .rinse-mouth {
+		width: 100%;
+		display: flex;
+		justify-content: center;
+	}
+
+	.play-container.rinse-step .rinse-mouth-img {
+		/* Make mouth bigger on mobile but constrained to container */
+		width: clamp(320px, 80vw, 700px);
+	}
+
+	.play-container.rinse-step .water-glass {
+		width: clamp(120px, 28vw, 220px);
+		margin-top: 6px;
 	}
 }
 .shine-sprite { animation: fadePop 1s ease-out forwards; }
@@ -706,7 +791,8 @@
 
 .toothbrush-floating {
 	position: fixed;
-	width: clamp(120px, 18vw, 280px);
+	/* slightly larger by default so it's more visible and easier to tap */
+	width: clamp(160px, 22vw, 360px);
 	height: auto;
 	/* Keep the toothbrush horizontal while dragging; translation handled inline */
 	transform: rotate(0deg);
@@ -718,6 +804,6 @@
 /* Mobile-specific sizing for smaller screens */
 @media (max-width: 480px) {
 	.toothbrush-floating {
-		width: clamp(100px, 16vw, 200px);
+		width: clamp(140px, 20vw, 260px);
 	}
 }
