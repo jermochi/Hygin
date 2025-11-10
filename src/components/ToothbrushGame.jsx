@@ -1538,6 +1538,10 @@ export default function ToothbrushGame() {
 
     // Also handle touch events specifically to prevent scrolling
     const handleTouchMove = (e) => {
+      // For step 3, allow touch events to pass through for brushing
+      if (step === 3) {
+        return;
+      }
       if (dragging || brushing || waterDragging) {
         e.preventDefault()
       }
@@ -1549,7 +1553,11 @@ export default function ToothbrushGame() {
       if (target && (target.tagName === 'BUTTON' || target.closest('button') || target.closest('.continue-btn'))) {
         return;
       }
-      if (dragging || brushing || waterDragging || step === 1 || step === 2 || step === 3 || step === 4 || step === 5) {
+      // For step 3, allow touch events to pass through for brushing
+      if (step === 3) {
+        return;
+      }
+      if (dragging || brushing || waterDragging || step === 1 || step === 2 || step === 4 || step === 5) {
         e.preventDefault()
       }
     }
@@ -1907,8 +1915,13 @@ export default function ToothbrushGame() {
             }
           }}
           onTouchStart={(e) => {
-            // Prevent scrolling when touching the game area
-            if (brushingActive || step === 1 || step === 2 || step === 3 || step === 4 || step === 5) {
+            // For step 3, don't prevent default to allow brushing
+            if (step === 3) {
+              // Allow touch events for step 3 brushing
+              return
+            }
+            // Prevent scrolling when touching the game area for other steps
+            if (brushingActive || step === 1 || step === 2 || step === 4 || step === 5) {
               e.preventDefault()
             }
           }}
