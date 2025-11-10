@@ -2,14 +2,16 @@
 .toothbrush-game {
 	position: relative;
 	width: 100%;
-	height: calc(100vh - clamp(60px, 15vw, 80px));
+	min-height: calc(100vh - clamp(60px, 15vw, 80px));
 	display: flex;
+	flex-direction: column;
 	align-items: center;
-	justify-content: center;
-	gap: clamp(1rem, 6vw, 4rem);
+	justify-content: flex-start;
+	gap: clamp(0.5rem, 2vw, 1rem);
 	overflow-y: auto;
 	-webkit-overflow-scrolling: touch;
 	touch-action: pan-y;
+	padding-top: clamp(0.5rem, 2vw, 1rem);
 }
 
 /* Prevent scrolling when brushing */
@@ -176,11 +178,14 @@
 
 /* Top-left instruction under navbar */
 .step-instruction {
-	position: absolute;
-	top: clamp(-28px, -6vw, -32px);
-	left: clamp(12px, 3vw, 24px);
+	position: relative;
+	top: 0;
+	left: 0;
 	color: #93BFC7; /* match navbar background color */
 	z-index: 5;
+	margin-bottom: clamp(0.5rem, 2vw, 1rem);
+	padding: 0 clamp(1rem, 3vw, 2rem);
+	width: 100%;
 }
 .step-title {
 	font-size: clamp(1.8rem, 7vw, 3.5rem);
@@ -503,7 +508,7 @@
 .germ-sprite, .shine-sprite {
 	position: absolute;
 	transform: translate(-50%, -50%);
-	width: clamp(80px, 20vw, 87px) !important;
+	width: clamp(50px, 12vw, 70px) !important;
 	height: auto;
 	user-select: none;
 	pointer-events: none;
@@ -511,17 +516,17 @@
 }
 
 .germ-sprite.step-4-germ {
-	width: clamp(50px, 12vw, 52px) !important;
+	width: clamp(35px, 8vw, 45px) !important;
 }
 
 /* Mobile-specific sizing for smaller screens */
 @media (max-width: 480px) {
 	.germ-sprite, .shine-sprite {
-		width: clamp(60px, 15vw, 87px) !important;
+		width: clamp(40px, 10vw, 60px) !important;
 	}
 	
 	.germ-sprite.step-4-germ {
-		width: clamp(40px, 10vw, 52px) !important;
+		width: clamp(30px, 7vw, 40px) !important;
 	}
 }
 .shine-sprite { animation: fadePop 1s ease-out forwards; }

@@ -1358,10 +1358,12 @@ export default function ToothbrushGame() {
   }, [lastBrushY, brushDirection, getTeethArea, getGermBounds, handleGermSuccess, spawnShineEffect])
 
   const handleVerticalUp = useCallback(() => {
+    // Don't stop brushing completely - allow it to restart when tapping inside
     setBrushing(false)
     setLastBrushY(null)
     setBrushDirection(null)
     verticalLastBrushXRef.current = null
+    // Keep brushingActive true so brushing can restart when tapping inside
   }, [])
 
   // ========== Step 2: Brush in Circles (or any motion!) ==========
@@ -1456,9 +1458,11 @@ export default function ToothbrushGame() {
   }, [getTeethArea, getGermBounds, handleGermSuccess, spawnShineEffect, isInsideTeethPixel])
 
   const handleStep2Up = useCallback(() => {
+    // Don't stop brushing completely - allow it to restart when tapping inside
     setBrushing(false)
     step2LastPointerRef.current = null
     circleProgressRef.current = 0
+    // Keep brushingActive true so brushing can restart when tapping inside
   }, [])
 
   const handleStep6Move = useCallback((e) => {
@@ -1950,12 +1954,53 @@ export default function ToothbrushGame() {
           ref={playContainerRef}
           className={`play-container step-1${step === 2 ? ' step-2' : ''}${step === 3 ? ' step-3' : ''}${step === 4 ? ' step-4' : ''}${step === 5 ? ' step-5' : ''}`}
           onPointerDown={(e) => {
+            // Restart brushing if tapping inside the container and brushing is active but not currently brushing
+            if (brushingActive && !brushing && (step === 1 || step === 2 || step === 3 || step === 4 || step === 5)) {
+              const rect = e.currentTarget.getBoundingClientRect()
+              const isInside = e.clientX >= rect.left && e.clientX <= rect.right && 
+                               e.clientY >= rect.top && e.clientY <= rect.bottom
+              if (isInside) {
+                setBrushing(true)
+                setBrushPos({ x: e.clientX, y: e.clientY })
+                pointerPosRef.current = { x: e.clientX, y: e.clientY }
+                if (step === 1 || step === 4 || step === 5) {
+                  setLastBrushY(null)
+                  verticalLastBrushXRef.current = null
+                } else if (step === 2 || step === 3) {
+                  setLastBrushY(null)
+                  step2LastPointerRef.current = null
+                  circleProgressRef.current = 0
+                }
+              }
+            }
             // Only prevent scrolling when touching inside the play container
             if (e.pointerType === 'touch' && brushingActive) {
               e.preventDefault()
             }
           }}
           onTouchStart={(e) => {
+            // Restart brushing if tapping inside the container
+            if (brushingActive && !brushing && (step === 1 || step === 2 || step === 3 || step === 4 || step === 5)) {
+              const touch = e.touches[0]
+              if (touch && playContainerRef.current) {
+                const rect = playContainerRef.current.getBoundingClientRect()
+                const isInside = touch.clientX >= rect.left && touch.clientX <= rect.right && 
+                                 touch.clientY >= rect.top && touch.clientY <= rect.bottom
+                if (isInside) {
+                  setBrushing(true)
+                  setBrushPos({ x: touch.clientX, y: touch.clientY })
+                  pointerPosRef.current = { x: touch.clientX, y: touch.clientY }
+                  if (step === 1 || step === 4 || step === 5) {
+                    setLastBrushY(null)
+                    verticalLastBrushXRef.current = null
+                  } else if (step === 2 || step === 3) {
+                    setLastBrushY(null)
+                    step2LastPointerRef.current = null
+                    circleProgressRef.current = 0
+                  }
+                }
+              }
+            }
             // Only prevent default when touching inside the play container
             // For step 3, allow touch events to pass through for brushing
             if (step === 3) {
