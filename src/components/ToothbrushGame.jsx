@@ -708,6 +708,7 @@ export default function ToothbrushGame() {
 
   const brushRef = useRef(null)
   const containerRef = useRef(null)
+  const playContainerRef = useRef(null)
   const headRef = useRef(null)
   const germRef = useRef(null)
   const rinseMouthRef = useRef(null)
@@ -1499,10 +1500,20 @@ export default function ToothbrushGame() {
   
   // Track pointer while dragging
   useEffect(() => {
+    // Helper to check if pointer is inside the play container
+    const isPointerInsidePlayContainer = (x, y) => {
+      if (!playContainerRef.current) return false;
+      const container = playContainerRef.current;
+      const rect = container.getBoundingClientRect();
+      return x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom;
+    }
+
     const handleMove = (e) => {
-      // Prevent default to stop scrolling on mobile
+      // Only prevent default if touching inside the play container
       if (e.pointerType === 'touch' && (dragging || brushing || waterDragging)) {
-        e.preventDefault()
+        if (isPointerInsidePlayContainer(e.clientX, e.clientY)) {
+          e.preventDefault()
+        }
       }
       pointerPosRef.current = { x: e.clientX, y: e.clientY }
       if (step === 0 && dragging) {
@@ -1521,9 +1532,11 @@ export default function ToothbrushGame() {
     }
 
     const handleUp = (e) => {
-      // Prevent default to stop scrolling on mobile
+      // Only prevent default if touching inside the play container
       if (e && e.pointerType === 'touch' && (dragging || brushing || waterDragging)) {
-        e.preventDefault()
+        if (isPointerInsidePlayContainer(e.clientX, e.clientY)) {
+          e.preventDefault()
+        }
       }
       if (step === 0 && dragging) {
         handleStep0Up()
@@ -1536,8 +1549,22 @@ export default function ToothbrushGame() {
       }
     }
 
+    // Helper to check if touch is inside the play container
+    const isInsidePlayContainer = (e) => {
+      if (!playContainerRef.current) return false;
+      const container = playContainerRef.current;
+      const rect = container.getBoundingClientRect();
+      const x = e.touches?.[0]?.clientX || e.clientX;
+      const y = e.touches?.[0]?.clientY || e.clientY;
+      return x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom;
+    }
+
     // Also handle touch events specifically to prevent scrolling
     const handleTouchMove = (e) => {
+      // Only prevent scrolling if touching inside the play container
+      if (!isInsidePlayContainer(e)) {
+        return; // Allow normal page scrolling outside the box
+      }
       // For step 3, allow touch events to pass through for brushing
       if (step === 3) {
         return;
@@ -1552,6 +1579,10 @@ export default function ToothbrushGame() {
       const target = e.target;
       if (target && (target.tagName === 'BUTTON' || target.closest('button') || target.closest('.continue-btn'))) {
         return;
+      }
+      // Only prevent scrolling if touching inside the play container
+      if (!isInsidePlayContainer(e)) {
+        return; // Allow normal page scrolling outside the box
       }
       // For step 3, allow touch events to pass through for brushing
       if (step === 3) {
@@ -1676,9 +1707,18 @@ export default function ToothbrushGame() {
 
   useEffect(() => {
     if ((step === 1 || step === 2 || step === 3 || step === 4 || step === 5) && brushingActive && !brushing) {
+      // Only start brushing if pointer is inside the play container
+      const pos = pointerPosRef.current
+      if (playContainerRef.current) {
+        const container = playContainerRef.current
+        const rect = container.getBoundingClientRect()
+        const isInside = pos.x >= rect.left && pos.x <= rect.right && pos.y >= rect.top && pos.y <= rect.bottom
+        if (!isInside) {
+          return // Don't start brushing if touching outside the container
+        }
+      }
       setBrushing(true)
       setBrushDirection(null)
-      const pos = pointerPosRef.current
       setBrushPos({ x: pos.x, y: pos.y })
       if (step === 1) {
         setLastBrushY(null)
@@ -1907,17 +1947,18 @@ export default function ToothbrushGame() {
       {/* Step 1: Brush teeth */}
       {(step === 1 || step === 2 || step === 3 || step === 4 || step === 5) && (
         <div 
+          ref={playContainerRef}
           className={`play-container step-1${step === 2 ? ' step-2' : ''}${step === 3 ? ' step-3' : ''}${step === 4 ? ' step-4' : ''}${step === 5 ? ' step-5' : ''}`}
           onPointerDown={(e) => {
-            // Prevent scrolling when starting to brush
+            // Only prevent scrolling when touching inside the play container
             if (e.pointerType === 'touch' && brushingActive) {
               e.preventDefault()
             }
           }}
           onTouchStart={(e) => {
-            // For step 3, don't prevent default to allow brushing
+            // Only prevent default when touching inside the play container
+            // For step 3, allow touch events to pass through for brushing
             if (step === 3) {
-              // Allow touch events for step 3 brushing
               return
             }
             // Prevent scrolling when touching the game area for other steps
