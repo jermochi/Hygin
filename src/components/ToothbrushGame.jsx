@@ -1544,6 +1544,11 @@ export default function ToothbrushGame() {
     }
 
     const handleTouchStart = (e) => {
+      // Don't prevent default on buttons or interactive elements
+      const target = e.target;
+      if (target && (target.tagName === 'BUTTON' || target.closest('button') || target.closest('.continue-btn'))) {
+        return;
+      }
       if (dragging || brushing || waterDragging || step === 1 || step === 2 || step === 3 || step === 4 || step === 5) {
         e.preventDefault()
       }
@@ -2043,7 +2048,18 @@ export default function ToothbrushGame() {
               <li>If you fail to brush the germs, you gain a germ point</li>
               <li>Three germ points and you lose</li>
             </ul>
-            <button className="continue-btn" onClick={() => startStep1()}>Continue</button>
+            <button 
+              className="continue-btn" 
+              onClick={() => startStep1()}
+              onTouchStart={(e) => {
+                e.stopPropagation();
+              }}
+              onPointerDown={(e) => {
+                e.stopPropagation();
+              }}
+            >
+              Continue
+            </button>
           </div>
         </div>
       )}

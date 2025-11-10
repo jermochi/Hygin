@@ -65,6 +65,14 @@
 	-webkit-overflow-scrolling: touch;
 }
 
+/* Mobile-specific sizing for play container */
+@media (max-width: 480px) {
+	.play-container {
+		padding: clamp(0.75rem, 3vw, 1.5rem) clamp(0.75rem, 4vw, 1.5rem);
+		min-height: clamp(45vh, 55vh, 65vh);
+	}
+}
+
 .play-container.rinse-step {
 	justify-content: center;
 	align-items: center;
@@ -372,16 +380,25 @@
 	display: grid;
 	place-items: center;
 	z-index: 1100;
+	pointer-events: auto;
 }
-.intro-overlay .backdrop { position: absolute; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(6px); }
+.intro-overlay .backdrop { 
+	position: absolute; 
+	inset: 0; 
+	background: rgba(0,0,0,0.6); 
+	backdrop-filter: blur(6px);
+	pointer-events: none;
+}
 .intro-card {
 	position: relative;
 	background: transparent;
 	color: #ffffff;
 	padding: 0;
 	text-align: center;
-	transform: scale(1.2);
+	transform: scale(1);
 	transform-origin: center center;
+	z-index: 1101;
+	pointer-events: auto;
 }
 .intro-title { 
 	font-weight: 900; 
@@ -415,6 +432,11 @@
 	font-size: clamp(1rem, 3vw, 1.5rem); 
 	touch-action: manipulation;
 	-webkit-tap-highlight-color: transparent;
+	position: relative;
+	z-index: 1102;
+	pointer-events: auto;
+	min-height: 44px;
+	min-width: 120px;
 }
 .continue-btn:hover,
 .continue-btn:active { 
@@ -424,7 +446,7 @@
 /* Tablet and larger screens */
 @media (min-width: 768px) {
 	.intro-card {
-		transform: scale(1.2);
+		transform: scale(1.1);
 	}
 	.intro-title {
 		font-size: 2.4rem;
@@ -438,6 +460,13 @@
 		font-size: 1.2rem;
 		padding: 12px 20px;
 		border-radius: 14px;
+	}
+}
+
+/* Desktop screens */
+@media (min-width: 1024px) {
+	.intro-card {
+		transform: scale(1.2);
 	}
 }
 
@@ -475,7 +504,7 @@
 }
 
 .head-img {
-	width: clamp(240px, 60vw, 720px);
+	width: clamp(200px, 50vw, 720px);
 	height: auto;
 	user-select: none;
 	pointer-events: none;
@@ -486,7 +515,14 @@
 /* Mobile-specific sizing for smaller screens */
 @media (max-width: 480px) {
 	.head-img {
-		width: clamp(200px, 55vw, 400px);
+		width: clamp(160px, 45vw, 350px);
+	}
+}
+
+/* Extra small mobile screens */
+@media (max-width: 360px) {
+	.head-img {
+		width: clamp(140px, 40vw, 300px);
 	}
 }
 
