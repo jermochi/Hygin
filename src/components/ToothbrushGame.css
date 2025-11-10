@@ -9,6 +9,13 @@
 	gap: clamp(1rem, 6vw, 4rem);
 	overflow-y: auto;
 	-webkit-overflow-scrolling: touch;
+	touch-action: pan-y;
+}
+
+/* Prevent scrolling when brushing */
+.toothbrush-game.brushing-active {
+	overflow: hidden;
+	touch-action: none;
 }
 
 .skip-button {
@@ -54,6 +61,8 @@
 	justify-content: flex-start;
 	overflow: hidden;
 	margin-top: clamp(40px, 10vw, 72px);
+	touch-action: none;
+	-webkit-overflow-scrolling: touch;
 }
 
 .play-container.rinse-step {
@@ -71,11 +80,18 @@
 
 .brush-dropzone {
 	position: relative;
-	width: min(100%, clamp(600px, 90vw, 880px));
+	width: min(100%, clamp(400px, 85vw, 880px));
 	aspect-ratio: 3 / 1;
 	display: grid;
 	place-items: center;
 	transform: translateY(35%);
+}
+
+/* Mobile-specific sizing for smaller screens */
+@media (max-width: 480px) {
+	.brush-dropzone {
+		width: min(100%, clamp(300px, 80vw, 600px));
+	}
 }
 
 .brush-dropzone.dragging::after {
@@ -92,6 +108,14 @@
 	height: auto;
 	user-select: none;
 	pointer-events: none; /* prevent image from grabbing drag events */
+	max-width: clamp(300px, 80vw, 880px);
+}
+
+/* Mobile-specific sizing for smaller screens */
+@media (max-width: 480px) {
+	.toothbrush-img {
+		max-width: clamp(250px, 75vw, 600px);
+	}
 }
 
 .hint {
@@ -421,11 +445,26 @@
 .germ-sprite, .shine-sprite {
 	position: absolute;
 	transform: translate(-50%, -50%);
-	width: clamp(180px, 40vw, 260px);
+	width: clamp(80px, 20vw, 87px) !important;
 	height: auto;
 	user-select: none;
 	pointer-events: none;
     z-index: 3;
+}
+
+.germ-sprite.step-4-germ {
+	width: clamp(50px, 12vw, 52px) !important;
+}
+
+/* Mobile-specific sizing for smaller screens */
+@media (max-width: 480px) {
+	.germ-sprite, .shine-sprite {
+		width: clamp(60px, 15vw, 87px) !important;
+	}
+	
+	.germ-sprite.step-4-germ {
+		width: clamp(40px, 10vw, 52px) !important;
+	}
 }
 .shine-sprite { animation: fadePop 1s ease-out forwards; }
 @keyframes fadePop { 0%{ opacity: 0; transform: translate(-50%,-50%) scale(0.9);} 20%{opacity:1; transform: translate(-50%,-50%) scale(1.05);} 100%{ opacity:0; transform: translate(-50%,-50%) scale(1);} }
@@ -436,12 +475,19 @@
 }
 
 .head-img {
-	width: clamp(280px, 70vw, 720px);
+	width: clamp(240px, 60vw, 720px);
 	height: auto;
 	user-select: none;
 	pointer-events: none;
 	display: block;
 	transition: opacity 0.3s ease;
+}
+
+/* Mobile-specific sizing for smaller screens */
+@media (max-width: 480px) {
+	.head-img {
+		width: clamp(200px, 55vw, 400px);
+	}
 }
 
 .head-img.dirty-mouth {
@@ -565,12 +611,19 @@
 	position: absolute;
 	bottom: clamp(16px, 4vw, 32px);
 	right: clamp(16px, 6vw, 48px);
-	width: clamp(150px, 30vw, 280px);
+	width: clamp(120px, 25vw, 280px);
 	height: auto;
 	cursor: grab;
 	user-select: none;
 	transition: transform 0.2s ease;
 	touch-action: none;
+}
+
+/* Mobile-specific sizing for smaller screens */
+@media (max-width: 480px) {
+	.toothbrush-draggable {
+		width: clamp(100px, 22vw, 200px);
+	}
 }
 
 .toothbrush-draggable:hover {
@@ -583,11 +636,18 @@
 
 .toothbrush-floating {
 	position: fixed;
-	width: clamp(200px, 20vw, 280px);
+	width: clamp(120px, 18vw, 280px);
 	height: auto;
 	/* Keep the toothbrush horizontal while dragging; translation handled inline */
 	transform: rotate(0deg);
 	pointer-events: none;
 	user-select: none;
 	z-index: 1000;
+}
+
+/* Mobile-specific sizing for smaller screens */
+@media (max-width: 480px) {
+	.toothbrush-floating {
+		width: clamp(100px, 16vw, 200px);
+	}
 }

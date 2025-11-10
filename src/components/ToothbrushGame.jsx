@@ -1500,6 +1500,10 @@ export default function ToothbrushGame() {
   // Track pointer while dragging
   useEffect(() => {
     const handleMove = (e) => {
+      // Prevent default to stop scrolling on mobile
+      if (e.pointerType === 'touch' && (dragging || brushing || waterDragging)) {
+        e.preventDefault()
+      }
       pointerPosRef.current = { x: e.clientX, y: e.clientY }
       if (step === 0 && dragging) {
         handleStep0Move(e)
@@ -1516,7 +1520,11 @@ export default function ToothbrushGame() {
       }
     }
 
-    const handleUp = () => {
+    const handleUp = (e) => {
+      // Prevent default to stop scrolling on mobile
+      if (e && e.pointerType === 'touch' && (dragging || brushing || waterDragging)) {
+        e.preventDefault()
+      }
       if (step === 0 && dragging) {
         handleStep0Up()
       } else if ((step === 1 || step === 4 || step === 5) && brushing) {
@@ -1528,22 +1536,47 @@ export default function ToothbrushGame() {
       }
     }
 
-    window.addEventListener('pointermove', handleMove)
-    window.addEventListener('pointerup', handleUp)
+    // Also handle touch events specifically to prevent scrolling
+    const handleTouchMove = (e) => {
+      if (dragging || brushing || waterDragging) {
+        e.preventDefault()
+      }
+    }
+
+    const handleTouchStart = (e) => {
+      if (dragging || brushing || waterDragging || step === 1 || step === 2 || step === 3 || step === 4 || step === 5) {
+        e.preventDefault()
+      }
+    }
+
+    window.addEventListener('pointermove', handleMove, { passive: false })
+    window.addEventListener('pointerup', handleUp, { passive: false })
+    window.addEventListener('touchmove', handleTouchMove, { passive: false })
+    window.addEventListener('touchstart', handleTouchStart, { passive: false })
     return () => {
       window.removeEventListener('pointermove', handleMove)
       window.removeEventListener('pointerup', handleUp)
+      window.removeEventListener('touchmove', handleTouchMove)
+      window.removeEventListener('touchstart', handleTouchStart)
     }
   }, [step, dragging, brushing, waterDragging, handleStep0Move, handleStep0Up, handleVerticalStrokeMove, handleVerticalUp, handleStep2Move, handleStep2Up, handleStep6Move, handleStep6Up, getBristleCenter])
 
   const startDrag = (e) => {
     if (hasPaste || step !== 0) return
+    // Prevent default to stop scrolling on mobile
+    if (e.pointerType === 'touch') {
+      e.preventDefault()
+    }
     setDragging(true)
     setCursorPos({ x: e.clientX, y: e.clientY })
   }
 
   const startWaterDrag = (e) => {
     if (step !== 6 || waterPoured) return
+    // Prevent default to stop scrolling on mobile
+    if (e.pointerType === 'touch') {
+      e.preventDefault()
+    }
     setWaterDragging(true)
     setWaterCursorPos({ x: e.clientX, y: e.clientY })
   }
@@ -1786,7 +1819,7 @@ export default function ToothbrushGame() {
   return (
     <div
       ref={containerRef}
-      className={`toothbrush-game ${dragging || brushing ? 'dragging-active' : ''} ${step === 6 ? 'rinse-cursor' : ''}`}
+      className={`toothbrush-game ${dragging || brushing ? 'dragging-active' : ''} ${step === 6 ? 'rinse-cursor' : ''} ${brushingActive || brushing ? 'brushing-active' : ''}`}
     >
       {showHitboxes && (
         <div className="debug-chip">Hitboxes ON — press H to hide</div>
@@ -1860,7 +1893,21 @@ export default function ToothbrushGame() {
 
       {/* Step 1: Brush teeth */}
       {(step === 1 || step === 2 || step === 3 || step === 4 || step === 5) && (
-        <div className={`play-container step-1${step === 2 ? ' step-2' : ''}${step === 3 ? ' step-3' : ''}${step === 4 ? ' step-4' : ''}${step === 5 ? ' step-5' : ''}`}>
+        <div 
+          className={`play-container step-1${step === 2 ? ' step-2' : ''}${step === 3 ? ' step-3' : ''}${step === 4 ? ' step-4' : ''}${step === 5 ? ' step-5' : ''}`}
+          onPointerDown={(e) => {
+            // Prevent scrolling when starting to brush
+            if (e.pointerType === 'touch' && brushingActive) {
+              e.preventDefault()
+            }
+          }}
+          onTouchStart={(e) => {
+            // Prevent scrolling when touching the game area
+            if (brushingActive || step === 1 || step === 2 || step === 3 || step === 4 || step === 5) {
+              e.preventDefault()
+            }
+          }}
+        >
           <div className="head-container">
               <img
                 ref={headRef}
@@ -1877,12 +1924,11 @@ export default function ToothbrushGame() {
                 ref={germRef}
                 src={currentGerm.img}
                 alt="germ"
-                className="germ-sprite"
+                className={`germ-sprite ${step === 4 ? 'step-4-germ' : ''}`}
                 style={{
                   left: `${currentGerm.xPct ?? 50}%`,
                   top: `${currentGerm.yPct ?? 53}%`,
-                  opacity: currentGerm.opacity ?? 1,
-                  width: `${step === 4 ? STEP4_GERM_SIZE : GERM_DISPLAY_SIZE}px`
+                  opacity: currentGerm.opacity ?? 1
                 }}
               />
             )}
