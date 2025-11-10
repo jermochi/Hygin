@@ -7,7 +7,7 @@
 }
 
 .game-header {
-  padding: 1rem 2rem;
+  padding: 0.75rem 1rem;
   background-color: #93BFC7;
   color: #ffffff;
   display: flex;
@@ -20,14 +20,16 @@
   display: flex;
   align-items: center;
   transition: all 0.3s ease;
+  touch-action: manipulation;
 }
 
-.logo-link:hover {
+.logo-link:hover,
+.logo-link:active {
   transform: scale(1.05);
 }
 
 .logo-image {
-  height: 100px;
+  height: clamp(50px, 12vw, 100px);
   width: auto;
 }
 
@@ -36,29 +38,34 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 2rem;
+  padding: 1rem;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .game-container {
   text-align: center;
+  width: 100%;
   max-width: 600px;
-  padding: 2rem;
+  padding: clamp(1rem, 4vw, 2rem);
   background-color: rgba(255, 255, 255, 0.9);
   border-radius: 15px;
   box-shadow: 0 8px 24px rgba(147, 191, 199, 0.2);
   border: 2px solid rgba(147, 191, 199, 0.3);
+  margin: 0 auto;
 }
 
 .game-title {
-  font-size: 3rem;
+  font-size: clamp(1.8rem, 6vw, 3rem);
   color: #93BFC7;
-  margin-bottom: 2rem;
+  margin-bottom: clamp(1rem, 3vw, 2rem);
   font-family: 'Inter', 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
   font-weight: bold;
+  line-height: 1.2;
 }
 
 .game-placeholder {
-  font-size: 1.2rem;
+  font-size: clamp(1rem, 3.5vw, 1.2rem);
   color: #333;
   line-height: 1.6;
 }
@@ -67,22 +74,45 @@
   margin-bottom: 1rem;
 }
 
-/* Responsive adjustments */
-@media (max-width: 600px) {
+/* Tablet and larger screens */
+@media (min-width: 768px) {
   .game-header {
-    padding: 1rem;
+    padding: 1rem 1.5rem;
   }
-  
+
   .logo-image {
     height: 80px;
   }
-  
-  .game-container {
-    margin: 1rem;
-    padding: 1.5rem;
+
+  .game-content {
+    padding: 2rem;
   }
-  
+
+  .game-container {
+    padding: 2rem;
+  }
+
   .game-title {
     font-size: 2.5rem;
+    margin-bottom: 2rem;
+  }
+
+  .game-placeholder {
+    font-size: 1.2rem;
+  }
+}
+
+/* Desktop screens */
+@media (min-width: 1024px) {
+  .game-header {
+    padding: 1rem 2rem;
+  }
+
+  .logo-image {
+    height: 100px;
+  }
+
+  .game-title {
+    font-size: 3rem;
   }
 }

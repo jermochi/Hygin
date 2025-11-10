@@ -2,58 +2,58 @@
 .toothbrush-game {
 	position: relative;
 	width: 100%;
-	height: calc(100vh - 80px);
+	height: calc(100vh - clamp(60px, 15vw, 80px));
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	gap: 4rem;
+	gap: clamp(1rem, 6vw, 4rem);
+	overflow-y: auto;
+	-webkit-overflow-scrolling: touch;
 }
 
 .skip-button {
 	position: fixed;
-	top: 1.25rem;
-	right: 2rem;
+	top: clamp(0.75rem, 2vw, 1.25rem);
+	right: clamp(0.75rem, 3vw, 2rem);
 	background: rgba(255, 255, 255, 0.95);
 	color: #93BFC7;
-	border: 3px solid #93BFC7;
-	border-radius: 16px;
-	padding: 14px 32px;
+	border: clamp(2px, 0.5vw, 3px) solid #93BFC7;
+	border-radius: clamp(12px, 3vw, 16px);
+	padding: clamp(10px, 2.5vw, 14px) clamp(16px, 5vw, 32px);
 	font-weight: 800;
-	font-size: 1.3rem;
+	font-size: clamp(0.9rem, 3vw, 1.3rem);
 	cursor: pointer;
 	z-index: 1000;
 	transition: all 0.3s ease;
 	box-shadow: 0 4px 12px rgba(147, 191, 199, 0.3);
 	text-transform: uppercase;
 	letter-spacing: 0.5px;
+	touch-action: manipulation;
+	-webkit-tap-highlight-color: transparent;
 }
 
-.skip-button:hover {
+.skip-button:hover,
+.skip-button:active {
 	background: #93BFC7;
 	color: #ffffff;
 	transform: translateY(-2px);
 	box-shadow: 0 6px 16px rgba(147, 191, 199, 0.5);
 }
 
-.skip-button:active {
-	transform: translateY(0px);
-	box-shadow: 0 2px 8px rgba(147, 191, 199, 0.3);
-}
-
 .play-container {
 	position: relative;
-	width: min(92vw, 1200px);
-	min-height: 60vh;
-	padding: 32px 48px;
-	border-radius: 24px;
+	width: min(95vw, 1200px);
+	min-height: clamp(50vh, 60vh, 70vh);
+	padding: clamp(1rem, 4vw, 32px) clamp(1rem, 6vw, 48px);
+	border-radius: clamp(16px, 4vw, 24px);
 	background: #ffffff;
-	border: 3px solid rgba(147, 191, 199, 0.35);
+	border: clamp(2px, 0.5vw, 3px) solid rgba(147, 191, 199, 0.35);
 	box-shadow: 0 14px 40px rgba(147, 191, 199, 0.35), 0 4px 0 rgba(147,191,199,0.35) inset;
 	display: flex;
 	align-items: center;
 	justify-content: flex-start;
 	overflow: hidden;
-	margin-top: 72px;
+	margin-top: clamp(40px, 10vw, 72px);
 }
 
 .play-container.rinse-step {
@@ -71,7 +71,7 @@
 
 .brush-dropzone {
 	position: relative;
-	width: clamp(880px, 42vw, 880px);
+	width: min(100%, clamp(600px, 90vw, 880px));
 	aspect-ratio: 3 / 1;
 	display: grid;
 	place-items: center;
@@ -104,12 +104,13 @@
 }
 
 .toothpaste-img {
-	width: clamp(320px, 28vw, 520px);
+	width: clamp(200px, 40vw, 520px);
 	height: auto;
 	cursor: grab;
 	user-select: none;
 	position: relative;
 	z-index: 20;
+	touch-action: none;
 }
 .toothpaste-img:active {
 	cursor: grabbing;
@@ -118,7 +119,7 @@
 /* Closed toothpaste appears smaller at 1/3 of the default rendered width to reduce visual weight */
 .toothpaste-img.small {
   /* 40% of the default responsive width */
-  width: calc(clamp(320px, 28vw, 520px) * 0.40);
+  width: calc(clamp(200px, 40vw, 520px) * 0.40);
 }
 
 /* Floating follows pointer */
@@ -144,18 +145,20 @@
 /* Top-left instruction under navbar */
 .step-instruction {
 	position: absolute;
-	top: -32px;
-	left: 24px;
+	top: clamp(-28px, -6vw, -32px);
+	left: clamp(12px, 3vw, 24px);
 	color: #93BFC7; /* match navbar background color */
 	z-index: 5;
 }
 .step-title {
-	font-size: 3.5rem;
+	font-size: clamp(1.8rem, 7vw, 3.5rem);
 	font-weight: 800;
+	line-height: 1.2;
 }
 .step-sub {
-	font-size: 1.5rem;
+	font-size: clamp(1rem, 3vw, 1.5rem);
 	font-weight: 600;
+	line-height: 1.3;
 }
 /* brush progress UI removed - counter handled internally */
 
@@ -276,19 +279,20 @@
 }
 
 .rinse-mouth-img {
-	width: clamp(500px, 45vw, 700px);
+	width: clamp(300px, 70vw, 700px);
 	height: auto;
 	user-select: none;
 	pointer-events: none;
 }
 
 .water-glass {
-	width: clamp(280px, 25vw, 380px);
+	width: clamp(180px, 35vw, 380px);
 	height: auto;
 	cursor: grab;
 	user-select: none;
 	transition: transform 200ms ease;
 	z-index: 10;
+	touch-action: none;
 }
 
 .water-glass:hover {
@@ -314,7 +318,7 @@
 /* Final overlay larger image */
 .final-sparkle {
 	position: relative;
-	width: min(72vw, 780px);
+	width: min(90vw, 780px);
 	height: auto;
 	animation: popIn 500ms ease-out both;
 }
@@ -355,21 +359,56 @@
 	transform: scale(1.2);
 	transform-origin: center center;
 }
-.intro-title { font-weight: 900; font-size: 3rem; margin-bottom: 10px; color: #ffffff; }
-.intro-list { margin: 0 0 12px 0; list-style: none; padding: 0; }
-.intro-list li { margin: 6px 0; font-weight: 800; color: #ffffff; font-size: 1.6rem; }
-.continue-btn { background: rgba(255,255,255,0.1); color: #ffffff; border: 2px solid #ffffff; border-radius: 18px; padding: 16px 28px; font-weight: 900; cursor: pointer; font-size: 1.5rem; }
-.continue-btn:hover { background: rgba(255,255,255,0.2); }
+.intro-title { 
+	font-weight: 900; 
+	font-size: clamp(1.8rem, 6vw, 3rem); 
+	margin-bottom: 10px; 
+	color: #ffffff; 
+	line-height: 1.2;
+	padding: 0 1rem;
+}
+.intro-list { 
+	margin: 0 0 12px 0; 
+	list-style: none; 
+	padding: 0; 
+}
+.intro-list li { 
+	margin: 6px 0; 
+	font-weight: 800; 
+	color: #ffffff; 
+	font-size: clamp(1.2rem, 4vw, 1.6rem); 
+	line-height: 1.3;
+	padding: 0 1rem;
+}
+.continue-btn { 
+	background: rgba(255,255,255,0.1); 
+	color: #ffffff; 
+	border: clamp(2px, 0.5vw, 2px) solid #ffffff; 
+	border-radius: clamp(14px, 3vw, 18px); 
+	padding: clamp(12px, 3vw, 16px) clamp(20px, 5vw, 28px); 
+	font-weight: 900; 
+	cursor: pointer; 
+	font-size: clamp(1rem, 3vw, 1.5rem); 
+	touch-action: manipulation;
+	-webkit-tap-highlight-color: transparent;
+}
+.continue-btn:hover,
+.continue-btn:active { 
+	background: rgba(255,255,255,0.2); 
+}
 
-@media (max-width: 768px) {
+/* Tablet and larger screens */
+@media (min-width: 768px) {
 	.intro-card {
 		transform: scale(1.2);
 	}
 	.intro-title {
 		font-size: 2.4rem;
+		padding: 0;
 	}
 	.intro-list li {
 		font-size: 1.4rem;
+		padding: 0;
 	}
 	.continue-btn {
 		font-size: 1.2rem;
@@ -382,7 +421,7 @@
 .germ-sprite, .shine-sprite {
 	position: absolute;
 	transform: translate(-50%, -50%);
-	width: 260px;
+	width: clamp(180px, 40vw, 260px);
 	height: auto;
 	user-select: none;
 	pointer-events: none;
@@ -397,7 +436,7 @@
 }
 
 .head-img {
-	width: clamp(420px, 45vw, 720px);
+	width: clamp(280px, 70vw, 720px);
 	height: auto;
 	user-select: none;
 	pointer-events: none;
@@ -524,13 +563,14 @@
 
 .toothbrush-draggable {
 	position: absolute;
-	bottom: 32px;
-	right: 48px;
-	width: clamp(200px, 20vw, 280px);
+	bottom: clamp(16px, 4vw, 32px);
+	right: clamp(16px, 6vw, 48px);
+	width: clamp(150px, 30vw, 280px);
 	height: auto;
 	cursor: grab;
 	user-select: none;
 	transition: transform 0.2s ease;
+	touch-action: none;
 }
 
 .toothbrush-draggable:hover {

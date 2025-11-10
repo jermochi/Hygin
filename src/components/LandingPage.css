@@ -22,7 +22,7 @@ body {
 }
 
 .header {
-  padding: 1rem 2rem;
+  padding: 0.75rem 1rem;
   background-color: #93BFC7;
   color: #ffffff;
   z-index: 2;
@@ -40,80 +40,92 @@ body {
 }
 
 .logo-image {
-  height: 100px;
+  height: 60px;
   width: auto;
 }
 
 .title-logo {
-  width: clamp(160px, 22vw, 420px);
+  width: clamp(200px, 50vw, 420px);
   height: auto;
   display: block;
-  fill: #93BFC7; /* direct fill works when SVG is a ReactComponent */
-  margin-left: 50px;
-  margin-bottom: 1.5rem;
+  fill: #93BFC7;
+  margin-left: 0;
+  margin-bottom: 1rem;
+  margin-top: 0.5rem;
 }
 
 .main-content {
   flex: 1;
   display: flex;
-  padding: 2rem;
-  gap: 3rem;
+  flex-direction: column;
+  padding: 1rem;
+  gap: 1.5rem;
   align-items: center;
+  justify-content: flex-start;
 }
 
 .left-section {
-  flex: 0 0 40%;
-  max-width: 40%;
-  padding-left: 2rem;
+  width: 100%;
+  max-width: 100%;
+  padding: 0 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 .title {
-  margin-left: 50px;
-  font-size: 6rem;
+  margin-left: 0;
+  font-size: clamp(2.5rem, 8vw, 6rem);
   font-weight: bold;
   color: #ABE7B2;
-  margin-bottom: 2rem;
+  margin-bottom: 1rem;
   font-family: 'Inter', 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
   z-index: 3;
+  text-align: center;
 }
 
-
 .description {
-  margin-left: 50px;
-  font-size: 1.4rem;
+  margin-left: 0;
+  font-size: clamp(0.95rem, 4vw, 1.4rem);
   line-height: 1.6;
   color: #333;
-  text-align: justify;
+  text-align: left;
   z-index: 2;
+  width: 100%;
+  max-width: 100%;
+  padding: 0 0.5rem;
 }
 
 .right-section {
-  flex: 0 0 50%;
-  max-width: 50%;
+  width: 100%;
+  max-width: 100%;
   display: flex;
-  justify-content: flex-end; /* align to the right edge */
+  justify-content: center;
   align-items: center;
-  padding-right: 3rem;
+  padding: 0;
+  position: relative;
 }
 
 .model-container {
   position: relative;
   width: 100%;
-  height: 100%;
-  max-width: clamp(320px, 45vw, 600px); /* scales between 320px and 600px based on viewport */
-  max-height: clamp(300px, 70vh, 700px);
+  height: auto;
+  max-width: clamp(280px, 80vw, 500px);
+  max-height: clamp(300px, 60vh, 600px);
   display: flex;
   justify-content: center;
   align-items: center;
-  margin-left: 0; /* removed fixed offset so layout is responsive */
+  margin: 0 auto;
 }
 
 .character-image {
   width: 100%;
-  height: 100%;
+  height: auto;
+  max-height: clamp(300px, 60vh, 600px);
   object-fit: contain;
   z-index: 1;
 }
+
 .thumbnails {
   position: absolute;
   top: 0;
@@ -127,61 +139,103 @@ body {
   pointer-events: auto;
 }
 
+/* Tablet and larger screens */
+@media (min-width: 768px) {
+  .header {
+    padding: 1rem 2rem;
+  }
 
-/* Responsive layout adjustments for narrow screens */
-@media (max-width: 880px) {
+  .logo-image {
+    height: 80px;
+  }
+
   .main-content {
-    gap: 1.5rem;
-    padding: 1.5rem;
+    flex-direction: row;
+    padding: 2rem;
+    gap: 2rem;
+    align-items: center;
   }
 
   .left-section {
-    flex: 1 1 50%;
-    max-width: 50%;
+    flex: 0 0 45%;
+    max-width: 45%;
     padding-left: 1rem;
+    align-items: flex-start;
   }
 
-  .right-section {
-    flex: 1 1 50%;
-    max-width: 50%;
-    padding-right: 1.5rem;
+  .title-logo {
+    margin-left: 0;
+    margin-bottom: 1.5rem;
   }
 
   .title {
-    margin-left: 24px;
-    font-size: clamp(3rem, 8vw, 5rem);
+    margin-left: 0;
+    text-align: left;
   }
 
   .description {
-    margin-left: 24px;
-    font-size: clamp(1rem, 2.2vw, 1.4rem);
+    margin-left: 0;
+    text-align: left;
+    padding: 0;
   }
 
-  /* keep thumbnails smaller on small screens */
-  .thumbnails {
-    --thumb-size: clamp(36px, 9vw, 64px);
-  }
-}
-
-@media (max-width: 600px) {
-  .main-content {
-    flex-direction: column;
-    text-align: center;
-  }
-
-  .left-section,
   .right-section {
-    max-width: 100%;
-    flex: 1 1 100%;
-    padding: 0 1rem;
+    flex: 0 0 50%;
+    max-width: 50%;
+    padding-right: 1rem;
   }
 
   .model-container {
-    max-width: clamp(240px, 70vw, 420px);
-    margin: 0 auto;
+    max-width: clamp(400px, 45vw, 600px);
+    max-height: clamp(400px, 70vh, 700px);
+  }
+}
+
+/* Desktop screens */
+@media (min-width: 1024px) {
+  .header {
+    padding: 1rem 2rem;
   }
 
-  .thumbnails {
-    --thumb-size: clamp(32px, 12vw, 56px);
+  .logo-image {
+    height: 100px;
+  }
+
+  .main-content {
+    padding: 2rem;
+    gap: 3rem;
+  }
+
+  .left-section {
+    flex: 0 0 40%;
+    max-width: 40%;
+    padding-left: 2rem;
+  }
+
+  .title-logo {
+    width: clamp(160px, 22vw, 420px);
+    margin-left: 0;
+    margin-bottom: 1.5rem;
+  }
+
+  .title {
+    margin-left: 0;
+    font-size: 6rem;
+  }
+
+  .description {
+    margin-left: 0;
+    font-size: 1.4rem;
+  }
+
+  .right-section {
+    flex: 0 0 50%;
+    max-width: 50%;
+    padding-right: 3rem;
+  }
+
+  .model-container {
+    max-width: clamp(500px, 45vw, 600px);
+    max-height: clamp(500px, 70vh, 700px);
   }
 }

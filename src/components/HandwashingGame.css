@@ -2,25 +2,27 @@
   width: 100%;
   max-width: 1100px;
   margin: 0 auto;
-  padding: 2.5rem 2rem;
+  padding: clamp(1rem, 4vw, 2.5rem) clamp(1rem, 4vw, 2rem);
   position: relative;
 }
 
 .game-header {
   text-align: center;
-  margin-bottom: 1.5rem;
+  margin-bottom: clamp(1rem, 3vw, 1.5rem);
 }
 
 .germs.inline {
   position: static;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: clamp(6px, 2vw, 10px);
+  flex-wrap: wrap;
+  justify-content: center;
 }
 
 .germ {
   filter: grayscale(100%) opacity(0.35);
-  font-size: 2rem;
+  font-size: clamp(1.5rem, 5vw, 2rem);
   transition: filter 0.2s ease, transform 0.2s ease;
 }
 
@@ -31,9 +33,10 @@
 
 .game-header h2 {
   color: #93BFC7;
-  font-size: 2rem;
-  margin-bottom: 1rem;
+  font-size: clamp(1.5rem, 5vw, 2rem);
+  margin-bottom: clamp(0.75rem, 2vw, 1rem);
   font-family: 'Inter', 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+  line-height: 1.2;
 }
 
 .progress-bar {
@@ -52,10 +55,10 @@
 }
 
 .stage-row {
-  display: grid;
-  grid-template-columns: 1fr 360px;
-  gap: 24px;
-  align-items: start;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(1rem, 4vw, 24px);
+  align-items: stretch;
 }
 
 .blurred {
@@ -68,26 +71,28 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   grid-template-rows: 1fr 1fr;
-  gap: 2rem;
+  gap: clamp(1rem, 3vw, 2rem);
   width: 100%;
   max-width: 600px;
 }
 
 .choice-box {
   background-color: rgba(255, 255, 255, 0.9);
-  border: 3px solid #93BFC7;
+  border: clamp(2px, 0.5vw, 3px) solid #93BFC7;
   border-radius: 15px;
-  padding: 1.5rem;
+  padding: clamp(1rem, 3vw, 1.5rem);
   text-align: center;
   cursor: pointer;
   transition: all 0.3s ease;
-  font-size: 1rem;
+  font-size: clamp(0.85rem, 3vw, 1rem);
   line-height: 1.4;
   color: #333;
   font-weight: 500;
   box-shadow: 0 4px 12px rgba(147, 191, 199, 0.2);
   position: relative;
   overflow: hidden;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .choice-box::before {
@@ -141,18 +146,19 @@
 
 .game-complete {
   text-align: center;
-  padding: 3rem;
+  padding: clamp(1.5rem, 5vw, 3rem);
   background-color: rgba(255, 255, 255, 0.9);
   border-radius: 20px;
   box-shadow: 0 8px 24px rgba(147, 191, 199, 0.2);
-  border: 3px solid #93BFC7;
+  border: clamp(2px, 0.5vw, 3px) solid #93BFC7;
 }
 
 .game-complete h2 {
   color: #93BFC7;
-  font-size: 3rem;
-  margin-bottom: 1rem;
+  font-size: clamp(2rem, 7vw, 3rem);
+  margin-bottom: clamp(0.75rem, 2vw, 1rem);
   animation: celebration 1s ease;
+  line-height: 1.2;
 }
 
 @keyframes celebration {
@@ -162,21 +168,24 @@
 }
 
 .game-complete p {
-  font-size: 1.3rem;
+  font-size: clamp(1rem, 3.5vw, 1.3rem);
   color: #333;
-  margin-bottom: 2rem;
+  margin-bottom: clamp(1.5rem, 4vw, 2rem);
+  line-height: 1.5;
 }
 
 .reset-button {
   background-color: #93BFC7;
   color: white;
   border: none;
-  padding: 1rem 2rem;
-  font-size: 1.2rem;
+  padding: clamp(0.75rem, 3vw, 1rem) clamp(1.5rem, 4vw, 2rem);
+  font-size: clamp(1rem, 3vw, 1.2rem);
   border-radius: 10px;
   cursor: pointer;
   transition: all 0.3s ease;
   font-weight: bold;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .reset-button:hover {
@@ -198,16 +207,21 @@
 
 .game-over-text {
   color: #ffffff;
-  font-size: 3rem;
+  font-size: clamp(2rem, 7vw, 3rem);
   font-weight: 800;
   letter-spacing: 0.1em;
   text-shadow: 0 4px 24px rgba(0,0,0,0.4);
   margin-bottom: 0.5rem;
+  line-height: 1.2;
+  padding: 0 1rem;
+  text-align: center;
 }
 
 .game-over-sub {
   color: #e8f5f7;
-  font-size: 1.1rem;
+  font-size: clamp(0.9rem, 3vw, 1.1rem);
+  padding: 0 1rem;
+  text-align: center;
 }
 
 .celebration-overlay {
@@ -224,16 +238,20 @@
 
 .celebration-text {
   color: #4ef37a;
-  font-size: 2.2rem;
+  font-size: clamp(1.8rem, 6vw, 2.2rem);
   font-weight: 800;
   text-align: center;
   margin-bottom: 0.5rem;
+  line-height: 1.2;
+  padding: 0 1rem;
 }
 
 .celebration-sub {
   color: #4ef37a;
-  font-size: 1.1rem;
-  margin-bottom: 1.5rem;
+  font-size: clamp(0.9rem, 3vw, 1.1rem);
+  margin-bottom: clamp(1rem, 3vw, 1.5rem);
+  padding: 0 1rem;
+  text-align: center;
 }
 
 /* Video stage and corner boxes */
@@ -282,50 +300,67 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 110px;
+  min-height: clamp(80px, 20vw, 110px);
   border-radius: 18px;
-  font-size: 1.05rem;
-  padding: 1.2rem 1rem;
+  font-size: clamp(0.9rem, 3vw, 1.05rem);
+  padding: clamp(0.8rem, 3vw, 1.2rem) clamp(0.75rem, 2.5vw, 1rem);
   background-color: rgba(255,255,255,0.95);
 }
 
-@media (max-width: 768px) {
+.choices-panel {
+  display: grid;
+  grid-template-rows: repeat(4, 1fr);
+  gap: clamp(0.75rem, 3vw, 16px);
+}
+
+.status-row {
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.status-banner {
+  font-size: clamp(0.85rem, 2.5vw, 1.05rem);
+  padding: clamp(8px, 2vw, 10px) clamp(12px, 3vw, 16px);
+}
+
+/* Tablet and larger screens */
+@media (min-width: 768px) {
+  .stage-row {
+    display: grid;
+    grid-template-columns: 1fr 360px;
+    gap: 24px;
+    align-items: start;
+  }
+
   .choice-box.corner {
     min-width: 46%;
     max-width: 48%;
     font-size: 0.95rem;
     padding: 0.9rem 0.8rem;
   }
-}
 
-/* Responsive design */
-@media (max-width: 768px) {
   .choice-boxes {
     gap: 1.5rem;
-    max-width: 100%;
   }
   
   .choice-box {
     padding: 1rem;
     font-size: 0.9rem;
   }
-  
-  .game-header h2 {
-    font-size: 1.5rem;
-  }
 }
 
-@media (max-width: 480px) {
+/* Desktop screens */
+@media (min-width: 1024px) {
   .handwashing-game {
-    padding: 1rem;
+    padding: 2.5rem 2rem;
   }
-  
+
   .choice-boxes {
-    gap: 1rem;
+    gap: 2rem;
   }
-  
+
   .choice-box {
-    padding: 0.8rem;
-    font-size: 0.8rem;
+    padding: 1.5rem;
+    font-size: 1rem;
   }
 }

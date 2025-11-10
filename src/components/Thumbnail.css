@@ -1,10 +1,10 @@
 .thumbnail {
   position: absolute;
-  width: 100px;
-  height: 100px;
+  width: clamp(50px, 12vw, 100px);
+  height: clamp(50px, 12vw, 100px);
   border-radius: 50%;
   background-color: #ABE7B2;
-  border: 3px solid #ECF4E8;
+  border: clamp(2px, 0.5vw, 3px) solid #ECF4E8;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -12,6 +12,7 @@
   transition: all 0.3s ease;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
   z-index: 10;
+  touch-action: manipulation;
 }
 
 .thumbnail::after {
@@ -22,71 +23,146 @@
   border-style: solid;
 }
 
-.thumbnail:hover {
+.thumbnail:hover,
+.thumbnail:active {
   transform: scale(1.1);
   box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
   background-color: #93BFC7;
 }
 
 .thumbnail-icon {
-  font-size: 2.5rem;
+  font-size: clamp(1.5rem, 5vw, 2.5rem);
 }
 
 .thumbnail-hair {
-  top: -15%;
+  top: -10%;
   left: 25%;
-  transform: translateX(-50%)scale(1.5)rotate(-35deg);
+  transform: translateX(-50%) scale(1.2) rotate(-35deg);
 }
-
 
 .thumbnail-hair::after {
   top: 100%;
   left: 50%;
   transform: translateX(-50%);
-  border-left: 12px solid transparent;
-  border-right: 12px solid transparent;
-  border-top: 18px solid #ECF4E8;
+  border-left: clamp(8px, 2vw, 12px) solid transparent;
+  border-right: clamp(8px, 2vw, 12px) solid transparent;
+  border-top: clamp(12px, 3vw, 18px) solid #ECF4E8;
 }
 
 .thumbnail-mouth {
   top: 32%;
-  right: 15%;
-  transform: translateY(-50%) scale(1.5);
+  right: 10%;
+  transform: translateY(-50%) scale(1.2);
 }
 
 .thumbnail-mouth::after {
   top: 50%;
   left: -18px;
   transform: translateY(-50%);
-  border-top: 12px solid transparent;
-  border-bottom: 12px solid transparent;
-  border-right: 18px solid #ECF4E8;
+  border-top: clamp(8px, 2vw, 12px) solid transparent;
+  border-bottom: clamp(8px, 2vw, 12px) solid transparent;
+  border-right: clamp(12px, 3vw, 18px) solid #ECF4E8;
 }
 
 .thumbnail-hands {
   top: 60%;
   left: 5%;
-  transform: translateY(-50%)scale(1.5);
+  transform: translateY(-50%) scale(1.2);
 }
 
 .thumbnail-hands::after {
   top: 50%;
   right: -18px;
   transform: translateY(-50%);
-  border-top: 12px solid transparent;
-  border-bottom: 12px solid transparent;
-  border-left: 18px solid #ECF4E8;
+  border-top: clamp(8px, 2vw, 12px) solid transparent;
+  border-bottom: clamp(8px, 2vw, 12px) solid transparent;
+  border-left: clamp(12px, 3vw, 18px) solid #ECF4E8;
 }
 
-
-.thumbnail-hair:hover {
-  transform: translateX(-50%) scale(1.8) rotate(-35deg);
+.thumbnail-hair:hover,
+.thumbnail-hair:active {
+  transform: translateX(-50%) scale(1.4) rotate(-35deg);
 }
 
-.thumbnail-mouth:hover {
-  transform: translateY(-50%) scale(1.8);
+.thumbnail-mouth:hover,
+.thumbnail-mouth:active {
+  transform: translateY(-50%) scale(1.4);
 }
 
-.thumbnail-hands:hover {
-  transform: translateY(-50%) scale(1.8);
+.thumbnail-hands:hover,
+.thumbnail-hands:active {
+  transform: translateY(-50%) scale(1.4);
+}
+
+/* Tablet and larger screens */
+@media (min-width: 768px) {
+  .thumbnail {
+    width: 80px;
+    height: 80px;
+    border: 3px solid #ECF4E8;
+  }
+
+  .thumbnail-icon {
+    font-size: 2rem;
+  }
+
+  .thumbnail-hair {
+    top: -15%;
+    left: 25%;
+    transform: translateX(-50%) scale(1.5) rotate(-35deg);
+  }
+
+  .thumbnail-mouth {
+    top: 32%;
+    right: 15%;
+    transform: translateY(-50%) scale(1.5);
+  }
+
+  .thumbnail-hands {
+    top: 60%;
+    left: 5%;
+    transform: translateY(-50%) scale(1.5);
+  }
+
+  .thumbnail-hair:hover {
+    transform: translateX(-50%) scale(1.8) rotate(-35deg);
+  }
+
+  .thumbnail-mouth:hover {
+    transform: translateY(-50%) scale(1.8);
+  }
+
+  .thumbnail-hands:hover {
+    transform: translateY(-50%) scale(1.8);
+  }
+}
+
+/* Desktop screens */
+@media (min-width: 1024px) {
+  .thumbnail {
+    width: 100px;
+    height: 100px;
+  }
+
+  .thumbnail-icon {
+    font-size: 2.5rem;
+  }
+
+  .thumbnail-hair {
+    top: -15%;
+    left: 25%;
+    transform: translateX(-50%) scale(1.5) rotate(-35deg);
+  }
+
+  .thumbnail-mouth {
+    top: 32%;
+    right: 15%;
+    transform: translateY(-50%) scale(1.5);
+  }
+
+  .thumbnail-hands {
+    top: 60%;
+    left: 5%;
+    transform: translateY(-50%) scale(1.5);
+  }
 }
