@@ -31,6 +31,7 @@ import germ6 from '../assets/6.png'
 import germ7 from '../assets/7.png'
 import germ8 from '../assets/8.png'
 import insideTeeth from '../assets/inside_teeth.png'
+import failSfx from '../assets/sounds/fail-sound.wav'
 
 // Bristles hitbox portions (upper-right of brush head)
 const BRISTLES_WIDTH_PORTION = 0.40
@@ -1072,6 +1073,9 @@ export default function ToothbrushGame() {
     circleProgressRef.current = 0
     setCurrentGerm(prev => prev ? { ...prev, status: 'failed' } : prev)
     
+    const failSound = new Audio(failSfx);
+    failSound.play().catch(err => console.log('Audio play failed:', err));
+
     setTimeout(() => {
       setCurrentGerm(prev => {
         if (prev && prev.status === 'failed') {
