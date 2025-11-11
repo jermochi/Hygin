@@ -71,7 +71,7 @@ const VERTICAL_DOMINANCE_RATIO = 1.05
 const STEP4_VERTICAL_THRESHOLD = 6
 const STEP4_HORIZONTAL_TOLERANCE = 40
 const STEP4_DOMINANCE_RATIO = 0.9
-const STEP45_BRUSH_WIDTH = 'clamp(100px, 10vw, 150px)'
+const STEP45_BRUSH_WIDTH = 'clamp(80px, 8vw, 120px)'
 // Where the cursor should attach to the floating toothbrush (percentages of width/height)
 const BRUSH_HEAD_ANCHOR = { x: 0.85, y: 0.45 }
 // Germ display / hitbox size (1/3 of previous 260px width)
@@ -110,6 +110,12 @@ export default function ToothbrushGame() {
   const [showSuccess, setShowSuccess] = useState(false)
   const [cleared, setCleared] = useState(false)
   const [finalComplete, setFinalComplete] = useState(false)
+
+  // Stats tracking
+  const [totalGermsBrushed, setTotalGermsBrushed] = useState(0)
+  const [totalGermsFailed, setTotalGermsFailed] = useState(0)
+  const [gameStartTime, setGameStartTime] = useState(null)
+  const [points, setPoints] = useState(0)
 
   // Step 1: Brushing state
   const [brushPos, setBrushPos] = useState({ x: 0, y: 0 })
@@ -1019,6 +1025,10 @@ export default function ToothbrushGame() {
     const nextCount = successCountRef.current + 1
     setSuccessCount(nextCount)
     successCountRef.current = nextCount
+    // Track total germs brushed
+    setTotalGermsBrushed(prev => prev + 1)
+    // Add points for brushing a germ (+100 points)
+    setPoints(prev => prev + 100)
 
     setTimeout(() => {
       setCurrentGerm(prev => {
@@ -1072,6 +1082,10 @@ export default function ToothbrushGame() {
     step2LastPointerRef.current = null
     circleProgressRef.current = 0
     setCurrentGerm(prev => prev ? { ...prev, status: 'failed' } : prev)
+    // Track total germs failed
+    setTotalGermsFailed(prev => prev + 1)
+    // Deduct points for missing a germ (-50 points)
+    setPoints(prev => Math.max(0, prev - 50))
     
     const failSound = new Audio(failSfx);
     failSound.play().catch(err => console.log('Audio play failed:', err));
@@ -1545,6 +1559,10 @@ export default function ToothbrushGame() {
   // Reset brushing state when entering brushing steps
   useEffect(() => {
     if (step === 1 || step === 2 || step === 3 || step === 4 || step === 5) {
+      // Track game start time when entering step 1 for the first time
+      if (step === 1 && !gameStartTime) {
+        setGameStartTime(Date.now())
+      }
       setBrushingActive(false)
       setSuccessCount(0)
       setCurrentGerm(null)
@@ -1745,6 +1763,11 @@ export default function ToothbrushGame() {
     setFinalComplete(false)
     setCleared(false)
     setShowSuccess(false)
+    // Reset stats
+    setTotalGermsBrushed(0)
+    setTotalGermsFailed(0)
+    setGameStartTime(null)
+    setPoints(0)
   }
 
   const goHome = () => {
@@ -1930,20 +1953,78 @@ export default function ToothbrushGame() {
         </div>
       )}
 
-      {finalComplete && (
-        <div className="intro-overlay">
-          <div className="backdrop" />
-          <div className="intro-card">
-            <img src={sparklingTeeth} alt="Sparkling teeth" className="final-sparkle" />
-            <div className="intro-title" style={{ marginTop: '12px', fontSize: '4rem', fontWeight: 900 }}>CONGRATULATIONS!</div>
-            <div className="intro-title" style={{ marginTop: '12px' }}>Brush your teeth twice a day</div>
-            <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', marginTop: '12px' }}>
-              <button className="continue-btn" onClick={goHome}>Main Menu</button>
-              <button className="continue-btn" onClick={() => { setFinalComplete(false); setStep(1); }}>Try Again</button>
+      {finalComplete && (() => {
+        const timeSpent = gameStartTime ? Math.floor((Date.now() - gameStartTime) / 1000) : 0
+        const minutes = Math.floor(timeSpent / 60)
+        const seconds = timeSpent % 60
+        const timeDisplay = minutes > 0 ? `${minutes}m ${seconds}s` : `${seconds}s`
+        
+        // Calculate time penalty: -10 points for every 2 seconds over 3 minutes
+        const threeMinutesInSeconds = 180
+        let finalPoints = points
+        if (timeSpent > threeMinutesInSeconds) {
+          const secondsOver = timeSpent - threeMinutesInSeconds
+          const penaltyIntervals = Math.floor(secondsOver / 2) // Every 2 seconds
+          const timePenalty = penaltyIntervals * 10 // -10 points per interval
+          finalPoints = Math.max(0, points - timePenalty)
+        }
+        
+        return (
+          <div className="intro-overlay">
+            <div className="backdrop" />
+            <div className="intro-card">
+              <img src={sparklingTeeth} alt="Sparkling teeth" className="final-sparkle" />
+              <div className="intro-title congratulations-title">CONGRATULATIONS!</div>
+              <div className="intro-title congratulations-subtitle">Brush your teeth twice a day</div>
+              
+              {/* Final Score Display */}
+              <div className="final-score-container">
+                <div className="final-score-label">Final Score</div>
+                <div className="final-score-value">{finalPoints}</div>
+              </div>
+              
+              {/* Stats Display */}
+              <div className="game-stats-container">
+                <div className="stat-item stat-success">
+                  <div className="stat-icon">✨</div>
+                  <div className="stat-content">
+                    <div className="stat-label">Germs Brushed</div>
+                    <div className="stat-value">{totalGermsBrushed}</div>
+                  </div>
+                </div>
+                
+                <div className="stat-item stat-failed">
+                  <div className="stat-icon">🦠</div>
+                  <div className="stat-content">
+                    <div className="stat-label">Germs Missed</div>
+                    <div className="stat-value">{totalGermsFailed}</div>
+                  </div>
+                </div>
+                
+                <div className="stat-item stat-time">
+                  <div className="stat-icon">⏱️</div>
+                  <div className="stat-content">
+                    <div className="stat-label">Time Spent</div>
+                    <div className="stat-value">{timeDisplay}</div>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="congratulations-buttons">
+                <button className="continue-btn" onClick={goHome}>Main Menu</button>
+                <button className="continue-btn" onClick={() => { 
+                  setFinalComplete(false)
+                  setTotalGermsBrushed(0)
+                  setTotalGermsFailed(0)
+                  setGameStartTime(null)
+                  setPoints(0)
+                  setStep(1)
+                }}>Try Again</button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )
+      })()}
 
       {showSuccess && (
         <div className="success-overlay">
