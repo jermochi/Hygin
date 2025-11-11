@@ -118,7 +118,6 @@ export default function ToothbrushGame() {
   const [showIntro, setShowIntro] = useState(false)
   const [showBrushHint, setShowBrushHint] = useState(false)
   const [hintMessage, setHintMessage] = useState('')
-  const [hudGerms, setHudGerms] = useState(0)
   const [brushingActive, setBrushingActive] = useState(false)
   const [currentGerm, setCurrentGerm] = useState(null)
   const [brushedThisWindow, setBrushedThisWindow] = useState(false)
@@ -136,7 +135,6 @@ export default function ToothbrushGame() {
   const spawnTimersRef = useRef({ windowTimer: null, nextSpawnTimer: null })
 
   // Live refs to avoid stale state inside timeouts
-  const hudGermsRef = useRef(hudGerms)
   const stepRef = useRef(step)
   const brushingActiveRef = useRef(brushingActive)
   const currentGermRef = useRef(currentGerm)
@@ -185,7 +183,6 @@ export default function ToothbrushGame() {
   })
   const verticalLastBrushXRef = useRef(null)
 
-  useEffect(() => { hudGermsRef.current = hudGerms }, [hudGerms])
   useEffect(() => { stepRef.current = step }, [step])
   useEffect(() => { brushingActiveRef.current = brushingActive }, [brushingActive])
   useEffect(() => { currentGermRef.current = currentGerm }, [currentGerm])
@@ -713,7 +710,7 @@ export default function ToothbrushGame() {
 
   const spawnGerm = useCallback(() => {
     // Only spawn if we don't have an active germ and conditions are met
-    if (currentGermRef.current !== null || hudGermsRef.current >= 3 || successCountRef.current >= WIN_CONDITION_COUNT) {
+    if (currentGermRef.current !== null || successCountRef.current >= WIN_CONDITION_COUNT) {
       return
     }
     
@@ -958,7 +955,6 @@ export default function ToothbrushGame() {
         (stepRef.current === 1 || stepRef.current === 2 || stepRef.current === 3 || stepRef.current === 4 || stepRef.current === 5) &&
         brushingActiveRef.current &&
         currentGermRef.current === null &&
-        hudGermsRef.current < 3 &&
         successCountRef.current < WIN_CONDITION_COUNT
       ) {
         spawnGerm()
@@ -1032,7 +1028,7 @@ export default function ToothbrushGame() {
         return prev
       })
 
-      if (nextCount >= WIN_CONDITION_COUNT && hudGermsRef.current < 3) {
+      if (nextCount >= WIN_CONDITION_COUNT) {
         const currentStep = stepRef.current
         setShowSuccess(true)
         if (currentStep === 1) {
@@ -1063,7 +1059,7 @@ export default function ToothbrushGame() {
             setStep(6)
           }, 1200)
         }
-      } else if (hudGermsRef.current < 3 && nextCount < WIN_CONDITION_COUNT) {
+      } else if (nextCount < WIN_CONDITION_COUNT) {
         // spawn after the clear delay so next germ always arrives post-removal
         scheduleNextSpawn(NEXT_SPAWN_DELAY_MS)
       }
@@ -1075,13 +1071,6 @@ export default function ToothbrushGame() {
     step2LastPointerRef.current = null
     circleProgressRef.current = 0
     setCurrentGerm(prev => prev ? { ...prev, status: 'failed' } : prev)
-    let nextHud = hudGermsRef.current
-    setHudGerms(prev => {
-      const next = Math.min(3, prev + 1)
-      hudGermsRef.current = next
-      nextHud = next
-      return next
-    })
     
     setTimeout(() => {
       setCurrentGerm(prev => {
@@ -1093,9 +1082,7 @@ export default function ToothbrushGame() {
       })
       
       // Schedule next spawn after clearing
-      if (nextHud < 3) {
-        scheduleNextSpawn(NEXT_SPAWN_DELAY_MS)
-      }
+      scheduleNextSpawn(NEXT_SPAWN_DELAY_MS)
     }, FAILURE_CLEAR_DELAY_MS)
   }, [clearFailureTimer, scheduleNextSpawn])
 
@@ -1555,7 +1542,6 @@ export default function ToothbrushGame() {
   useEffect(() => {
     if (step === 1 || step === 2 || step === 3 || step === 4 || step === 5) {
       setBrushingActive(false)
-      setHudGerms(0)
       setSuccessCount(0)
       setCurrentGerm(null)
       setBrushedThisWindow(false)
@@ -1564,7 +1550,6 @@ export default function ToothbrushGame() {
       verticalLastBrushXRef.current = null
       setShineEffects([])
       setShowBrushHint(false)
-      hudGermsRef.current = 0
       successCountRef.current = 0
       currentGermRef.current = null
       brushedThisWindowRef.current = false
@@ -1663,7 +1648,6 @@ export default function ToothbrushGame() {
         (stepRef.current === 1 || stepRef.current === 2 || stepRef.current === 3 || stepRef.current === 4 || stepRef.current === 5) &&
         brushingActiveRef.current &&
         currentGermRef.current === null &&
-        hudGermsRef.current < 3 &&
         successCountRef.current < WIN_CONDITION_COUNT
       ) {
         spawnGerm()
@@ -1743,11 +1727,9 @@ export default function ToothbrushGame() {
     setHasPaste(false)
     setShowIntro(false)
     setBrushingActive(false)
-    setHudGerms(0)
     setSuccessCount(0)
     setCurrentGerm(null)
     setBrushedThisWindow(false)
-    hudGermsRef.current = 0
     successCountRef.current = 0
     currentGermRef.current = null
     brushedThisWindowRef.current = false
@@ -1785,13 +1767,6 @@ export default function ToothbrushGame() {
       <div className="step-instruction">
         <div className="step-title-row">
           <div className="step-title">Step {step}:</div>
-          {(step === 1 || step === 2 || step === 3 || step === 4 || step === 5) && (
-            <div className="germs hud">
-              {[0,1,2].map((i) => (
-                <span key={i} className={`germ ${i < hudGerms ? 'active' : ''}`} aria-label="germ" role="img">🦠</span>
-              ))}
-            </div>
-          )}
         </div>
         <div className="step-sub">
           {step === 0 
@@ -1982,8 +1957,6 @@ export default function ToothbrushGame() {
             <div className="intro-title">Instructions</div>
             <ul className="intro-list">
               <li>Brush in the specified direction until the germs go away</li>
-              <li>If you fail to brush the germs, you gain a germ point</li>
-              <li>Three germ points and you lose</li>
             </ul>
             <button className="continue-btn" onClick={() => startStep1()}>Continue</button>
           </div>
@@ -1999,38 +1972,6 @@ export default function ToothbrushGame() {
         </div>
       )}
 
-      {hudGerms >= 3 && (step === 1 || step === 2 || step === 3 || step === 4 || step === 5) && (
-        <div className="intro-overlay">
-          <div className="backdrop" />
-          <div className="intro-card">
-            <div className="intro-title">You Lose</div>
-            <button
-              className="continue-btn"
-              onClick={() => {
-                setStep(0)
-                setHasPaste(false)
-                setShowIntro(false)
-                setBrushingActive(false)
-                setHudGerms(0)
-                setSuccessCount(0)
-                setCurrentGerm(null)
-                setBrushedThisWindow(false)
-                hudGermsRef.current = 0
-                successCountRef.current = 0
-                currentGermRef.current = null
-                brushedThisWindowRef.current = false
-                step2LastPointerRef.current = null
-                circleProgressRef.current = 0
-                setWaterDragging(false)
-                setWaterPoured(false)
-                setOverRinseMouth(false)
-              }}
-            >
-              Try Again
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   )
 }

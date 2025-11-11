@@ -450,19 +450,6 @@
 	align-items: center;
 	gap: 12px;
 }
-.germs.hud {
-	position: static;
-	display: inline-flex;
-	align-items: center;
-	gap: 8px;
-}
-.germs.hud .germ { opacity: 0.25; font-size: 1.8rem; transition: opacity 150ms ease, transform 150ms ease, filter 150ms ease, text-shadow 150ms ease; }
-.germs.hud .germ.active { 
-	opacity: 1; 
-	transform: scale(1.1);
-	/* bright teal glow to clearly "light up" */
-	text-shadow: 0 0 0 #ABE7B2, 0 0 8px #93BFC7, 0 0 14px #93BFC7; 
-}
 
 /* Intro overlay */
 .intro-overlay {
