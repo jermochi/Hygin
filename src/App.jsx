@@ -4,7 +4,6 @@ import LandingPage from './components/LandingPage'
 import GamePage from './components/GamePage'
 import './App.css'
 import './App.css'
-import HygieneFallingIcons from './components/HygieneFallingIcons'
 import bgMusic from './assets/sounds/bg-music.wav'
 import { useHoverSound } from './utils/useHoverSound'
 import { AudioSettingsProvider } from './context/AudioSettingsProvider'
@@ -57,7 +56,6 @@ function AppContent() {
         <button className="mute-button" onClick={toggleMute}>
           {isMuted ? '🔇' : '🔊'}
         </button>
-        <HygieneFallingIcons />
         <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/handwashing" element={<GamePage gameType="Hand Washing" />} />

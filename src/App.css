@@ -59,3 +59,21 @@ body {
     font-size: 22px;
   }
 }
+
+
+.falling-icons-container {
+  position: fixed; /* Or absolute, depending on its parent */
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -1; /* This will place it behind all content with z-index 0 or higher */
+  pointer-events: none; /* Allows clicks to pass through to elements beneath */
+}
+
+/* For individual falling icons if they are direct children */
+.falling-icon {
+  opacity: 0.1; /* Adjust this value for desired transparency */
+  /* You might also want to ensure they don't block interaction */
+  pointer-events: none;
+}

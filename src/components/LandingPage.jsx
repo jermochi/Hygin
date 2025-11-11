@@ -5,10 +5,12 @@ import './LandingPage.css'
 import logo from '../assets/logo.png'
 import logoSvg from '../assets/logo-dark.png'
 import MedalDisplay from './MedalDisplay'
+import HygieneFallingIcons from './HygieneFallingIcons'
 
 const LandingPage = () => {
   return (
     <div className="landing-page">
+      <HygieneFallingIcons />
       <header className="header">
         <div className="logo">
           <img src={logo} alt="Hygin Logo" className="logo-image" />

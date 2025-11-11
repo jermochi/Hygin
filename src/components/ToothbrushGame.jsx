@@ -1,7 +1,6 @@
-import React, { useState, useRef, useEffect, useCallback, useContext } from 'react'
+import React, { useState, useRef, useEffect, useCallback } from 'react'
 import './ToothbrushGame.css'
 import { markGameCompleted, GAME_IDS } from '../utils/gameCompletion'
-import { AudioSettingsContext } from '../context/AudioSettingsContext'
 
 import toothbrushNoPaste from '../assets/toothbrush-no-toothpaste.png'
 import toothbrushCursor from '../assets/toothbrush-toothpaste.png'
@@ -60,7 +59,7 @@ const GERM_IMAGES = [germ1, germ2, germ3, germ4, germ5, germ6, germ7, germ8]
 // How many brush direction-change strokes are required to remove a single germ
 const GERM_STROKES_TO_REMOVE = 3
 // Step-1 specific stroke requirement (keep step0 behavior unaffected)
-const STEP1_GERM_STROKES = 5
+const STEP1_GERM_STROKES = 3
 const STEP2_GERM_STROKES = 3
 const STEP2_MOVEMENT_THRESHOLD = 60
 const STEP4_GERM_STROKES = 2
@@ -71,13 +70,11 @@ const VERTICAL_DOMINANCE_RATIO = 1.05
 const STEP4_VERTICAL_THRESHOLD = 6
 const STEP4_HORIZONTAL_TOLERANCE = 40
 const STEP4_DOMINANCE_RATIO = 0.9
-// Reduce Step 4/5 brush width so it's not too large
-const STEP45_BRUSH_WIDTH = 'clamp(80px, 8vw, 120px)'
+const STEP45_BRUSH_WIDTH = 'clamp(100px, 10vw, 150px)'
 // Where the cursor should attach to the floating toothbrush (percentages of width/height)
 const BRUSH_HEAD_ANCHOR = { x: 0.85, y: 0.45 }
 // Germ display / hitbox size (1/3 of previous 260px width)
 const GERM_DISPLAY_SIZE = Math.round(260 / 3)
-// Keep Step 4 germ size smaller (revert to original 0.6 multiplier)
 const STEP4_GERM_SIZE = Math.round(GERM_DISPLAY_SIZE * 0.6)
 const INSIDE_TOP_Y_RANGE = { min: 0.18, max: 0.36 }
 const INSIDE_BOTTOM_Y_RANGE = { min: 0.66, max: 0.88 }
@@ -104,17 +101,6 @@ const clamp01 = (value) => Math.min(1, Math.max(0, value))
 
 
 export default function ToothbrushGame() {
-  const { registerAudio, unregisterAudio } = useContext(AudioSettingsContext);
-  
-  // Helper to play a one-time sound effect
-  const playSound = useCallback((soundSrc) => {
-    const audio = new Audio(soundSrc);
-    registerAudio(audio);
-    audio.play().catch(err => console.log('Audio play failed:', err));
-    audio.onended = () => unregisterAudio(audio);
-    return audio;
-  }, [registerAudio, unregisterAudio]);
-  
   const [step, setStep] = useState(0) // 0: apply paste, 1: brush teeth
   const [hasPaste, setHasPaste] = useState(false)
   const [dragging, setDragging] = useState(false)
@@ -211,9 +197,6 @@ export default function ToothbrushGame() {
     const audio = new Audio(toothbrushSfx);
     audio.loop = true;
     brushingSoundRef.current = audio;
-    
-    // Register with audio context
-    registerAudio(audio);
 
     return () => {
       if (brushMovementTimeoutRef.current) {
@@ -221,11 +204,10 @@ export default function ToothbrushGame() {
       }
       if (brushingSoundRef.current) {
         brushingSoundRef.current.pause();
-        unregisterAudio(brushingSoundRef.current);
         brushingSoundRef.current = null;
       }
     };
-  }, [registerAudio, unregisterAudio]);
+  }, []);
 
   // Watch for brush position changes and handle sound
   useEffect(() => {
@@ -273,9 +255,10 @@ export default function ToothbrushGame() {
   // Play good job sound when success screen shows
   useEffect(() => {
     if (showSuccess) {
-      playSound(goodJobSfx);
+      const audio = new Audio(goodJobSfx);
+      audio.play().catch(err => console.log('Audio play failed:', err));
     }
-  }, [showSuccess, playSound])
+  }, [showSuccess])
 
   useEffect(() => {
     const img = new Image()
@@ -710,12 +693,9 @@ export default function ToothbrushGame() {
 
   const brushRef = useRef(null)
   const containerRef = useRef(null)
-  const playContainerRef = useRef(null)
   const headRef = useRef(null)
   const germRef = useRef(null)
   const rinseMouthRef = useRef(null)
-  const brushAnchorResetTimeoutRef = useRef(null)
-  const initialBrushPosRef = useRef(null)
 
   const clearFailureTimer = useCallback(() => {
     if (spawnTimersRef.current.windowTimer) {
@@ -796,87 +776,20 @@ export default function ToothbrushGame() {
 
         const point = selectCandidate()
         if (point) {
-          // Validate mapped points against the inside-teeth mask and attempt
-          // a few retries if a chosen candidate doesn't map cleanly to a masked pixel
-          const data = insideTeethDataRef.current || {}
-          const { mask: itMask, width: itWidth, height: itHeight, points: itPoints, bounds: itBounds } = data
-          let candidate = point
-          let attempts = 0
-          let mapped = false
-          let finalNormX = candidate.x ?? 0.5
-          let finalNormY = candidate.y ?? 0.5
-
-          // Apply strict bounding based on actual mask bounds to prevent out-of-bounds spawns
-          if (itBounds) {
-            const safeMinX = Math.max(itBounds.minX ?? 0.15, 0.15)
-            const safeMaxX = Math.min(itBounds.maxX ?? 0.85, 0.85)
-            finalNormX = Math.max(safeMinX, Math.min(safeMaxX, finalNormX))
+          xPct = (point.x ?? 0.5) * 100
+          let clampedY = point.y ?? 0.5
+          if (point.y <= INSIDE_TOP_Y_RANGE.max) {
+            clampedY = Math.min(
+              Math.max(point.y, INSIDE_TOP_SPAWN_RANGE.min),
+              INSIDE_TOP_SPAWN_RANGE.max
+            )
+          } else {
+            clampedY = Math.min(
+              Math.max(point.y, INSIDE_BOTTOM_SPAWN_RANGE.min),
+              INSIDE_BOTTOM_SPAWN_RANGE.max
+            )
           }
-
-          while (!mapped && attempts < 20) {
-            const normX = finalNormX
-            // clamp Y into the correct top/bottom spawn band first
-            let normY = finalNormY
-            if (normY <= INSIDE_TOP_Y_RANGE.max) {
-              normY = Math.min(Math.max(normY, INSIDE_TOP_SPAWN_RANGE.min), INSIDE_TOP_SPAWN_RANGE.max)
-            } else {
-              normY = Math.min(Math.max(normY, INSIDE_BOTTOM_SPAWN_RANGE.min), INSIDE_BOTTOM_SPAWN_RANGE.max)
-            }
-
-            // If we have an actual mask, validate the pixel maps to a tooth pixel
-            if (itMask && itWidth && itHeight) {
-              const px = Math.min(itWidth - 1, Math.max(0, Math.round(normX * (itWidth - 1))))
-              const py = Math.min(itHeight - 1, Math.max(0, Math.round(normY * (itHeight - 1))))
-              if (itMask[py * itWidth + px] === 1) {
-                mapped = true
-                finalNormX = normX
-                finalNormY = normY
-                break
-              }
-            } else {
-              // No mask available - accept candidate after clamping
-              mapped = true
-              finalNormX = normX
-              finalNormY = normY
-              break
-            }
-
-            // Pick another candidate from pools if available
-            const pool = (topSpawnPoints && topSpawnPoints.length) || (bottomSpawnPoints && bottomSpawnPoints.length) ?
-              (Math.random() < 0.5 ? topSpawnPoints : bottomSpawnPoints) : (points || itPoints)
-            if (Array.isArray(pool) && pool.length) {
-              const next = pool[Math.floor(Math.random() * pool.length)]
-              if (next) {
-                candidate = next
-                finalNormX = candidate.x ?? finalNormX
-                finalNormY = candidate.y ?? finalNormY
-                // Apply bounds again
-                if (itBounds) {
-                  const safeMinX = Math.max(itBounds.minX ?? 0.15, 0.15)
-                  const safeMaxX = Math.min(itBounds.maxX ?? 0.85, 0.85)
-                  finalNormX = Math.max(safeMinX, Math.min(safeMaxX, finalNormX))
-                }
-              }
-            }
-            attempts++
-          }
-
-          // If after retries we didn't find a mapped pixel, fallback to a safe center point
-          if (!mapped) {
-            // Prefer a top or bottom spawn band center depending on the original candidate
-            const useTop = (point.y ?? 0.5) <= (INSIDE_TOP_Y_RANGE.max)
-            finalNormX = 0.5
-            finalNormY = useTop
-              ? (INSIDE_TOP_SPAWN_RANGE.min + INSIDE_TOP_SPAWN_RANGE.max) / 2
-              : (INSIDE_BOTTOM_SPAWN_RANGE.min + INSIDE_BOTTOM_SPAWN_RANGE.max) / 2
-          }
-
-          // Clamp final coordinates strictly within reasonable bounds (prevent edge spawns)
-          finalNormX = Math.max(0.2, Math.min(0.8, finalNormX))
-          finalNormY = Math.max(0.2, Math.min(0.85, finalNormY))
-
-          xPct = (finalNormX ?? 0.5) * 100
-          yPct = (finalNormY ?? 0.5) * 100
+          yPct = clampedY * 100
         }
   } else if (currentStep === 4) {
         // Prefer spawning directly on detected teeth pixels within occlusal bands.
@@ -1062,7 +975,8 @@ export default function ToothbrushGame() {
     setShineEffects(prev => [...prev, { id: effectId, xPct, yPct }])
 
     // Play success sound
-    playSound(successSfx);
+    const audio = new Audio(successSfx);
+    audio.play().catch(err => console.log('Audio play failed:', err));
 
     if (shineTimeoutsRef.current.has(effectId)) {
       clearTimeout(shineTimeoutsRef.current.get(effectId))
@@ -1074,7 +988,7 @@ export default function ToothbrushGame() {
     }, 1000)
 
     shineTimeoutsRef.current.set(effectId, timeout)
-  }, [playSound])
+  }, [])
 
   const startBrushingPhase = useCallback((phaseStep) => {
     setShowIntro(false)
@@ -1097,111 +1011,7 @@ export default function ToothbrushGame() {
     brushHintTimeoutRef.current = setTimeout(() => {
       setShowBrushHint(false)
       brushHintTimeoutRef.current = null
-        // Set an initial brush position so the toothbrush spawns below the mouth
-        // and centered when brushing starts (prevents overlap with the head)
-        try {
-          let startX = null
-          let startY = null
-          let headHeight = null
-          if (headRef && headRef.current) {
-            const hr = headRef.current.getBoundingClientRect()
-            headHeight = hr.height
-
-            // For Step 4 and Step 5, position brush to the right side instead of center to keep it in bounds
-            if (phaseStep === 4 || phaseStep === 5) {
-              // Position to the right of center, but not too far to avoid going out of bounds
-              startX = hr.left + hr.width * 0.70 // 70% from left (right side)
-            } else {
-              startX = hr.left + hr.width / 2
-            }
-            // place just below the mouth; we'll add a small positive offset below
-            // the mouth so the brush appears clearly under it
-            startY = hr.bottom
-          } else if (playContainerRef && playContainerRef.current) {
-            const pr = playContainerRef.current.getBoundingClientRect()
-            if (phaseStep === 4 || phaseStep === 5) {
-              // Position to the right for Step 4 and 5
-              startX = pr.left + pr.width * 0.65
-            } else {
-              startX = pr.left + pr.width / 2
-            }
-            // fallback: put the brush at ~68% of the play container height
-            startY = pr.top + pr.height * 0.68
-          }
-          if (startX !== null && startY !== null) {
-            // determine final spawn Y: place just below the mouth with a small offset
-            // Use a MUCH larger offset for Step 3 so the toothbrush isn't too close to the mouth
-            let spawnYOffset = headHeight ? Math.min(24, headHeight * 0.08) : 24
-            if (phaseStep === 3) {
-              // Step 3: use a significantly larger offset (about 20% of head height or at least 80px)
-              spawnYOffset = headHeight ? Math.max(80, headHeight * 0.20) : 80
-            } else if (phaseStep === 4) {
-              // Step 4: use moderate offset and keep right-side positioning
-              spawnYOffset = headHeight ? Math.max(50, headHeight * 0.14) : 50
-            } else if (phaseStep === 5) {
-              // Step 5: keep right-side positioning like Step 4 but place the brush a bit higher
-              // so it sits inside the play container without overlapping the mouth
-              spawnYOffset = headHeight ? Math.max(36, headHeight * 0.10) : 36
-            }
-
-            // For Steps 3/4/5 place brush below mouth; for others slightly lifted
-            let spawnY = (phaseStep === 3 || phaseStep === 4 || phaseStep === 5) ? (startY + spawnYOffset) : (startY + spawnYOffset - 10)
-
-            // Clamp spawnY to be inside the play container (if available) or viewport
-            try {
-              const maxContainerBottom = playContainerRef && playContainerRef.current
-                ? playContainerRef.current.getBoundingClientRect().bottom - 48
-                : (typeof window !== 'undefined' ? window.innerHeight - 80 : spawnY)
-              spawnY = Math.min(spawnY, maxContainerBottom)
-              // Also ensure spawnY stays at least a bit below the mouth bottom
-              if (headRef && headRef.current) {
-                const hr = headRef.current.getBoundingClientRect()
-                const minY = hr.bottom + 18
-                spawnY = Math.max(spawnY, minY)
-              }
-            } catch (err) {
-              // ignore and keep computed spawnY
-            }
-
-            // store the initial brush image position so we can snap back later
-            // center horizontally relative to the viewport (screen) for most steps
-            // but for Step 4, keep the right-side positioning
-              try {
-                // keep Step 4 and Step 5 right-side positioning; center other steps
-                if (typeof window !== 'undefined' && phaseStep !== 4 && phaseStep !== 5) {
-                  startX = window.innerWidth / 2
-                }
-              } catch (err) {
-                // ignore and keep previous startX
-              }
-
-            initialBrushPosRef.current = { x: startX, y: spawnY }
-
-            // temporarily center the toothbrush image by using a centered anchor
-            // so the visual image (not the bristles hitbox) is centered at startX
-            setBrushAnchor({ x: 0.5, y: 0.5 })
-            setBrushPos({ x: startX, y: spawnY })
-            pointerPosRef.current = { x: startX, y: spawnY }
-
-            // clear any previous reset timeout
-            if (brushAnchorResetTimeoutRef.current) {
-              clearTimeout(brushAnchorResetTimeoutRef.current)
-              brushAnchorResetTimeoutRef.current = null
-            }
-
-            // after a short delay restore the computed bristle anchor so brushing logic
-            // uses the accurate bristle hitpoint; delay allows initial spawn centering
-            // to be visible to the user
-            brushAnchorResetTimeoutRef.current = setTimeout(() => {
-              setBrushAnchor(BRUSH_HEAD_ANCHOR)
-              brushAnchorResetTimeoutRef.current = null
-            }, 700)
-          }
-        } catch (err) {
-          // ignore if DOM not ready
-        }
-
-        setBrushingActive(true)
+      setBrushingActive(true)
     }, 2000)
   }, [])
 
@@ -1434,11 +1244,12 @@ export default function ToothbrushGame() {
     if (overBristles) {
       setHasPaste(true)
       // Play toothpaste sound effect
-      playSound(toothpasteSfx);
+      const audio = new Audio(toothpasteSfx);
+      audio.play().catch(err => console.log('Audio play failed:', err));
     }
     setDragging(false)
     setOverBristles(false)
-  }, [overBristles, playSound])
+  }, [overBristles])
 
   // ========== Shared Vertical Stroke Handler (Steps 1, 4, 5) ==========
   
@@ -1533,28 +1344,10 @@ export default function ToothbrushGame() {
   }, [lastBrushY, brushDirection, getTeethArea, getGermBounds, handleGermSuccess, spawnShineEffect])
 
   const handleVerticalUp = useCallback(() => {
-    // Don't stop brushing completely - allow it to restart when tapping inside
     setBrushing(false)
     setLastBrushY(null)
     setBrushDirection(null)
     verticalLastBrushXRef.current = null
-    // Snap brush back to its initial visual spawn position (centered by image)
-    if (initialBrushPosRef.current) {
-      // clear any existing anchor reset timer
-      if (brushAnchorResetTimeoutRef.current) {
-        clearTimeout(brushAnchorResetTimeoutRef.current)
-        brushAnchorResetTimeoutRef.current = null
-      }
-      setBrushAnchor({ x: 0.5, y: 0.5 })
-      setBrushPos(initialBrushPosRef.current)
-      pointerPosRef.current = { ...initialBrushPosRef.current }
-      // restore bristle anchor after a short delay
-      brushAnchorResetTimeoutRef.current = setTimeout(() => {
-        setBrushAnchor(BRUSH_HEAD_ANCHOR)
-        brushAnchorResetTimeoutRef.current = null
-      }, 400)
-    }
-    // Keep brushingActive true so brushing can restart when tapping inside
   }, [])
 
   // ========== Step 2: Brush in Circles (or any motion!) ==========
@@ -1578,9 +1371,8 @@ export default function ToothbrushGame() {
 
     if (stepRef.current === 3 && headRef.current) {
       const headRect = headRef.current.getBoundingClientRect()
-      // Use bristle center for detection, not pointer position
-      const relX = (bristleCenterX - headRect.left) / headRect.width
-      const relY = (bristleCenterY - headRect.top) / headRect.height
+      const relX = (pointerX - headRect.left) / headRect.width
+      const relY = (pointerY - headRect.top) / headRect.height
       if (!isInsideTeethPixel(relX, relY)) {
         circleProgressRef.current = 0
         step2LastPointerRef.current = null
@@ -1598,8 +1390,7 @@ export default function ToothbrushGame() {
     const germBounds = getGermBounds(germ)
     if (!germBounds) return
 
-    // Use larger padding for Step 3 to make detection easier
-    const expandedPadding = stepRef.current === 3 ? 20 : 12
+    const expandedPadding = 12
     const overGerm = pointerX >= (germBounds.left - expandedPadding) &&
       pointerX <= (germBounds.left + germBounds.width + expandedPadding) &&
       pointerY >= (germBounds.top - expandedPadding) &&
@@ -1651,25 +1442,9 @@ export default function ToothbrushGame() {
   }, [getTeethArea, getGermBounds, handleGermSuccess, spawnShineEffect, isInsideTeethPixel])
 
   const handleStep2Up = useCallback(() => {
-    // Don't stop brushing completely - allow it to restart when tapping inside
     setBrushing(false)
     step2LastPointerRef.current = null
     circleProgressRef.current = 0
-    // Snap brush back to initial spawn position
-    if (initialBrushPosRef.current) {
-      if (brushAnchorResetTimeoutRef.current) {
-        clearTimeout(brushAnchorResetTimeoutRef.current)
-        brushAnchorResetTimeoutRef.current = null
-      }
-      setBrushAnchor({ x: 0.5, y: 0.5 })
-      setBrushPos(initialBrushPosRef.current)
-      pointerPosRef.current = { ...initialBrushPosRef.current }
-      brushAnchorResetTimeoutRef.current = setTimeout(() => {
-        setBrushAnchor(BRUSH_HEAD_ANCHOR)
-        brushAnchorResetTimeoutRef.current = null
-      }, 400)
-    }
-    // Keep brushingActive true so brushing can restart when tapping inside
   }, [])
 
   const handleStep6Move = useCallback((e) => {
@@ -1693,7 +1468,8 @@ export default function ToothbrushGame() {
     if (overRinseMouth && !waterPoured) {
       setWaterPoured(true)
       // Play gargle water sound effect
-      playSound(gargleWaterSfx);
+      const gargleSound = new Audio(gargleWaterSfx);
+      gargleSound.play().catch(err => console.log('Audio play failed:', err));
       // Add delay before showing "good job"
       setTimeout(() => {
         setShowSuccess(true)
@@ -1705,27 +1481,13 @@ export default function ToothbrushGame() {
     }
     setWaterDragging(false)
     setOverRinseMouth(false)
-  }, [overRinseMouth, waterPoured, playSound])
+  }, [overRinseMouth, waterPoured])
 
   // ========== Main Event Handlers ==========
   
   // Track pointer while dragging
   useEffect(() => {
-    // Helper to check if pointer is inside the play container
-    const isPointerInsidePlayContainer = (x, y) => {
-      if (!playContainerRef.current) return false;
-      const container = playContainerRef.current;
-      const rect = container.getBoundingClientRect();
-      return x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom;
-    }
-
     const handleMove = (e) => {
-      // Only prevent default if touching inside the play container
-      if (e.pointerType === 'touch' && (dragging || brushing || waterDragging)) {
-        if (isPointerInsidePlayContainer(e.clientX, e.clientY)) {
-          e.preventDefault()
-        }
-      }
       pointerPosRef.current = { x: e.clientX, y: e.clientY }
       if (step === 0 && dragging) {
         handleStep0Move(e)
@@ -1742,13 +1504,7 @@ export default function ToothbrushGame() {
       }
     }
 
-    const handleUp = (e) => {
-      // Only prevent default if touching inside the play container
-      if (e && e.pointerType === 'touch' && (dragging || brushing || waterDragging)) {
-        if (isPointerInsidePlayContainer(e.clientX, e.clientY)) {
-          e.preventDefault()
-        }
-      }
+    const handleUp = () => {
       if (step === 0 && dragging) {
         handleStep0Up()
       } else if ((step === 1 || step === 4 || step === 5) && brushing) {
@@ -1760,83 +1516,22 @@ export default function ToothbrushGame() {
       }
     }
 
-    // Helper to check if touch is inside the play container
-    const isInsidePlayContainer = (e) => {
-      if (!playContainerRef.current) return false;
-      const container = playContainerRef.current;
-      const rect = container.getBoundingClientRect();
-      const x = e.touches?.[0]?.clientX || e.clientX;
-      const y = e.touches?.[0]?.clientY || e.clientY;
-      return x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom;
-    }
-
-    // Also handle touch events specifically to prevent scrolling
-    const handleTouchMove = (e) => {
-      // Only prevent scrolling if touching inside the play container
-      if (!isInsidePlayContainer(e)) {
-        return; // Allow normal page scrolling outside the box
-      }
-      // For step 3, allow touch events to pass through for brushing
-      if (step === 3) {
-        return;
-      }
-      if (dragging || brushing || waterDragging) {
-        e.preventDefault()
-      }
-    }
-
-    const handleTouchStart = (e) => {
-      // Don't prevent default on buttons or interactive elements
-      const target = e.target;
-      if (target && (target.tagName === 'BUTTON' || target.closest('button') || target.closest('.continue-btn'))) {
-        return;
-      }
-      // Only prevent scrolling if touching inside the play container
-      if (!isInsidePlayContainer(e)) {
-        return; // Allow normal page scrolling outside the box
-      }
-      // For step 3, allow touch events to pass through for brushing
-      if (step === 3) {
-        return;
-      }
-      if (dragging || brushing || waterDragging || step === 1 || step === 2 || step === 4 || step === 5) {
-        e.preventDefault()
-      }
-    }
-
-    window.addEventListener('pointermove', handleMove, { passive: false })
-    window.addEventListener('pointerup', handleUp, { passive: false })
-    window.addEventListener('touchmove', handleTouchMove, { passive: false })
-    window.addEventListener('touchstart', handleTouchStart, { passive: false })
+    window.addEventListener('pointermove', handleMove)
+    window.addEventListener('pointerup', handleUp)
     return () => {
       window.removeEventListener('pointermove', handleMove)
       window.removeEventListener('pointerup', handleUp)
-      window.removeEventListener('touchmove', handleTouchMove)
-      window.removeEventListener('touchstart', handleTouchStart)
-      // clear any pending brush anchor reset
-      if (brushAnchorResetTimeoutRef.current) {
-        clearTimeout(brushAnchorResetTimeoutRef.current)
-        brushAnchorResetTimeoutRef.current = null
-      }
     }
   }, [step, dragging, brushing, waterDragging, handleStep0Move, handleStep0Up, handleVerticalStrokeMove, handleVerticalUp, handleStep2Move, handleStep2Up, handleStep6Move, handleStep6Up, getBristleCenter])
 
   const startDrag = (e) => {
     if (hasPaste || step !== 0) return
-    // Prevent default to stop scrolling on mobile
-    if (e.pointerType === 'touch') {
-      e.preventDefault()
-    }
     setDragging(true)
     setCursorPos({ x: e.clientX, y: e.clientY })
   }
 
   const startWaterDrag = (e) => {
     if (step !== 6 || waterPoured) return
-    // Prevent default to stop scrolling on mobile
-    if (e.pointerType === 'touch') {
-      e.preventDefault()
-    }
     setWaterDragging(true)
     setWaterCursorPos({ x: e.clientX, y: e.clientY })
   }
@@ -1923,18 +1618,9 @@ export default function ToothbrushGame() {
 
   useEffect(() => {
     if ((step === 1 || step === 2 || step === 3 || step === 4 || step === 5) && brushingActive && !brushing) {
-      // Only start brushing if pointer is inside the play container
-      const pos = pointerPosRef.current
-      if (playContainerRef.current) {
-        const container = playContainerRef.current
-        const rect = container.getBoundingClientRect()
-        const isInside = pos.x >= rect.left && pos.x <= rect.right && pos.y >= rect.top && pos.y <= rect.bottom
-        if (!isInside) {
-          return // Don't start brushing if touching outside the container
-        }
-      }
       setBrushing(true)
       setBrushDirection(null)
+      const pos = pointerPosRef.current
       setBrushPos({ x: pos.x, y: pos.y })
       if (step === 1) {
         setLastBrushY(null)
@@ -2088,7 +1774,7 @@ export default function ToothbrushGame() {
   return (
     <div
       ref={containerRef}
-      className={`toothbrush-game ${dragging || brushing ? 'dragging-active' : ''} ${step === 6 ? 'rinse-cursor' : ''} ${brushingActive || brushing ? 'brushing-active' : ''}`}
+      className={`toothbrush-game ${dragging || brushing ? 'dragging-active' : ''} ${step === 6 ? 'rinse-cursor' : ''}`}
     >
       {showHitboxes && (
         <div className="debug-chip">Hitboxes ON — press H to hide</div>
@@ -2162,68 +1848,7 @@ export default function ToothbrushGame() {
 
       {/* Step 1: Brush teeth */}
       {(step === 1 || step === 2 || step === 3 || step === 4 || step === 5) && (
-        <div 
-          ref={playContainerRef}
-          className={`play-container step-1${step === 2 ? ' step-2' : ''}${step === 3 ? ' step-3' : ''}${step === 4 ? ' step-4' : ''}${step === 5 ? ' step-5' : ''}`}
-          onPointerDown={(e) => {
-            // Restart brushing if tapping inside the container and brushing is active but not currently brushing
-            if (brushingActive && !brushing && (step === 1 || step === 2 || step === 3 || step === 4 || step === 5)) {
-              const rect = e.currentTarget.getBoundingClientRect()
-              const isInside = e.clientX >= rect.left && e.clientX <= rect.right && 
-                               e.clientY >= rect.top && e.clientY <= rect.bottom
-              if (isInside) {
-                setBrushing(true)
-                setBrushPos({ x: e.clientX, y: e.clientY })
-                pointerPosRef.current = { x: e.clientX, y: e.clientY }
-                if (step === 1 || step === 4 || step === 5) {
-                  setLastBrushY(null)
-                  verticalLastBrushXRef.current = null
-                } else if (step === 2 || step === 3) {
-                  setLastBrushY(null)
-                  step2LastPointerRef.current = null
-                  circleProgressRef.current = 0
-                }
-              }
-            }
-            // Only prevent scrolling when touching inside the play container
-            if (e.pointerType === 'touch' && brushingActive) {
-              e.preventDefault()
-            }
-          }}
-          onTouchStart={(e) => {
-            // Restart brushing if tapping inside the container
-            if (brushingActive && !brushing && (step === 1 || step === 2 || step === 3 || step === 4 || step === 5)) {
-              const touch = e.touches[0]
-              if (touch && playContainerRef.current) {
-                const rect = playContainerRef.current.getBoundingClientRect()
-                const isInside = touch.clientX >= rect.left && touch.clientX <= rect.right && 
-                                 touch.clientY >= rect.top && touch.clientY <= rect.bottom
-                if (isInside) {
-                  setBrushing(true)
-                  setBrushPos({ x: touch.clientX, y: touch.clientY })
-                  pointerPosRef.current = { x: touch.clientX, y: touch.clientY }
-                  if (step === 1 || step === 4 || step === 5) {
-                    setLastBrushY(null)
-                    verticalLastBrushXRef.current = null
-                  } else if (step === 2 || step === 3) {
-                    setLastBrushY(null)
-                    step2LastPointerRef.current = null
-                    circleProgressRef.current = 0
-                  }
-                }
-              }
-            }
-            // Only prevent default when touching inside the play container
-            // For step 3, allow touch events to pass through for brushing
-            if (step === 3) {
-              return
-            }
-            // Prevent scrolling when touching the game area for other steps
-            if (brushingActive || step === 1 || step === 2 || step === 4 || step === 5) {
-              e.preventDefault()
-            }
-          }}
-        >
+        <div className={`play-container step-1${step === 2 ? ' step-2' : ''}${step === 3 ? ' step-3' : ''}${step === 4 ? ' step-4' : ''}${step === 5 ? ' step-5' : ''}`}>
           <div className="head-container">
               <img
                 ref={headRef}
@@ -2240,11 +1865,12 @@ export default function ToothbrushGame() {
                 ref={germRef}
                 src={currentGerm.img}
                 alt="germ"
-                className={`germ-sprite ${step === 4 ? 'step-4-germ' : ''}`}
+                className="germ-sprite"
                 style={{
                   left: `${currentGerm.xPct ?? 50}%`,
                   top: `${currentGerm.yPct ?? 53}%`,
-                  opacity: currentGerm.opacity ?? 1
+                  opacity: currentGerm.opacity ?? 1,
+                  width: `${step === 4 ? STEP4_GERM_SIZE : GERM_DISPLAY_SIZE}px`
                 }}
               />
             )}
@@ -2359,18 +1985,7 @@ export default function ToothbrushGame() {
               <li>If you fail to brush the germs, you gain a germ point</li>
               <li>Three germ points and you lose</li>
             </ul>
-            <button 
-              className="continue-btn" 
-              onClick={() => startStep1()}
-              onTouchStart={(e) => {
-                e.stopPropagation();
-              }}
-              onPointerDown={(e) => {
-                e.stopPropagation();
-              }}
-            >
-              Continue
-            </button>
+            <button className="continue-btn" onClick={() => startStep1()}>Continue</button>
           </div>
         </div>
       )}
