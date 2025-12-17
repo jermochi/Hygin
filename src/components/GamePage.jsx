@@ -3,6 +3,7 @@ import './GamePage.css'
 import logo from '../assets/logo.png'
 import HandwashingGame from './HandwashingGame'
 import ToothbrushGame from './ToothbrushGame'
+import HairwashingGame from './HairwashingGame'
 
 const GamePage = ({ gameType }) => {
   return (
@@ -14,11 +15,10 @@ const GamePage = ({ gameType }) => {
       </header>
       
       <main className="game-content">
-        {gameType === "Hand Washing" ? (
-          <HandwashingGame />
-        ) : gameType === "Tooth Brushing" ? (
-          <ToothbrushGame />
-        ) : (
+        {gameType === "Hand Washing" && <HandwashingGame />}
+        {gameType === "Tooth Brushing" && <ToothbrushGame />}
+        {gameType === "Hair Washing" && <HairwashingGame />}
+        {!['Hand Washing', 'Tooth Brushing', 'Hair Washing'].includes(gameType) && (
           <div className="game-container">
             <h1 className="game-title">{gameType} Game</h1>
             <div className="game-placeholder">
