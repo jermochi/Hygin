@@ -152,6 +152,42 @@
   opacity: 1;
 }
 
+/* Clickable step dots */
+.hairwashing-game .step-dot.clickable {
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.hairwashing-game .step-dot.clickable:hover {
+  transform: scale(1.2);
+  background: rgba(255, 255, 255, 0.5);
+  box-shadow: 0 0 15px rgba(255, 255, 255, 0.5);
+}
+
+.hairwashing-game .step-dot.clickable:hover img,
+.hairwashing-game .step-dot.clickable:hover span {
+  filter: grayscale(0%) !important;
+  opacity: 1 !important;
+}
+
+.hairwashing-game .step-dot.clickable:active {
+  transform: scale(0.95);
+}
+
+/* Bottom toolbar positioning */
+.hairwashing-game .step-indicators.bottom-toolbar {
+  position: relative;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 15px 20px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0.25) 100%);
+  backdrop-filter: blur(10px);
+  border-top: 2px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 -5px 20px rgba(0, 0, 0, 0.15);
+  gap: 12px;
+}
+
 /* ========== Main game area - smaller to fit below header ========== */
 .hairwashing-game .game-area {
   position: relative;
@@ -208,12 +244,12 @@
   width: 100%;
   height: 100%;
   object-fit: contain;
-  filter: drop-shadow(3px 5px 8px rgba(0,0,0,0.4));
+  filter: drop-shadow(3px 5px 8px rgba(0, 0, 0, 0.4));
 }
 
 .hairwashing-game .floating-tool-item span {
   font-size: 4.5rem;
-  filter: drop-shadow(3px 5px 8px rgba(0,0,0,0.4));
+  filter: drop-shadow(3px 5px 8px rgba(0, 0, 0, 0.4));
 }
 
 .hairwashing-game .floating-tool-item.active {
@@ -227,8 +263,15 @@
 }
 
 @keyframes tool-float {
-  0%, 100% { transform: translateY(0) rotate(0deg); }
-  50% { transform: translateY(-10px) rotate(3deg); }
+
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+
+  50% {
+    transform: translateY(-10px) rotate(3deg);
+  }
 }
 
 /* Tool positions - NOW RELATIVE TO HAIR CONTAINER (bigger sizes) */
@@ -246,8 +289,15 @@
 }
 
 @keyframes tool-float-shower {
-  0%, 100% { transform: translateY(0) rotate(30deg); }
-  50% { transform: translateY(-10px) rotate(35deg); }
+
+  0%,
+  100% {
+    transform: translateY(0) rotate(30deg);
+  }
+
+  50% {
+    transform: translateY(-10px) rotate(35deg);
+  }
 }
 
 .hairwashing-game .massager-pos {
@@ -278,8 +328,15 @@
 }
 
 @keyframes tool-float-brush {
-  0%, 100% { transform: translateY(0) rotate(-20deg); }
-  50% { transform: translateY(-10px) rotate(-15deg); }
+
+  0%,
+  100% {
+    transform: translateY(0) rotate(-20deg);
+  }
+
+  50% {
+    transform: translateY(-10px) rotate(-15deg);
+  }
 }
 
 .hairwashing-game .blowdryer-pos {
@@ -364,10 +421,12 @@
     opacity: 1;
     transform: translate(-50%, -50%) scale(0.5);
   }
+
   50% {
     opacity: 1;
     transform: translate(-50%, -120%) scale(1.3);
   }
+
   100% {
     opacity: 0;
     transform: translate(-50%, -180%) scale(0.8);
@@ -387,6 +446,7 @@
     opacity: 1;
     transform: translate(-50%, -50%) scale(1);
   }
+
   100% {
     opacity: 0;
     transform: translate(-50%, 80px) scale(0.5);
@@ -408,7 +468,30 @@
   position: absolute;
   background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.4));
   border-radius: 50%;
+  transform: translate(-50%, -50%);
+}
+
+/* Animated bubbles - temporary pop effect */
+.hairwashing-game .foam-bubble.animated {
   animation: bubble-pop 1.5s ease-out forwards;
+}
+
+/* Persistent bubbles - stay visible until rinsed */
+.hairwashing-game .foam-bubble.persistent {
+  animation: bubble-appear 0.3s ease-out forwards;
+  box-shadow: 0 2px 8px rgba(255, 255, 255, 0.3);
+}
+
+@keyframes bubble-appear {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
 }
 
 @keyframes bubble-pop {
@@ -416,14 +499,17 @@
     opacity: 0;
     transform: translate(-50%, -50%) scale(0);
   }
+
   20% {
     opacity: 1;
     transform: translate(-50%, -50%) scale(1);
   }
+
   80% {
     opacity: 1;
     transform: translate(-50%, -70%) scale(1.1);
   }
+
   100% {
     opacity: 0;
     transform: translate(-50%, -100%) scale(0.5);
@@ -462,9 +548,11 @@
     opacity: 0;
     transform: scale(0.5);
   }
+
   70% {
     transform: scale(1.05);
   }
+
   100% {
     opacity: 1;
     transform: scale(1);
@@ -478,8 +566,15 @@
 }
 
 @keyframes bounce {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-15px); }
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-15px);
+  }
 }
 
 .hairwashing-game .success-content h1 {
@@ -508,125 +603,254 @@
 }
 
 @keyframes sparkle {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.7; transform: scale(1.2); }
+
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 0.7;
+    transform: scale(1.2);
+  }
 }
 
-/* Mobile adjustments */
+/* ========== Mobile Optimization ========== */
 @media (max-width: 768px) {
+
+  /* Use dynamic viewport for mobile browsers with address bars */
+  .hairwashing-game {
+    height: 100dvh;
+    min-height: -webkit-fill-available;
+  }
+
+  /* Compact header for mobile */
   .hairwashing-game .game-header {
-    padding: 8px 12px;
+    padding: 10px 12px;
+    flex-direction: column;
+    gap: 6px;
+    align-items: stretch;
   }
-  
+
+  .hairwashing-game .step-info {
+    text-align: center;
+  }
+
   .hairwashing-game .step-title {
-    font-size: 1.1rem;
+    font-size: 1.2rem;
   }
-  
+
   .hairwashing-game .step-subtitle {
-    font-size: 0.8rem;
+    font-size: 0.85rem;
   }
-  
+
+  .hairwashing-game .progress-section {
+    justify-content: center;
+  }
+
   .hairwashing-game .progress-bar-track {
-    width: 100px;
-    height: 16px;
+    width: 120px;
+    height: 14px;
   }
-  
+
   .hairwashing-game .progress-text {
     font-size: 0.9rem;
-  }
-  
-  .hairwashing-game .step-indicators {
-    gap: 8px;
-    padding: 8px 10px;
-  }
-  
-  .hairwashing-game .step-dot {
-    width: 36px;
-    height: 36px;
-  }
-  
-  .hairwashing-game .step-dot span {
-    font-size: 1rem;
+    min-width: 40px;
   }
 
+  /* Game area - maximize space */
+  .hairwashing-game .game-area {
+    padding: 10px;
+  }
+
+  /* Hair container - larger on mobile */
   .hairwashing-game .hair-container {
-    width: 70%;
-    max-width: 320px;
-    height: 70%;
-    max-height: 380px;
+    width: 85%;
+    max-width: 100%;
+    height: 65%;
+    max-height: none;
+    border-radius: 15px;
   }
 
-  .hairwashing-game .showerhead-pos {
-    top: -10%;
-    left: -25%;
-    width: 70px;
-    height: 90px;
+  /* Hide floating tools on mobile - they take up too much space */
+  .hairwashing-game .floating-tool-item {
+    display: none;
   }
-  
-  .hairwashing-game .massager-pos {
-    top: -10%;
-    right: -20%;
-    width: 55px;
-    height: 55px;
+
+  /* Bottom toolbar - larger touch targets */
+  .hairwashing-game .step-indicators.bottom-toolbar {
+    padding: 12px 8px;
+    padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+    gap: 6px;
   }
-  
-  .hairwashing-game .shampoo-pos {
-    bottom: 15%;
-    left: -30%;
-    width: 55px;
-    height: 100px;
+
+  /* Touch-friendly step dots (min 44px for accessibility) */
+  .hairwashing-game .step-dot {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
+    border-width: 2px;
   }
-  
-  .hairwashing-game .brush-pos {
-    top: 30%;
-    right: -30%;
-    width: 50px;
-    height: 90px;
+
+  .hairwashing-game .step-dot img {
+    width: 65%;
+    height: 65%;
   }
-  
-  .hairwashing-game .blowdryer-pos {
-    bottom: -5%;
-    right: -25%;
-    width: 70px;
-    height: 70px;
+
+  .hairwashing-game .step-dot span {
+    font-size: 1.3rem;
   }
-  
-  .hairwashing-game .towel-pos {
-    bottom: 35%;
-    right: -35%;
-    width: 70px;
-    height: 50px;
+
+  .hairwashing-game .step-dot.active {
+    transform: scale(1.1);
   }
-  
-  .hairwashing-game .floating-tool-item span {
-    font-size: 3rem;
-  }
-  
+
+  /* Hint and timer - reposition for mobile */
   .hairwashing-game .hint-btn {
-    bottom: 10px;
-    left: 10px;
-    width: 45px;
-    height: 45px;
-    font-size: 1.5rem;
+    display: none;
+    /* Hide on mobile to save space */
   }
-  
+
   .hairwashing-game .timer-display {
-    bottom: 10px;
+    bottom: auto;
+    top: 10px;
     right: 10px;
-    font-size: 1rem;
-    padding: 6px 12px;
+    font-size: 0.9rem;
+    padding: 5px 10px;
+    border-radius: 20px;
   }
-  
+
+  /* Cursor tool - slightly smaller on mobile */
+  .hairwashing-game .cursor-tool {
+    max-width: 60px;
+    max-height: 100px;
+  }
+
+  .hairwashing-game .blowdryer-cursor {
+    font-size: 3.5rem;
+  }
+
+  /* Success overlay - mobile friendly */
   .hairwashing-game .success-content {
-    padding: 1.5rem 2rem;
+    padding: 1.5rem;
     margin: 1rem;
+    border-radius: 20px;
+    max-width: 90vw;
   }
-  
+
   .hairwashing-game .success-content h1 {
     font-size: 1.6rem;
   }
-  
+
+  .hairwashing-game .success-content p {
+    font-size: 1rem;
+  }
+
   .hairwashing-game .success-icon {
     font-size: 3rem;
+  }
+
+  .hairwashing-game .sparkles {
+    font-size: 1.5rem;
+  }
+}
+
+/* Extra small screens (phones in portrait) */
+@media (max-width: 400px) {
+  .hairwashing-game .game-header {
+    padding: 8px 10px;
+  }
+
+  .hairwashing-game .step-title {
+    font-size: 1rem;
+  }
+
+  .hairwashing-game .step-subtitle {
+    font-size: 0.75rem;
+  }
+
+  .hairwashing-game .progress-bar-track {
+    width: 100px;
+    height: 12px;
+  }
+
+  .hairwashing-game .hair-container {
+    width: 90%;
+    height: 60%;
+  }
+
+  .hairwashing-game .step-dot {
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+    min-height: 40px;
+  }
+
+  .hairwashing-game .step-dot span {
+    font-size: 1.1rem;
+  }
+
+  .hairwashing-game .step-indicators.bottom-toolbar {
+    gap: 4px;
+    padding: 10px 5px;
+  }
+}
+
+/* Landscape mode on mobile */
+@media (max-width: 768px) and (orientation: landscape) {
+  .hairwashing-game .game-header {
+    flex-direction: row;
+    padding: 6px 15px;
+  }
+
+  .hairwashing-game .step-info {
+    text-align: left;
+  }
+
+  .hairwashing-game .step-title {
+    font-size: 1rem;
+  }
+
+  .hairwashing-game .step-subtitle {
+    font-size: 0.7rem;
+  }
+
+  .hairwashing-game .hair-container {
+    width: 50%;
+    height: 85%;
+  }
+
+  .hairwashing-game .step-indicators.bottom-toolbar {
+    padding: 8px 15px;
+  }
+
+  .hairwashing-game .step-dot {
+    width: 38px;
+    height: 38px;
+    min-width: 38px;
+    min-height: 38px;
+  }
+}
+
+/* Touch device optimizations */
+@media (hover: none) and (pointer: coarse) {
+
+  /* Larger touch targets */
+  .hairwashing-game .step-dot.clickable:hover {
+    transform: none;
+    background: rgba(255, 255, 255, 0.3);
+    box-shadow: none;
+  }
+
+  .hairwashing-game .step-dot.clickable:active {
+    transform: scale(0.9);
+    background: rgba(255, 255, 255, 0.5);
+  }
+
+  /* Disable cursor following on touch */
+  .hairwashing-game.dragging-active {
+    cursor: auto;
   }
 }
