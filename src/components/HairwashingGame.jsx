@@ -717,56 +717,51 @@ export default function HairwashingGame() {
         </div>
       </div>
 
-      {/* Step indicators toolbar - at bottom, tools in step order */}
+      {/* Step indicators toolbar - 6 unique tools */}
       <div className="step-indicators bottom-toolbar">
-        <div
-          className={`step-dot clickable ${step >= STEPS.BRUSH ? 'completed' : ''} ${step === STEPS.BRUSH ? 'active' : ''}`}
-          onClick={() => handleToolClick(STEPS.BRUSH)}
-          title="Step 1: Brush - Detangle hair"
-        >
-          <img src={hairbrush} alt="1" />
-        </div>
-        <div
-          className={`step-dot clickable ${step >= STEPS.WET ? 'completed' : ''} ${step === STEPS.WET ? 'active' : ''}`}
-          onClick={() => handleToolClick(STEPS.WET)}
-          title="Step 2: Showerhead - Wet hair"
-        >
-          <img src={showerhead} alt="2" />
-        </div>
-        <div
-          className={`step-dot clickable ${step >= STEPS.SHAMPOO ? 'completed' : ''} ${step === STEPS.SHAMPOO ? 'active' : ''}`}
-          onClick={() => handleToolClick(STEPS.SHAMPOO)}
-          title="Step 3: Shampoo - Apply shampoo"
-        >
-          <img src={shampoo} alt="3" />
-        </div>
-        <div
-          className={`step-dot clickable ${step >= STEPS.SCRUB ? 'completed' : ''} ${step === STEPS.SCRUB ? 'active' : ''}`}
-          onClick={() => handleToolClick(STEPS.SCRUB)}
-          title="Step 4: Massager - Scrub scalp"
-        >
-          <img src={scalpMassager} alt="4" />
-        </div>
-        <div
-          className={`step-dot clickable ${step >= STEPS.RINSE ? 'completed' : ''} ${step === STEPS.RINSE ? 'active' : ''}`}
-          onClick={() => handleToolClick(STEPS.RINSE)}
-          title="Step 5: Showerhead - Rinse foam"
-        >
-          <img src={showerhead} alt="5" />
-        </div>
-        <div
-          className={`step-dot clickable ${step >= STEPS.TOWEL ? 'completed' : ''} ${step === STEPS.TOWEL ? 'active' : ''}`}
-          onClick={() => handleToolClick(STEPS.TOWEL)}
-          title="Step 6: Towel - Dry hair"
-        >
-          <img src={towel} alt="6" />
-        </div>
-        <div
-          className={`step-dot clickable ${step >= STEPS.BLOWDRY ? 'completed' : ''} ${step === STEPS.BLOWDRY ? 'active' : ''}`}
-          onClick={() => handleToolClick(STEPS.BLOWDRY)}
-          title="Step 7: Hair Dryer - Finish drying"
-        >
-          <img src={hairDryer} alt="7" />
+        <div className="toolbar-scroll-container">
+          <div
+            className={`step-item clickable ${step >= STEPS.BRUSH ? 'completed' : ''} ${step === STEPS.BRUSH ? 'active' : ''}`}
+            onClick={() => handleToolClick(STEPS.BRUSH)}
+          >
+            <img src={hairbrush} alt="Hairbrush" className="step-icon-img" />
+            <span className="step-label">Hairbrush</span>
+          </div>
+          <div
+            className={`step-item clickable ${step >= STEPS.WET ? 'completed' : ''} ${step === STEPS.WET || step === STEPS.RINSE ? 'active' : ''}`}
+            onClick={() => step < STEPS.SHAMPOO ? handleToolClick(STEPS.WET) : handleToolClick(STEPS.RINSE)}
+          >
+            <img src={showerhead} alt="Showerhead" className="step-icon-img" />
+            <span className="step-label">Showerhead</span>
+          </div>
+          <div
+            className={`step-item clickable ${step >= STEPS.SHAMPOO ? 'completed' : ''} ${step === STEPS.SHAMPOO ? 'active' : ''}`}
+            onClick={() => handleToolClick(STEPS.SHAMPOO)}
+          >
+            <img src={shampoo} alt="Shampoo" className="step-icon-img" />
+            <span className="step-label">Shampoo</span>
+          </div>
+          <div
+            className={`step-item clickable ${step >= STEPS.SCRUB ? 'completed' : ''} ${step === STEPS.SCRUB ? 'active' : ''}`}
+            onClick={() => handleToolClick(STEPS.SCRUB)}
+          >
+            <img src={scalpMassager} alt="Scalp Massager" className="step-icon-img" />
+            <span className="step-label">Scalp Massager</span>
+          </div>
+          <div
+            className={`step-item clickable ${step >= STEPS.TOWEL ? 'completed' : ''} ${step === STEPS.TOWEL ? 'active' : ''}`}
+            onClick={() => handleToolClick(STEPS.TOWEL)}
+          >
+            <img src={towel} alt="Towel" className="step-icon-img" />
+            <span className="step-label">Towel</span>
+          </div>
+          <div
+            className={`step-item clickable ${step >= STEPS.BLOWDRY ? 'completed' : ''} ${step === STEPS.BLOWDRY ? 'active' : ''}`}
+            onClick={() => handleToolClick(STEPS.BLOWDRY)}
+          >
+            <img src={hairDryer} alt="Blowdryer" className="step-icon-img" />
+            <span className="step-label">Blowdryer</span>
+          </div>
         </div>
       </div>
 
