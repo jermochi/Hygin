@@ -2,42 +2,49 @@ import React, { useState, useRef, useEffect, useCallback } from 'react'
 import './HairwashingGame.css'
 import { markGameCompleted, GAME_IDS } from '../utils/gameCompletion'
 
-// Import hair assets
-import hairScruffy from '../assets/hairbrushing_game/hair_scruffy.jpg'
-import hairClean from '../assets/hairbrushing_game/hair.jpg'
-import hairWet from '../assets/hairbrushing_game/hair_wet.jpg'
+// Import layered hair assets (Body + Hair states)
+import bodyBase from '../assets/hairbrushing_game/hair/Body.png'
+import hairMessyUncleaned from '../assets/hairbrushing_game/hair/Messy_uncleaned.png'
+import hairUntangledUncleaned from '../assets/hairbrushing_game/hair/Untangled_Uncleaned.png'
+import hairWetUncleaned from '../assets/hairbrushing_game/hair/Wet_uncleaned.png'
+import hairWetClean from '../assets/hairbrushing_game/hair/Wet_CleanHair.png'
+import hairSemiWetClean from '../assets/hairbrushing_game/hair/SemiWet_CleanHeir.png'
+import hairDryClean from '../assets/hairbrushing_game/hair/Dry_CleanHair.png'
+
+// Import tool assets
 import hairbrush from '../assets/hairbrushing_game/hairbrush.png'
 import showerhead from '../assets/hairbrushing_game/showerhead.png'
 import shampoo from '../assets/hairbrushing_game/shampoo.png'
 import scalpMassager from '../assets/hairbrushing_game/scalp massager.png'
 import towel from '../assets/hairbrushing_game/towel.png'
+import hairDryer from '../assets/hairbrushing_game/hair dryer.png'
 
 // Import sounds (reuse existing sounds)
 import successSfx from '../assets/sounds/success-sound.wav'
 import goodJobSfx from '../assets/sounds/good-job.wav'
 
-// Game steps
+// Game steps - Updated flow
 const STEPS = {
-  BRUSH: 0,      // Detangle with brush
-  WET: 1,        // Wet with showerhead
-  SHAMPOO: 2,    // Apply shampoo
-  SCRUB: 3,      // Scrub with scalp massager (creates foam)
-  RINSE: 4,      // Rinse the foam
-  TOWEL: 5,      // Towel dry
-  BLOWDRY: 6,    // Blow dry
+  BRUSH: 0,      // Messy_uncleaned -> Untangled_Uncleaned (hairbrush erases)
+  WET: 1,        // Untangled_Uncleaned -> Wet_uncleaned (first rinse)
+  SHAMPOO: 2,    // Apply white shampoo blob
+  SCRUB: 3,      // Scalp massager creates lathering bubbles
+  RINSE: 4,      // Wet_uncleaned -> Wet_CleanHair (rinse foam away)
+  TOWEL: 5,      // Wet_CleanHair -> SemiWet_CleanHeir
+  BLOWDRY: 6,    // SemiWet_CleanHeir -> Dry_CleanHair
   COMPLETE: 7    // Game complete
 }
 
-// Step configuration
+// Step configuration with proper hair transitions
 const STEP_CONFIG = {
   [STEPS.BRUSH]: {
     title: 'Step 1: Detangle',
     subtitle: 'Drag the brush across the hair to detangle it!',
     tool: 'brush',
     targetPercent: 100,
-    useImageMask: true,        // Uses image-based masking (scruffy -> clean)
-    topImage: hairScruffy,     // Image on top (to be erased)
-    bottomImage: hairClean     // Image revealed underneath
+    useImageMask: true,
+    topHairImage: hairMessyUncleaned,      // Messy hair on top (to be erased)
+    bottomHairImage: hairUntangledUncleaned // Untangled hair revealed
   },
   [STEPS.WET]: {
     title: 'Step 2: Wet Hair',
@@ -45,8 +52,8 @@ const STEP_CONFIG = {
     tool: 'showerhead',
     targetPercent: 100,
     useImageMask: true,
-    topImage: hairClean,       // Dry clean hair on top
-    bottomImage: hairWet       // Wet hair revealed
+    topHairImage: hairUntangledUncleaned,  // Dry untangled on top
+    bottomHairImage: hairWetUncleaned      // Wet uncleaned revealed
   },
   [STEPS.SHAMPOO]: {
     title: 'Step 3: Apply Shampoo',
@@ -54,39 +61,44 @@ const STEP_CONFIG = {
     tool: 'shampoo',
     targetPercent: 100,
     useImageMask: false,
-    overlayColor: null
+    currentHairImage: hairWetUncleaned,
+    showShampooBlob: true
   },
   [STEPS.SCRUB]: {
-    title: 'Step 4: Scrub',
-    subtitle: 'Use the scalp massager to create foam!',
+    title: 'Step 4: Lather',
+    subtitle: 'Use the scalp massager to lather the shampoo!',
     tool: 'massager',
     targetPercent: 100,
     useImageMask: false,
-    overlayColor: null
+    currentHairImage: hairWetUncleaned,
+    createBubbles: true
   },
   [STEPS.RINSE]: {
     title: 'Step 5: Rinse',
     subtitle: 'Rinse away all the foam!',
     tool: 'showerhead',
     targetPercent: 100,
-    useImageMask: false,
-    overlayColor: null // Using persistent foam bubbles instead
+    useImageMask: true,
+    topHairImage: hairWetUncleaned,    // Wet uncleaned with foam
+    bottomHairImage: hairWetClean      // Clean wet hair revealed
   },
   [STEPS.TOWEL]: {
-    title: 'Step 6: Dry',
+    title: 'Step 6: Towel Dry',
     subtitle: 'Pat dry with the towel!',
     tool: 'towel',
     targetPercent: 100,
-    useImageMask: false,
-    overlayColor: 'rgba(100, 150, 200, 0.3)' // Wet overlay
+    useImageMask: true,
+    topHairImage: hairWetClean,        // Wet clean on top
+    bottomHairImage: hairSemiWetClean  // Semi-wet revealed
   },
   [STEPS.BLOWDRY]: {
     title: 'Step 7: Blow Dry',
-    subtitle: 'Finish drying with the blow dryer!',
+    subtitle: 'Finish drying with the hair dryer!',
     tool: 'blowdryer',
     targetPercent: 100,
-    useImageMask: false,
-    overlayColor: 'rgba(100, 150, 200, 0.2)' // Slightly wet overlay
+    useImageMask: true,
+    topHairImage: hairSemiWetClean,    // Semi-wet on top
+    bottomHairImage: hairDryClean      // Fully dry revealed
   }
 }
 
@@ -117,6 +129,7 @@ export default function HairwashingGame() {
   const [gameStartTime, setGameStartTime] = useState(null)
   const [timer, setTimer] = useState(0)
   const [shampooApplied, setShampooApplied] = useState(false)
+  const [shampooBlob, setShampooBlob] = useState(null) // Position of shampoo blob
   const [topImageLoaded, setTopImageLoaded] = useState(false)
 
   // Canvas refs for masking
@@ -142,7 +155,7 @@ export default function HairwashingGame() {
       case 'shampoo': return shampoo
       case 'massager': return scalpMassager
       case 'towel': return towel
-      case 'blowdryer': return null // Will use emoji or inline SVG
+      case 'blowdryer': return hairDryer
       default: return null
     }
   }
@@ -190,40 +203,30 @@ export default function HairwashingGame() {
     // Clear canvas
     ctx.clearRect(0, 0, canvas.width, canvas.height)
 
-    // For image-based masking (brush and wet steps)
-    if (currentConfig.useImageMask && currentConfig.topImage) {
+    // For image-based masking (most steps now use this)
+    if (currentConfig.useImageMask && currentConfig.topHairImage) {
       const img = new Image()
       img.crossOrigin = 'anonymous'
       img.onload = () => {
         topImageRef.current = img
-        // Draw the top image on canvas
+        // Draw the top hair image on canvas
         ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
 
-        // Calculate total pixels in the hair mask area
-        const maskWidth = canvas.width * (HAIR_MASK_BOUNDS.right - HAIR_MASK_BOUNDS.left)
-        const maskHeight = canvas.height * (HAIR_MASK_BOUNDS.bottom - HAIR_MASK_BOUNDS.top)
-        totalPixelsRef.current = maskWidth * maskHeight
+        // Calculate total pixels for progress
+        totalPixelsRef.current = canvas.width * canvas.height
         clearedPixelsRef.current = 0
         setTopImageLoaded(true)
       }
-      img.src = currentConfig.topImage
-    }
-    // For color overlay masking (other steps)
-    else if (currentConfig.overlayColor) {
-      ctx.fillStyle = currentConfig.overlayColor
-      ctx.fillRect(0, 0, canvas.width, canvas.height)
-
-      totalPixelsRef.current = canvas.width * canvas.height
-      clearedPixelsRef.current = 0
-      setTopImageLoaded(true)
+      img.src = currentConfig.topHairImage
     } else {
+      // For non-mask steps (shampoo, scrub)
       totalPixelsRef.current = 0
       clearedPixelsRef.current = 0
       setTopImageLoaded(true)
     }
 
     setProgress(0)
-  }, [step, currentConfig.useImageMask, currentConfig.topImage, currentConfig.overlayColor])
+  }, [step, currentConfig.useImageMask, currentConfig.topHairImage])
 
   // Initialize mask when step changes
   useEffect(() => {
@@ -377,6 +380,16 @@ export default function HairwashingGame() {
       if (step === STEPS.SHAMPOO) {
         setShampooApplied(true)
       }
+
+      // Clear shampoo blob after scrub step completes
+      if (step === STEPS.SCRUB) {
+        setShampooBlob(null)
+      }
+
+      // Clear persistent foam after rinse step completes
+      if (step === STEPS.RINSE) {
+        setPersistentFoam([])
+      }
     }
 
     // Check for game completion
@@ -417,12 +430,16 @@ export default function HairwashingGame() {
   }, [progress, currentConfig.targetPercent, step, completeStep])
 
   // Handle special steps (shampoo application)
-  const handleShampooStep = useCallback(() => {
+  const handleShampooStep = useCallback((x, y) => {
     if (step === STEPS.SHAMPOO && dragging) {
+      // Place shampoo blob on hair
+      if (!shampooBlob) {
+        setShampooBlob({ x: x, y: y })
+      }
       // Shampoo just needs to be dragged over hair
       setProgress(prev => Math.min(100, prev + 2))
     }
-  }, [step, dragging])
+  }, [step, dragging, shampooBlob])
 
   // Handle scrub step (creates foam)
   const handleScrubStep = useCallback((x, y) => {
@@ -465,47 +482,28 @@ export default function HairwashingGame() {
       )
 
       if (isOverHair) {
-        if (currentConfig.useImageMask || currentConfig.overlayColor) {
-          // Steps with image mask or overlay use eraser mechanic
-          eraseAt(e.clientX, e.clientY)
-        } else if (step === STEPS.SHAMPOO) {
-          // Shampoo step
-          handleShampooStep()
-        } else if (step === STEPS.SCRUB) {
-          // Scrub step creates foam
-          handleScrubStep(e.clientX - rect.left, e.clientY - rect.top)
-        } else if (step === STEPS.RINSE) {
-          // Rinse step - remove foam and update progress
-          const localX = e.clientX - rect.left
-          const localY = e.clientY - rect.top
+        const localX = e.clientX - rect.left
+        const localY = e.clientY - rect.top
 
-          // Remove foam bubbles near cursor
-          setPersistentFoam(prev => {
-            const remaining = prev.filter(bubble => {
+        if (currentConfig.useImageMask) {
+          // Steps with image mask use eraser mechanic
+          eraseAt(e.clientX, e.clientY)
+
+          // During rinse step, also remove foam bubbles
+          if (step === STEPS.RINSE) {
+            setPersistentFoam(prev => prev.filter(bubble => {
               const distance = Math.sqrt(
                 Math.pow(bubble.x - localX, 2) + Math.pow(bubble.y - localY, 2)
               )
               return distance > 50 // Remove bubbles within 50px radius
-            })
-
-            // Calculate progress based on foam removed
-            // If we started with foam, progress increases as foam is removed
-            if (prev.length > remaining.length) {
-              // Calculate new progress - if all foam gone, we're done
-              const foamRemoved = prev.length - remaining.length
-              setProgress(p => {
-                const newProgress = Math.min(100, p + (foamRemoved * 5))
-                return newProgress
-              })
-              // Spawn water drop effects
-              spawnEffects(localX, localY)
-            }
-
-            return remaining
-          })
-
-          // Also increment progress slightly when dragging even without foam
-          setProgress(p => Math.min(100, p + 0.3))
+            }))
+          }
+        } else if (step === STEPS.SHAMPOO) {
+          // Shampoo step - place blob
+          handleShampooStep(localX, localY)
+        } else if (step === STEPS.SCRUB) {
+          // Scrub step creates foam
+          handleScrubStep(localX, localY)
         }
       }
     }
@@ -515,17 +513,19 @@ export default function HairwashingGame() {
     setDragging(false)
   }
 
-  // Get background image based on step (bottom layer for image mask steps)
-  const getBackgroundImage = () => {
-    // For image mask steps, show the bottom (revealed) image
-    if (currentConfig.useImageMask && currentConfig.bottomImage) {
-      return currentConfig.bottomImage
+  // Get current hair image based on step (for the bottom layer revealed during masking)
+  const getHairImage = () => {
+    // For image mask steps, show the bottom (revealed) hair image
+    if (currentConfig.useImageMask && currentConfig.bottomHairImage) {
+      return currentConfig.bottomHairImage
     }
-    // For other steps, show appropriate hair state
-    if (step === STEPS.SHAMPOO || step === STEPS.SCRUB || step === STEPS.RINSE) return hairWet
-    if (step === STEPS.TOWEL || step === STEPS.BLOWDRY) return hairWet
-    if (step === STEPS.COMPLETE) return hairClean
-    return hairClean
+    // For non-mask steps (shampoo, scrub), use currentHairImage
+    if (currentConfig.currentHairImage) {
+      return currentConfig.currentHairImage
+    }
+    // Fallback based on step
+    if (step === STEPS.COMPLETE) return hairDryClean
+    return hairMessyUncleaned
   }
 
   // Tool positions
@@ -589,21 +589,40 @@ export default function HairwashingGame() {
           className="hair-container"
           onPointerDown={handlePointerDown}
         >
-          {/* Background hair image */}
+          {/* Layer 1: Body base (always visible) */}
           <img
-            src={getBackgroundImage()}
+            src={bodyBase}
+            alt="Body"
+            className="body-base-image"
+            draggable={false}
+          />
+
+          {/* Layer 2: Hair image (revealed state) */}
+          <img
+            src={getHairImage()}
             alt="Hair"
             className="hair-image"
             draggable={false}
           />
 
-          {/* Canvas overlay for masking */}
+          {/* Layer 3: Canvas overlay for masking (hair being erased) */}
           <canvas
             ref={canvasRef}
             className="mask-canvas"
           />
 
-          {/* Foam bubbles overlay for scrub and rinse steps */}
+          {/* Layer 4: Shampoo blob (appears during shampoo step) */}
+          {shampooBlob && (step === STEPS.SHAMPOO || step === STEPS.SCRUB) && (
+            <div
+              className="shampoo-blob"
+              style={{
+                left: shampooBlob.x,
+                top: shampooBlob.y
+              }}
+            />
+          )}
+
+          {/* Layer 5: Foam bubbles overlay for scrub and rinse steps */}
           {(step === STEPS.SCRUB || step === STEPS.RINSE) && (
             <div className="foam-overlay">
               {/* Animated bubbles (temporary) */}
@@ -678,9 +697,9 @@ export default function HairwashingGame() {
             <img src={hairbrush} alt="Hairbrush" />
           </div>
 
-          {/* Blowdryer - bottom right */}
+          {/* Hair dryer - bottom right */}
           <div className={`floating-tool-item blowdryer-pos ${step === STEPS.BLOWDRY ? 'active' : ''}`}>
-            <span>💨</span>
+            <img src={hairDryer} alt="Hair Dryer" />
           </div>
 
           {/* Towel - bottom right */}
@@ -745,9 +764,9 @@ export default function HairwashingGame() {
         <div
           className={`step-dot clickable ${step >= STEPS.BLOWDRY ? 'completed' : ''} ${step === STEPS.BLOWDRY ? 'active' : ''}`}
           onClick={() => handleToolClick(STEPS.BLOWDRY)}
-          title="Step 7: Blow dryer - Finish drying"
+          title="Step 7: Hair Dryer - Finish drying"
         >
-          <span>💨</span>
+          <img src={hairDryer} alt="7" />
         </div>
       </div>
 
@@ -764,19 +783,6 @@ export default function HairwashingGame() {
             height: TOOL_SIZES[currentConfig.tool]?.height || 80
           }}
         />
-      )}
-
-      {/* Floating blowdryer cursor */}
-      {dragging && step === STEPS.BLOWDRY && (
-        <div
-          className="cursor-tool blowdryer-cursor"
-          style={{
-            left: cursorPos.x,
-            top: cursorPos.y
-          }}
-        >
-          💨🔥
-        </div>
       )}
     </div>
   )
