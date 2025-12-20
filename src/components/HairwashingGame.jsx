@@ -133,6 +133,7 @@ export default function HairwashingGame() {
   const [topImageLoaded, setTopImageLoaded] = useState(false)
   const [stepComplete, setStepComplete] = useState(false) // Current step is done, waiting for player to pick next
   const [wrongChoice, setWrongChoice] = useState(false) // Show wrong choice feedback
+  const [showHint, setShowHint] = useState(false) // Show hint for which tool to use next
 
   // Canvas refs for masking
   const canvasRef = useRef(null)
@@ -421,6 +422,21 @@ export default function HairwashingGame() {
     if (step >= STEPS.BLOWDRY) return STEPS.COMPLETE
     return step + 1
   }, [step])
+
+  // Get the name of the next tool to use
+  const getNextToolName = useCallback(() => {
+    const nextStep = stepComplete ? getNextStep() : step
+    switch (nextStep) {
+      case STEPS.BRUSH: return 'Hairbrush'
+      case STEPS.WET: return 'Showerhead'
+      case STEPS.SHAMPOO: return 'Shampoo'
+      case STEPS.SCRUB: return 'Scalp Massager'
+      case STEPS.RINSE: return 'Showerhead'
+      case STEPS.TOWEL: return 'Towel'
+      case STEPS.BLOWDRY: return 'Blowdryer'
+      default: return ''
+    }
+  }, [step, stepComplete, getNextStep])
 
   // Handle clicking on a tool in the toolbar
   const handleToolClick = useCallback((targetStep) => {
@@ -755,10 +771,19 @@ export default function HairwashingGame() {
           </div>
         </div>
 
-        {/* Hint button - bottom left */}
-        <div className="hint-btn">💡</div>
+      </div>
 
-        {/* Timer - bottom right */}
+      {/* Toolbar header with hint and timer */}
+      <div className="toolbar-header">
+        <button
+          className={`hint-btn ${showHint ? 'active' : ''}`}
+          onClick={() => {
+            setShowHint(true)
+            setTimeout(() => setShowHint(false), 3000) // Auto-close after 3 seconds
+          }}
+        >
+          💡 {showHint && <span className="hint-text">Use: {getNextToolName()}</span>}
+        </button>
         <div className="timer-display">
           <span>⏱️ {formatTime(timer)}</span>
         </div>
