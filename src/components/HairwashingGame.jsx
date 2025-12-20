@@ -113,7 +113,8 @@ const TOOL_SIZES = {
 }
 
 // Brush radius for erasing
-const BRUSH_RADIUS = 40
+const BRUSH_RADIUS = 35
+const TIME_LIMIT = 120 // 2 minutes in seconds
 
 export default function HairwashingGame() {
   const [step, setStep] = useState(STEPS.BRUSH)
@@ -127,7 +128,8 @@ export default function HairwashingGame() {
   const [foamBubbles, setFoamBubbles] = useState([])
   const [persistentFoam, setPersistentFoam] = useState([]) // Foam that stays until rinsed
   const [gameStartTime, setGameStartTime] = useState(null)
-  const [timer, setTimer] = useState(0)
+  const [timer, setTimer] = useState(TIME_LIMIT) // Countdown from 2 minutes
+  const [timeUp, setTimeUp] = useState(false)
   const [shampooApplied, setShampooApplied] = useState(false)
   const [shampooBlob, setShampooBlob] = useState(null) // Position of shampoo blob
   const [topImageLoaded, setTopImageLoaded] = useState(false)
@@ -146,6 +148,7 @@ export default function HairwashingGame() {
   const bubbleIdRef = useRef(0)
   const timerIntervalRef = useRef(null)
   const topImageRef = useRef(null)
+  const originalMaskRef = useRef(null) // Store original hair mask for hit detection
 
   // Get current step config
   const currentConfig = STEP_CONFIG[step] || {}
@@ -170,9 +173,15 @@ export default function HairwashingGame() {
     }
 
     timerIntervalRef.current = setInterval(() => {
-      if (gameStartTime && step !== STEPS.COMPLETE) {
+      if (gameStartTime && step !== STEPS.COMPLETE && !timeUp) {
         const elapsed = Math.floor((Date.now() - gameStartTime) / 1000)
-        setTimer(elapsed)
+        const remaining = Math.max(0, TIME_LIMIT - elapsed)
+        setTimer(remaining)
+
+        // Check if time is up
+        if (remaining <= 0) {
+          setTimeUp(true)
+        }
       }
     }, 1000)
 
@@ -236,9 +245,25 @@ export default function HairwashingGame() {
 
         ctx.drawImage(img, drawX, drawY, drawWidth, drawHeight)
 
-        // Calculate total pixels for progress
-        totalPixelsRef.current = canvas.width * canvas.height
+        // Calculate total NON-TRANSPARENT pixels (only hair pixels count)
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
+        let opaquePixelCount = 0
+        // Sample every 4th pixel for performance (same as progress check)
+        for (let i = 3; i < imageData.data.length; i += 16) {
+          if (imageData.data[i] >= 128) {
+            opaquePixelCount++
+          }
+        }
+        totalPixelsRef.current = opaquePixelCount // Only count pixels with actual hair
         clearedPixelsRef.current = 0
+
+        // Store original mask for hit detection (so particles only spawn over hair)
+        originalMaskRef.current = {
+          data: imageData.data,
+          width: canvas.width,
+          height: canvas.height
+        }
+
         setTopImageLoaded(true)
       }
       img.src = currentConfig.topHairImage
@@ -271,8 +296,29 @@ export default function HairwashingGame() {
     return () => window.removeEventListener('resize', handleResize)
   }, [step, initializeMask])
 
-  // Spawn hearts/effects
+  // Check if a canvas position is over a non-transparent hair pixel (using original mask)
+  const isOverHairPixel = useCallback((canvasX, canvasY) => {
+    const mask = originalMaskRef.current
+    if (!mask || !mask.data) return true // If no mask, allow effects
+
+    const x = Math.floor(canvasX)
+    const y = Math.floor(canvasY)
+
+    // Bounds check
+    if (x < 0 || x >= mask.width || y < 0 || y >= mask.height) return false
+
+    // Check alpha value at this position in the original mask
+    const pixelIndex = (y * mask.width + x) * 4
+    const alpha = mask.data[pixelIndex + 3]
+
+    return alpha >= 50 // Return true if original pixel was visible
+  }, [])
+
+  // Spawn hearts/effects - only over hair area
   const spawnEffects = useCallback((x, y) => {
+    // Only spawn effects if over hair pixels
+    if (!isOverHairPixel(x, y)) return
+
     // Spawn heart
     if (Math.random() > 0.7) {
       const newHeart = {
@@ -337,7 +383,7 @@ export default function HairwashingGame() {
         return distance > 60 // Remove bubbles within 60px radius
       }))
     }
-  }, [step, currentConfig.tool])
+  }, [step, currentConfig.tool, isOverHairPixel])
 
   // Erase at position (for scrubbing/rinsing mechanics)
   const eraseAt = useCallback((x, y) => {
@@ -364,18 +410,20 @@ export default function HairwashingGame() {
     ctx.fill()
     ctx.restore()
 
-    // Calculate progress by counting transparent pixels
+    // Calculate progress: count remaining opaque pixels vs initial count
     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
-    let transparentCount = 0
-    // Sample every 4th pixel for performance
+    let remainingOpaque = 0
+    // Sample every 4th pixel for performance (same sampling as initialization)
     for (let i = 3; i < imageData.data.length; i += 16) {
-      if (imageData.data[i] < 128) {
-        transparentCount++
+      if (imageData.data[i] >= 128) {
+        remainingOpaque++
       }
     }
 
-    const sampledTotal = Math.floor(totalPixelsRef.current / 4)
-    const newProgress = Math.min(100, Math.round((transparentCount / sampledTotal) * 100))
+    // Progress = percentage of original hair pixels that have been erased
+    const initialOpaque = totalPixelsRef.current
+    const erasedPixels = initialOpaque - remainingOpaque
+    const newProgress = initialOpaque > 0 ? Math.min(100, Math.round((erasedPixels / initialOpaque) * 100)) : 0
     setProgress(newProgress)
 
     // Spawn visual effects
@@ -488,6 +536,9 @@ export default function HairwashingGame() {
   // Handle special steps (shampoo application)
   const handleShampooStep = useCallback((x, y) => {
     if (step === STEPS.SHAMPOO && dragging) {
+      // Only count if over hair area
+      if (!isOverHairPixel(x, y)) return
+
       // Place shampoo blob on hair
       if (!shampooBlob) {
         setShampooBlob({ x: x, y: y })
@@ -495,16 +546,19 @@ export default function HairwashingGame() {
       // Shampoo just needs to be dragged over hair
       setProgress(prev => Math.min(100, prev + 2))
     }
-  }, [step, dragging, shampooBlob])
+  }, [step, dragging, shampooBlob, isOverHairPixel])
 
   // Handle scrub step (creates foam)
   const handleScrubStep = useCallback((x, y) => {
     if (step === STEPS.SCRUB && dragging) {
+      // Only count if over hair area
+      if (!isOverHairPixel(x, y)) return
+
       // Scrubbing increases foam and progress
       setProgress(prev => Math.min(100, prev + 0.5))
       spawnEffects(x, y)
     }
-  }, [step, dragging, spawnEffects])
+  }, [step, dragging, spawnEffects, isOverHairPixel])
 
   // Pointer event handlers
   const handlePointerDown = (e) => {
@@ -784,7 +838,7 @@ export default function HairwashingGame() {
         >
           💡 {showHint && <span className="hint-text">Use: {getNextToolName()}</span>}
         </button>
-        <div className="timer-display">
+        <div className={`timer-display ${timer <= 30 ? 'warning' : ''} ${timer <= 10 || timeUp ? 'critical' : ''}`}>
           <span>⏱️ {formatTime(timer)}</span>
         </div>
       </div>
