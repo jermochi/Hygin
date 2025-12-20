@@ -131,6 +131,8 @@ export default function HairwashingGame() {
   const [shampooApplied, setShampooApplied] = useState(false)
   const [shampooBlob, setShampooBlob] = useState(null) // Position of shampoo blob
   const [topImageLoaded, setTopImageLoaded] = useState(false)
+  const [stepComplete, setStepComplete] = useState(false) // Current step is done, waiting for player to pick next
+  const [wrongChoice, setWrongChoice] = useState(false) // Show wrong choice feedback
 
   // Canvas refs for masking
   const canvasRef = useRef(null)
@@ -209,8 +211,29 @@ export default function HairwashingGame() {
       img.crossOrigin = 'anonymous'
       img.onload = () => {
         topImageRef.current = img
-        // Draw the top hair image on canvas
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
+
+        // Draw image with object-fit: cover logic (matching CSS)
+        const imgAspect = img.width / img.height
+        const canvasAspect = canvas.width / canvas.height
+
+        let drawWidth, drawHeight, drawX, drawY
+
+        if (imgAspect > canvasAspect) {
+          // Image is wider than canvas - fit by height, crop sides
+          drawHeight = canvas.height
+          drawWidth = img.width * (canvas.height / img.height)
+          drawX = (canvas.width - drawWidth) / 2
+          drawY = 0
+        } else {
+          // Image is taller than canvas - fit by width, crop top/bottom
+          drawWidth = canvas.width
+          drawHeight = img.height * (canvas.width / img.width)
+          drawX = 0
+          // object-position: center top - align to top
+          drawY = 0
+        }
+
+        ctx.drawImage(img, drawX, drawY, drawWidth, drawHeight)
 
         // Calculate total pixels for progress
         totalPixelsRef.current = canvas.width * canvas.height
@@ -360,39 +383,28 @@ export default function HairwashingGame() {
     return newProgress
   }, [progress, spawnEffects])
 
-  // Handle step completion
-  const completeStep = useCallback(() => {
+  // Handle step completion - mark as done but don't auto-advance
+  const markStepDone = useCallback(() => {
     // Play success sound
     const audio = new Audio(successSfx)
     audio.play().catch(() => { })
 
-    // Clear effects
-    setHearts([])
-    setWaterDrops([])
-    setFoamBubbles([])
+    // Mark step as complete
+    setStepComplete(true)
+    setDragging(false)
 
-    // Move to next step
-    if (step < STEPS.COMPLETE) {
-      setStep(prev => prev + 1)
-      setProgress(0)
-      setDragging(false)
-
-      if (step === STEPS.SHAMPOO) {
-        setShampooApplied(true)
-      }
-
-      // Clear shampoo blob after scrub step completes
-      if (step === STEPS.SCRUB) {
-        setShampooBlob(null)
-      }
-
-      // Clear persistent foam after rinse step completes
-      if (step === STEPS.RINSE) {
-        setPersistentFoam([])
-      }
+    // Handle step-specific cleanup
+    if (step === STEPS.SHAMPOO) {
+      setShampooApplied(true)
+    }
+    if (step === STEPS.SCRUB) {
+      setShampooBlob(null)
+    }
+    if (step === STEPS.RINSE) {
+      setPersistentFoam([])
     }
 
-    // Check for game completion
+    // Check for game completion (last step)
     if (step === STEPS.BLOWDRY) {
       setFinalComplete(true)
       setShowSuccess(true)
@@ -404,30 +416,58 @@ export default function HairwashingGame() {
     }
   }, [step])
 
-  // Handle clicking on a tool in the step indicators to switch to that step
-  const handleToolClick = useCallback((targetStep) => {
-    if (targetStep === step) return // Already on this step
-    if (targetStep >= STEPS.COMPLETE) return // Can't click complete
-
-    // Clear current effects
-    setHearts([])
-    setWaterDrops([])
-    setFoamBubbles([])
-
-    // Switch to the selected step
-    setStep(targetStep)
-    setProgress(0)
-    setDragging(false)
+  // Get the next expected step
+  const getNextStep = useCallback(() => {
+    if (step >= STEPS.BLOWDRY) return STEPS.COMPLETE
+    return step + 1
   }, [step])
 
-  // Check progress and complete step if needed
+  // Handle clicking on a tool in the toolbar
+  const handleToolClick = useCallback((targetStep) => {
+    // Clear wrong choice feedback
+    setWrongChoice(false)
+
+    // If current step is not complete, can't switch
+    if (!stepComplete && targetStep !== step) {
+      // Show wrong choice - they need to finish current step first
+      setWrongChoice(true)
+      setTimeout(() => setWrongChoice(false), 1000)
+      return
+    }
+
+    // If step is complete, check if they picked the correct next step
+    if (stepComplete) {
+      const nextStep = getNextStep()
+
+      if (targetStep === nextStep) {
+        // Correct choice! Move to next step
+        setStep(nextStep)
+        setProgress(0)
+        setStepComplete(false)
+        setHearts([])
+        setWaterDrops([])
+        setFoamBubbles([])
+      } else {
+        // Wrong choice!
+        setWrongChoice(true)
+        setTimeout(() => setWrongChoice(false), 1000)
+      }
+      return
+    }
+
+    // If clicking current step (already on it), do nothing
+    if (targetStep === step) return
+
+  }, [step, stepComplete, getNextStep])
+
+  // Check progress and mark step as done (but don't auto-advance)
   useEffect(() => {
-    if (progress >= currentConfig.targetPercent && step !== STEPS.COMPLETE) {
-      // Small delay before completing
-      const timeout = setTimeout(completeStep, 300)
+    if (progress >= currentConfig.targetPercent && step !== STEPS.COMPLETE && !stepComplete) {
+      // Small delay before marking complete
+      const timeout = setTimeout(markStepDone, 300)
       return () => clearTimeout(timeout)
     }
-  }, [progress, currentConfig.targetPercent, step, completeStep])
+  }, [progress, currentConfig.targetPercent, step, stepComplete, markStepDone])
 
   // Handle special steps (shampoo application)
   const handleShampooStep = useCallback((x, y) => {
@@ -563,20 +603,27 @@ export default function HairwashingGame() {
       onPointerLeave={handlePointerUp}
     >
       {/* Top header with step info and progress */}
-      <div className="game-header">
+      <div className={`game-header ${wrongChoice ? 'wrong-choice' : ''} ${stepComplete ? 'step-done' : ''}`}>
         <div className="step-info">
           <h2 className="step-title">{currentConfig.title}</h2>
-          <p className="step-subtitle">{currentConfig.subtitle}</p>
+          <p className="step-subtitle">
+            {stepComplete && !finalComplete
+              ? '✅ Done! Now choose the next tool!'
+              : currentConfig.subtitle}
+          </p>
         </div>
         <div className="progress-section">
+          {wrongChoice && (
+            <div className="wrong-feedback">❌ Wrong tool!</div>
+          )}
           <div className="progress-bar-container">
             <div className="progress-bar-track">
               <div
-                className="progress-bar-fill"
+                className={`progress-bar-fill ${stepComplete ? 'complete' : ''}`}
                 style={{ width: `${progress}%` }}
               />
             </div>
-            <span className="progress-text">{progress}%</span>
+            <span className="progress-text">{Math.round(progress)}%</span>
           </div>
         </div>
       </div>
