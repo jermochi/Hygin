@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react'
+import { useNavigate } from 'react-router-dom'
 import './HairwashingGame.css'
 import { markGameCompleted, GAME_IDS } from '../utils/gameCompletion'
 
@@ -117,6 +118,7 @@ const BRUSH_RADIUS = 35
 const TIME_LIMIT = 120 // 2 minutes in seconds
 
 export default function HairwashingGame() {
+  const navigate = useNavigate()
   const [step, setStep] = useState(STEPS.BRUSH)
   const [progress, setProgress] = useState(0)
   const [dragging, setDragging] = useState(false)
@@ -726,6 +728,42 @@ export default function HairwashingGame() {
 
             <p className="time-display">Time: {formatTime(timer)}</p>
             <div className="sparkles">✨ 💖 ✨</div>
+
+            <div className="success-buttons">
+              <button
+                className="menu-button"
+                onClick={() => navigate('/')}
+              >
+                🏠 Main Menu
+              </button>
+              <button
+                className="retry-button"
+                onClick={() => {
+                  // Reset all game state
+                  setStep(STEPS.BRUSH)
+                  setProgress(0)
+                  setDragging(false)
+                  setShowSuccess(false)
+                  setFinalComplete(false)
+                  setHearts([])
+                  setWaterDrops([])
+                  setFoamBubbles([])
+                  setPersistentFoam([])
+                  setGameStartTime(Date.now())
+                  setTimer(TIME_LIMIT)
+                  setTimeUp(false)
+                  setShampooApplied(false)
+                  setShampooBlob(null)
+                  setStepComplete(false)
+                  setWrongChoice(false)
+                  setShowHint(false)
+                  setWrongChoiceCount(0)
+                  setHintUsedCount(0)
+                }}
+              >
+                🔄 Play Again
+              </button>
+            </div>
           </div>
         </div>
       </div>
