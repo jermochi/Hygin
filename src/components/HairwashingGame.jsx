@@ -136,6 +136,8 @@ export default function HairwashingGame() {
   const [stepComplete, setStepComplete] = useState(false) // Current step is done, waiting for player to pick next
   const [wrongChoice, setWrongChoice] = useState(false) // Show wrong choice feedback
   const [showHint, setShowHint] = useState(false) // Show hint for which tool to use next
+  const [wrongChoiceCount, setWrongChoiceCount] = useState(0) // Track wrong tool attempts
+  const [hintUsedCount, setHintUsedCount] = useState(0) // Track hint usage
 
   // Canvas refs for masking
   const canvasRef = useRef(null)
@@ -501,6 +503,7 @@ export default function HairwashingGame() {
     if (!stepComplete && targetStep !== step) {
       // Show wrong choice - they need to finish current step first
       setWrongChoice(true)
+      setWrongChoiceCount(prev => prev + 1) // Track wrong choice
       setTimeout(() => setWrongChoice(false), 1000)
       return
     }
@@ -520,6 +523,7 @@ export default function HairwashingGame() {
       } else {
         // Wrong choice!
         setWrongChoice(true)
+        setWrongChoiceCount(prev => prev + 1) // Track wrong choice
         setTimeout(() => setWrongChoice(false), 1000)
       }
       return
@@ -653,8 +657,28 @@ export default function HairwashingGame() {
     { id: 'towel', img: towel, active: step === STEPS.TOWEL },
   ]
 
+  // Calculate points based on performance
+  const calculatePoints = () => {
+    const basePoints = 100 // Base points for completing the game
+    const timeBonus = Math.floor(timer * 2) // 2 points per second remaining
+    const wrongToolPenalty = wrongChoiceCount * 10 // -10 points per wrong tool
+    const hintPenalty = hintUsedCount * 15 // -15 points per hint used
+    const totalPoints = Math.max(0, basePoints + timeBonus - wrongToolPenalty - hintPenalty)
+    return { basePoints, timeBonus, wrongToolPenalty, hintPenalty, totalPoints }
+  }
+
+  // Get star rating based on points
+  const getStarRating = (totalPoints) => {
+    if (totalPoints >= 200) return 3 // 3 stars for 200+ points
+    if (totalPoints >= 150) return 2 // 2 stars for 150+ points
+    return 1 // 1 star for completing
+  }
+
   // Render success overlay
   if (showSuccess) {
+    const { basePoints, timeBonus, wrongToolPenalty, hintPenalty, totalPoints } = calculatePoints()
+    const stars = getStarRating(totalPoints)
+
     return (
       <div className="hairwashing-game">
         <div className="success-overlay">
@@ -663,6 +687,43 @@ export default function HairwashingGame() {
             <div className="success-icon">🎉</div>
             <h1>Great Job!</h1>
             <p>You completed the hair washing routine!</p>
+
+            <div className="points-section">
+              <div className="star-rating">
+                {[1, 2, 3].map((star) => (
+                  <span key={star} className={`star ${star <= stars ? 'earned' : 'empty'}`}>
+                    ⭐
+                  </span>
+                ))}
+              </div>
+              <div className="points-breakdown">
+                <div className="points-row">
+                  <span>Completion:</span>
+                  <span className="points-positive">+{basePoints} pts</span>
+                </div>
+                <div className="points-row">
+                  <span>Time Bonus:</span>
+                  <span className="points-positive">+{timeBonus} pts</span>
+                </div>
+                {wrongToolPenalty > 0 && (
+                  <div className="points-row penalty">
+                    <span>Wrong Tools ({wrongChoiceCount}x):</span>
+                    <span className="points-negative">-{wrongToolPenalty} pts</span>
+                  </div>
+                )}
+                {hintPenalty > 0 && (
+                  <div className="points-row penalty">
+                    <span>Hints Used ({hintUsedCount}x):</span>
+                    <span className="points-negative">-{hintPenalty} pts</span>
+                  </div>
+                )}
+                <div className="points-total">
+                  <span>Total:</span>
+                  <span className="total-value">{totalPoints} pts</span>
+                </div>
+              </div>
+            </div>
+
             <p className="time-display">Time: {formatTime(timer)}</p>
             <div className="sparkles">✨ 💖 ✨</div>
           </div>
@@ -692,6 +753,8 @@ export default function HairwashingGame() {
       setStepComplete(false)
       setWrongChoice(false)
       setShowHint(false)
+      setWrongChoiceCount(0)
+      setHintUsedCount(0)
     }
 
     return (
@@ -879,6 +942,9 @@ export default function HairwashingGame() {
         <button
           className={`hint-btn ${showHint ? 'active' : ''}`}
           onClick={() => {
+            if (!showHint) {
+              setHintUsedCount(prev => prev + 1) // Track hint usage
+            }
             setShowHint(true)
             setTimeout(() => setShowHint(false), 3000) // Auto-close after 3 seconds
           }}

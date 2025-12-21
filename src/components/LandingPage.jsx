@@ -17,7 +17,7 @@ const LandingPage = () => {
         </div>
         <MedalDisplay />
       </header>
-      
+
       <main className="main-content">
         <div className="left-section">
           {/* <h1 className="title">Hygienix</h1> */}
@@ -28,31 +28,34 @@ const LandingPage = () => {
             Hygienix is an engaging, web-based gamification platform designed to teach essential hygiene practices to children in Grades 3-6. The game transforms daily routines into a fun, interactive experience by using game elements like points, levels, and challenges. Players learn about and are motivated to practice key hygiene habits, specifically handwashing, tooth brushing, and hair washing, with the goal of building lifelong healthy behaviors.
           </p>
         </div>
-        
+
         <div className="right-section">
           <div className="model-container">
             <img src={characterImage} alt="Character" className="character-image" />
-            
+
             <div className="thumbnails">
               <Link to="/hairwashing">
-                <Thumbnail 
-                  type="hairwashing" 
+                <Thumbnail
+                  type="hairwashing"
                   position="hair"
                   icon="🛁"
+                  label="Hair Washing"
                 />
               </Link>
               <Link to="/toothbrushing">
-                <Thumbnail 
-                  type="toothbrushing" 
+                <Thumbnail
+                  type="toothbrushing"
                   position="mouth"
                   icon="🦷"
+                  label="Tooth Brushing"
                 />
               </Link>
               <Link to="/handwashing">
-                <Thumbnail 
-                  type="handwashing" 
+                <Thumbnail
+                  type="handwashing"
                   position="hands"
                   icon="🧼"
+                  label="Hand Washing"
                 />
               </Link>
             </div>

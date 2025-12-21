@@ -34,6 +34,22 @@
   font-size: clamp(1.5rem, 5vw, 2.5rem);
 }
 
+.thumbnail-label {
+  position: absolute;
+  bottom: -28px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: clamp(0.65rem, 2vw, 0.85rem);
+  font-weight: 600;
+  color: #4a5568;
+  white-space: nowrap;
+  text-align: center;
+  background: rgba(255, 255, 255, 0.9);
+  padding: 3px 8px;
+  border-radius: 10px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
 .thumbnail-hair {
   top: -10%;
   left: 25%;
