@@ -173,7 +173,8 @@ export default function HairwashingGame() {
     }
 
     timerIntervalRef.current = setInterval(() => {
-      if (gameStartTime && step !== STEPS.COMPLETE && !timeUp) {
+      // Stop timer if game is complete, time is up, or player finished
+      if (gameStartTime && step !== STEPS.COMPLETE && !timeUp && !finalComplete) {
         const elapsed = Math.floor((Date.now() - gameStartTime) / 1000)
         const remaining = Math.max(0, TIME_LIMIT - elapsed)
         setTimer(remaining)
@@ -190,7 +191,7 @@ export default function HairwashingGame() {
         clearInterval(timerIntervalRef.current)
       }
     }
-  }, [gameStartTime, step])
+  }, [gameStartTime, step, finalComplete])
 
   // Format timer
   const formatTime = (seconds) => {
