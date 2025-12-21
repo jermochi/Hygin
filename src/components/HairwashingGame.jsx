@@ -347,7 +347,8 @@ export default function HairwashingGame() {
     }
 
     // Spawn foam bubbles for scrub step - these persist until rinse
-    if (step === STEPS.SCRUB && Math.random() > 0.4) {
+    if (step === STEPS.SCRUB) {
+      // Always spawn animated bubbles
       const newBubble = {
         id: bubbleIdRef.current++,
         x: x + (Math.random() - 0.5) * 50,
@@ -360,17 +361,21 @@ export default function HairwashingGame() {
         setFoamBubbles(prev => prev.filter(b => b.id !== newBubble.id))
       }, 1500)
 
-      // Also add to persistent foam (stays until rinsed)
-      const persistentBubble = {
-        id: bubbleIdRef.current++,
-        x: x + (Math.random() - 0.5) * 80,
-        y: y + (Math.random() - 0.5) * 80,
-        size: 10 + Math.random() * 15 // Smaller bubbles (10-25px)
-      }
+      // Add persistent bubbles (stays until rinsed) - limit to 200 for performance
       setPersistentFoam(prev => {
-        // Limit to 40 persistent bubbles for better visual
-        if (prev.length >= 40) return prev
-        return [...prev, persistentBubble]
+        if (prev.length >= 200) return prev // Cap at 200 bubbles for performance
+
+        const numBubbles = 1 + Math.floor(Math.random() * 2) // 1-2 bubbles per interaction
+        const newPersistentBubbles = []
+        for (let i = 0; i < numBubbles; i++) {
+          newPersistentBubbles.push({
+            id: bubbleIdRef.current++,
+            x: x + (Math.random() - 0.5) * 150, // Wider spread (150px)
+            y: y + (Math.random() - 0.5) * 150, // Wider spread (150px)
+            size: 12 + Math.random() * 20 // Sizes 12-32px
+          })
+        }
+        return [...prev, ...newPersistentBubbles]
       })
     }
 
@@ -659,6 +664,47 @@ export default function HairwashingGame() {
             <p>You completed the hair washing routine!</p>
             <p className="time-display">Time: {formatTime(timer)}</p>
             <div className="sparkles">✨ 💖 ✨</div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // Render game over overlay when time is up
+  if (timeUp) {
+    const handleRetry = () => {
+      // Reset all game state
+      setStep(STEPS.BRUSH)
+      setProgress(0)
+      setDragging(false)
+      setShowSuccess(false)
+      setFinalComplete(false)
+      setHearts([])
+      setWaterDrops([])
+      setFoamBubbles([])
+      setPersistentFoam([])
+      setGameStartTime(Date.now())
+      setTimer(TIME_LIMIT)
+      setTimeUp(false)
+      setShampooApplied(false)
+      setShampooBlob(null)
+      setStepComplete(false)
+      setWrongChoice(false)
+      setShowHint(false)
+    }
+
+    return (
+      <div className="hairwashing-game">
+        <div className="success-overlay game-over">
+          <div className="backdrop" />
+          <div className="success-content">
+            <div className="success-icon">⏰</div>
+            <h1>Time's Up!</h1>
+            <p>You ran out of time!</p>
+            <p className="step-reached">You reached: {currentConfig.title || 'Step 1'}</p>
+            <button className="retry-button" onClick={handleRetry}>
+              🔄 Try Again
+            </button>
           </div>
         </div>
       </div>
