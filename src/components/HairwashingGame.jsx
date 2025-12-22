@@ -23,6 +23,11 @@ import hairDryer from '../assets/hairbrushing_game/hair dryer.png'
 // Import sounds (reuse existing sounds)
 import successSfx from '../assets/sounds/success-sound.wav'
 import goodJobSfx from '../assets/sounds/good-job.wav'
+import towelSfx from '../assets/sounds/towel-sound.wav'
+import showerSfx from '../assets/sounds/shower-sound.wav'
+import toothpasteSfx from '../assets/sounds/toothpaste.wav'
+import scalpMassageSfx from '../assets/sounds/apply-shampoo-sound.wav'
+import hairblowerSfx from '../assets/sounds/hairblower-sound.wav'
 
 // Game steps - Updated flow
 const STEPS = {
@@ -153,6 +158,59 @@ export default function HairwashingGame() {
   const timerIntervalRef = useRef(null)
   const topImageRef = useRef(null)
   const originalMaskRef = useRef(null) // Store original hair mask for hit detection
+
+  // Sound refs (looping where appropriate)
+  const brushTowelSoundRef = useRef(null) // used for brush and towel
+  const showerSoundRef = useRef(null)
+  const massagerSoundRef = useRef(null)
+  const blowdryerSoundRef = useRef(null)
+
+  const playLoop = useCallback((ref) => {
+    const a = ref?.current
+    if (!a) return
+    if (a.paused) {
+      a.play().catch(() => {})
+    }
+  }, [])
+
+  const stopLoop = useCallback((ref) => {
+    const a = ref?.current
+    if (!a) return
+    if (!a.paused) {
+      a.pause()
+    }
+    if (a.currentTime) a.currentTime = 0
+  }, [])
+
+  // Initialize audio elements
+  useEffect(() => {
+    const brushTowel = new Audio(towelSfx)
+    brushTowel.loop = true
+    brushTowelSoundRef.current = brushTowel
+
+    const shower = new Audio(showerSfx)
+    shower.loop = true
+    showerSoundRef.current = shower
+
+    const massager = new Audio(scalpMassageSfx)
+    massager.loop = true
+    massagerSoundRef.current = massager
+
+    const blower = new Audio(hairblowerSfx)
+    blower.loop = true
+    blowdryerSoundRef.current = blower
+
+    return () => {
+      stopLoop(brushTowelSoundRef)
+      stopLoop(showerSoundRef)
+      stopLoop(massagerSoundRef)
+      stopLoop(blowdryerSoundRef)
+      brushTowelSoundRef.current = null
+      showerSoundRef.current = null
+      massagerSoundRef.current = null
+      blowdryerSoundRef.current = null
+    }
+  }, [stopLoop])
 
   // Get current step config
   const currentConfig = STEP_CONFIG[step] || {}
@@ -448,6 +506,12 @@ export default function HairwashingGame() {
     const audio = new Audio(successSfx)
     audio.play().catch(() => { })
 
+    // Stop any active looped tool sounds
+    stopLoop(brushTowelSoundRef)
+    stopLoop(showerSoundRef)
+    stopLoop(massagerSoundRef)
+    stopLoop(blowdryerSoundRef)
+
     // Mark step as complete
     setStepComplete(true)
     setDragging(false)
@@ -554,6 +618,9 @@ export default function HairwashingGame() {
       // Place shampoo blob on hair
       if (!shampooBlob) {
         setShampooBlob({ x: x, y: y })
+        // Play shampoo squirt sound (reuse toothpaste)
+        const squirt = new Audio(toothpasteSfx)
+        squirt.play().catch(() => {})
       }
       // Shampoo just needs to be dragged over hair
       setProgress(prev => Math.min(100, prev + 2))
@@ -579,6 +646,17 @@ export default function HairwashingGame() {
     e.preventDefault()
     setDragging(true)
     setCursorPos({ x: e.clientX, y: e.clientY })
+
+    // Start appropriate looped tool sound
+    if (step === STEPS.BRUSH || step === STEPS.TOWEL) {
+      playLoop(brushTowelSoundRef)
+    } else if (step === STEPS.WET || step === STEPS.RINSE) {
+      playLoop(showerSoundRef)
+    } else if (step === STEPS.SCRUB) {
+      playLoop(massagerSoundRef)
+    } else if (step === STEPS.BLOWDRY) {
+      playLoop(blowdryerSoundRef)
+    }
 
     // For steps with image mask or overlay, start erasing
     if (currentConfig.useImageMask || currentConfig.overlayColor) {
@@ -607,6 +685,17 @@ export default function HairwashingGame() {
         const localX = e.clientX - rect.left
         const localY = e.clientY - rect.top
 
+        // Ensure loop sound is playing when over hair
+        if (step === STEPS.BRUSH || step === STEPS.TOWEL) {
+          playLoop(brushTowelSoundRef)
+        } else if (step === STEPS.WET || step === STEPS.RINSE) {
+          playLoop(showerSoundRef)
+        } else if (step === STEPS.SCRUB) {
+          playLoop(massagerSoundRef)
+        } else if (step === STEPS.BLOWDRY) {
+          playLoop(blowdryerSoundRef)
+        }
+
         if (currentConfig.useImageMask) {
           // Steps with image mask use eraser mechanic
           eraseAt(e.clientX, e.clientY)
@@ -628,11 +717,23 @@ export default function HairwashingGame() {
           handleScrubStep(localX, localY)
         }
       }
+      else {
+        // Pointer moved off hair - stop looped sounds
+        stopLoop(brushTowelSoundRef)
+        stopLoop(showerSoundRef)
+        stopLoop(massagerSoundRef)
+        stopLoop(blowdryerSoundRef)
+      }
     }
   }
 
   const handlePointerUp = () => {
     setDragging(false)
+    // Stop any looped sounds on release
+    stopLoop(brushTowelSoundRef)
+    stopLoop(showerSoundRef)
+    stopLoop(massagerSoundRef)
+    stopLoop(blowdryerSoundRef)
   }
 
   // Get current hair image based on step (for the bottom layer revealed during masking)
