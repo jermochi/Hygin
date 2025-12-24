@@ -50,10 +50,10 @@ const STEP5_DETECTION_CENTER = { x: 0.38, y: 0.30 }
 const STEP5_BRISTLE_SIZE = { width: 0.28, height: 0.24 }
 
 // Step 1 configuration
-const WIN_CONDITION_COUNT = 5 // How many germs to win                         
+const STAGE_DURATION_MS = 7000 // Duration of each stage in milliseconds (7 seconds)
 const FAILURE_WINDOW_MS = 3000 // Time to brush each germ
 const INITIAL_SPAWN_DELAY_MS = 1000
-const NEXT_SPAWN_DELAY_MS = 1000
+const NEXT_SPAWN_DELAY_MS = 0 // Instant spawn after brushing
 const SUCCESS_CLEAR_DELAY_MS = 1200
 const FAILURE_CLEAR_DELAY_MS = 600
 const GERM_IMAGES = [germ1, germ2, germ3, germ4, germ5, germ6, germ7, germ8]
@@ -139,7 +139,9 @@ export default function ToothbrushGame() {
   const [waterCursorPos, setWaterCursorPos] = useState({ x: 0, y: 0 })
   const [waterPoured, setWaterPoured] = useState(false)
   const [overRinseMouth, setOverRinseMouth] = useState(false)
+  const [stageCompleted, setStageCompleted] = useState(false)
   const spawnTimersRef = useRef({ windowTimer: null, nextSpawnTimer: null })
+  const stageTimerRef = useRef(null)
 
   // Live refs to avoid stale state inside timeouts
   const stepRef = useRef(step)
@@ -147,7 +149,7 @@ export default function ToothbrushGame() {
   const currentGermRef = useRef(currentGerm)
   const successCountRef = useRef(successCount)
   const brushedThisWindowRef = useRef(brushedThisWindow)
-  const handleGermFailureRef = useRef(() => {})
+  const handleGermFailureRef = useRef(() => { })
   const brushHintTimeoutRef = useRef(null)
   const shineTimeoutsRef = useRef(new Map())
   const circleProgressRef = useRef(0)
@@ -172,7 +174,7 @@ export default function ToothbrushGame() {
     bounds: null,
     spawnPoints: []
   })
-  
+
   // Reference for the brushing sound effect
   const brushingSoundRef = useRef(null)
   const prevBrushPosRef = useRef({ x: 0, y: 0 })
@@ -189,12 +191,14 @@ export default function ToothbrushGame() {
     y: typeof window !== 'undefined' ? window.innerHeight / 2 : 0
   })
   const verticalLastBrushXRef = useRef(null)
+  const stageCompletedRef = useRef(false)
 
   useEffect(() => { stepRef.current = step }, [step])
   useEffect(() => { brushingActiveRef.current = brushingActive }, [brushingActive])
   useEffect(() => { currentGermRef.current = currentGerm }, [currentGerm])
   useEffect(() => { successCountRef.current = successCount }, [successCount])
   useEffect(() => { brushedThisWindowRef.current = brushedThisWindow }, [brushedThisWindow])
+  useEffect(() => { stageCompletedRef.current = stageCompleted }, [stageCompleted])
 
   // Initialize brushing sound
   useEffect(() => {
@@ -220,7 +224,7 @@ export default function ToothbrushGame() {
       const dx = brushPos.x - prevBrushPosRef.current.x;
       const dy = brushPos.y - prevBrushPosRef.current.y;
       const distance = Math.sqrt(dx * dx + dy * dy);
-      
+
       // Update previous position
       prevBrushPosRef.current = { x: brushPos.x, y: brushPos.y };
 
@@ -229,12 +233,12 @@ export default function ToothbrushGame() {
         if (brushingSoundRef.current && brushingSoundRef.current.paused) {
           brushingSoundRef.current.play().catch(err => console.log('Audio play failed:', err));
         }
-        
+
         // Clear any existing timeout
         if (brushMovementTimeoutRef.current) {
           clearTimeout(brushMovementTimeoutRef.current);
         }
-        
+
         // Set new timeout to stop sound after movement stops
         brushMovementTimeoutRef.current = setTimeout(() => {
           if (brushingSoundRef.current && !brushingSoundRef.current.paused) {
@@ -716,16 +720,16 @@ export default function ToothbrushGame() {
   }, [])
 
   const spawnGerm = useCallback(() => {
-    // Only spawn if we don't have an active germ and conditions are met
-    if (currentGermRef.current !== null || successCountRef.current >= WIN_CONDITION_COUNT) {
+    // Only spawn if we don't have an active germ and stage is not completed
+    if (currentGermRef.current !== null || stageCompletedRef.current) {
       return
     }
-    
+
     clearNextSpawnTimer()
     const pick = GERM_IMAGES[Math.floor(Math.random() * GERM_IMAGES.length)]
 
-  let xPct = 50, yPct = 53
-  let placementHandled = false
+    let xPct = 50, yPct = 53
+    let placementHandled = false
     if (headRef.current) {
       const r = headRef.current.getBoundingClientRect()
       const currentStep = stepRef.current
@@ -795,7 +799,7 @@ export default function ToothbrushGame() {
           }
           yPct = clampedY * 100
         }
-  } else if (currentStep === 4) {
+      } else if (currentStep === 4) {
         // Prefer spawning directly on detected teeth pixels within occlusal bands.
         const mouthData = openMouthDataRef.current
         const zones = mouthData.zones ?? []
@@ -945,7 +949,7 @@ export default function ToothbrushGame() {
     brushedThisWindowRef.current = false
     step2LastPointerRef.current = null
     circleProgressRef.current = 0
-    
+
     clearFailureTimer()
     spawnTimersRef.current.windowTimer = setTimeout(() => {
       const germ = currentGermRef.current
@@ -962,7 +966,7 @@ export default function ToothbrushGame() {
         (stepRef.current === 1 || stepRef.current === 2 || stepRef.current === 3 || stepRef.current === 4 || stepRef.current === 5) &&
         brushingActiveRef.current &&
         currentGermRef.current === null &&
-        successCountRef.current < WIN_CONDITION_COUNT
+        !stageCompletedRef.current
       ) {
         spawnGerm()
       }
@@ -1039,41 +1043,8 @@ export default function ToothbrushGame() {
         return prev
       })
 
-      if (nextCount >= WIN_CONDITION_COUNT) {
-        const currentStep = stepRef.current
-        setShowSuccess(true)
-        if (currentStep === 1) {
-          setTimeout(() => {
-            setShowSuccess(false)
-            setStep(2)
-          }, 1200)
-        } else if (currentStep === 2) {
-          setTimeout(() => {
-            setShowSuccess(false)
-            setStep(3)
-          }, 1200)
-        } else if (currentStep === 3) {
-          setTimeout(() => {
-            setShowSuccess(false)
-            setStep(4)
-          }, 1200)
-        } else if (currentStep === 4) {
-          setTimeout(() => {
-            setShowSuccess(false)
-            setStep(5)
-          }, 1200)
-        } else if (currentStep === 5) {
-          setBrushingActive(false)
-          brushingActiveRef.current = false
-          setTimeout(() => {
-            setShowSuccess(false)
-            setStep(6)
-          }, 1200)
-        }
-      } else if (nextCount < WIN_CONDITION_COUNT) {
-        // spawn after the clear delay so next germ always arrives post-removal
-        scheduleNextSpawn(NEXT_SPAWN_DELAY_MS)
-      }
+      // Simply spawn next germ after clearing, timer will handle stage completion
+      scheduleNextSpawn(NEXT_SPAWN_DELAY_MS)
     }, SUCCESS_CLEAR_DELAY_MS)
   }, [clearFailureTimer, scheduleNextSpawn])
 
@@ -1086,7 +1057,7 @@ export default function ToothbrushGame() {
     setTotalGermsFailed(prev => prev + 1)
     // Deduct points for missing a germ (-50 points)
     setPoints(prev => Math.max(0, prev - 50))
-    
+
     const failSound = new Audio(failSfx);
     failSound.play().catch(err => console.log('Audio play failed:', err));
 
@@ -1098,7 +1069,7 @@ export default function ToothbrushGame() {
         }
         return prev
       })
-      
+
       // Schedule next spawn after clearing
       scheduleNextSpawn(NEXT_SPAWN_DELAY_MS)
     }, FAILURE_CLEAR_DELAY_MS)
@@ -1109,7 +1080,7 @@ export default function ToothbrushGame() {
   }, [handleGermFailure])
 
   // ========== Helper Functions ==========
-  
+
   // Get bristle center position
   const getBristleCenter = useCallback(() => {
     if (!brushRef.current) return { x: 0, y: 0 }
@@ -1223,26 +1194,26 @@ export default function ToothbrushGame() {
   }
 
   // ========== Step 0: Drag Toothpaste ==========
-  
+
   const handleStep0Move = useCallback((e) => {
-        setCursorPos({ x: e.clientX, y: e.clientY })
-        if (brushRef.current) {
-          const rect = brushRef.current.getBoundingClientRect()
-          const top = rect.top + rect.height * BRISTLES_TOP_OFFSET_PORTION
-          const width = rect.width * BRISTLES_WIDTH_PORTION
-          const height = rect.height * BRISTLES_HEIGHT_PORTION
-          const bristlesRect = {
-            left: rect.right - width,
-            top,
-            right: rect.right,
-            bottom: top + height,
-          }
-          const over = e.clientX >= bristlesRect.left &&
-            e.clientX <= bristlesRect.right &&
-            e.clientY >= bristlesRect.top &&
-            e.clientY <= bristlesRect.bottom
-          setOverBristles(over)
-        }
+    setCursorPos({ x: e.clientX, y: e.clientY })
+    if (brushRef.current) {
+      const rect = brushRef.current.getBoundingClientRect()
+      const top = rect.top + rect.height * BRISTLES_TOP_OFFSET_PORTION
+      const width = rect.width * BRISTLES_WIDTH_PORTION
+      const height = rect.height * BRISTLES_HEIGHT_PORTION
+      const bristlesRect = {
+        left: rect.right - width,
+        top,
+        right: rect.right,
+        bottom: top + height,
+      }
+      const over = e.clientX >= bristlesRect.left &&
+        e.clientX <= bristlesRect.right &&
+        e.clientY >= bristlesRect.top &&
+        e.clientY <= bristlesRect.bottom
+      setOverBristles(over)
+    }
   }, [])
 
   const handleStep0Up = useCallback(() => {
@@ -1257,15 +1228,15 @@ export default function ToothbrushGame() {
   }, [overBristles])
 
   // ========== Shared Vertical Stroke Handler (Steps 1, 4, 5) ==========
-  
+
   const handleVerticalStrokeMove = useCallback((e, bristleCenterX, bristleCenterY) => {
     const teethArea = getTeethArea()
     if (!teethArea) return
 
-          const overTeeth = bristleCenterX >= teethArea.left &&
-            bristleCenterX <= teethArea.right &&
-            bristleCenterY >= teethArea.top &&
-            bristleCenterY <= teethArea.bottom
+    const overTeeth = bristleCenterX >= teethArea.left &&
+      bristleCenterX <= teethArea.right &&
+      bristleCenterY >= teethArea.top &&
+      bristleCenterY <= teethArea.bottom
 
     if (!overTeeth) {
       setLastBrushY(null)
@@ -1356,7 +1327,7 @@ export default function ToothbrushGame() {
   }, [])
 
   // ========== Step 2: Brush in Circles (or any motion!) ==========
-  
+
   const handleStep2Move = useCallback((e, bristleCenterX, bristleCenterY) => {
     const pointerX = e.clientX
     const pointerY = e.clientY
@@ -1489,7 +1460,7 @@ export default function ToothbrushGame() {
   }, [overRinseMouth, waterPoured])
 
   // ========== Main Event Handlers ==========
-  
+
   // Track pointer while dragging
   useEffect(() => {
     const handleMove = (e) => {
@@ -1662,22 +1633,70 @@ export default function ToothbrushGame() {
     }
   }, [brushing, step, lastBrushY, getBristleCenter])
 
-  // Step 1: Start game loop
+  // Step 1-5: Start game loop with timer-based stage completion
   useEffect(() => {
     if ((step !== 1 && step !== 2 && step !== 3 && step !== 4 && step !== 5) || !brushingActive) return
+
+    // Reset stage completion state
+    setStageCompleted(false)
+    stageCompletedRef.current = false
+
+    // Initial germ spawn
     const initial = setTimeout(() => {
       if (
         (stepRef.current === 1 || stepRef.current === 2 || stepRef.current === 3 || stepRef.current === 4 || stepRef.current === 5) &&
         brushingActiveRef.current &&
         currentGermRef.current === null &&
-        successCountRef.current < WIN_CONDITION_COUNT
+        !stageCompletedRef.current
       ) {
         spawnGerm()
       }
     }, INITIAL_SPAWN_DELAY_MS)
 
+    // Start stage timer (5 seconds)
+    stageTimerRef.current = setTimeout(() => {
+      // Stage complete - stop spawning and move to next step
+      setStageCompleted(true)
+      stageCompletedRef.current = true
+      const currentStep = stepRef.current
+      setShowSuccess(true)
+
+      if (currentStep === 1) {
+        setTimeout(() => {
+          setShowSuccess(false)
+          setStep(2)
+        }, 1200)
+      } else if (currentStep === 2) {
+        setTimeout(() => {
+          setShowSuccess(false)
+          setStep(3)
+        }, 1200)
+      } else if (currentStep === 3) {
+        setTimeout(() => {
+          setShowSuccess(false)
+          setStep(4)
+        }, 1200)
+      } else if (currentStep === 4) {
+        setTimeout(() => {
+          setShowSuccess(false)
+          setStep(5)
+        }, 1200)
+      } else if (currentStep === 5) {
+        setBrushingActive(false)
+        brushingActiveRef.current = false
+        setTimeout(() => {
+          setShowSuccess(false)
+          setStep(6)
+        }, 1200)
+      }
+    }, STAGE_DURATION_MS)
+
     return () => {
       clearTimeout(initial)
+      if (stageTimerRef.current) {
+        clearTimeout(stageTimerRef.current)
+        stageTimerRef.current = null
+      }
       clearFailureTimer()
       clearNextSpawnTimer()
     }
@@ -1796,7 +1815,7 @@ export default function ToothbrushGame() {
           <div className="step-title">Step {step}:</div>
         </div>
         <div className="step-sub">
-          {step === 0 
+          {step === 0
             ? 'Drag the toothpaste to apply it to the toothbrush'
             : step === 1
               ? 'Brush the teeth up and down until clean'
@@ -1852,16 +1871,16 @@ export default function ToothbrushGame() {
       {(step === 1 || step === 2 || step === 3 || step === 4 || step === 5) && (
         <div className={`play-container step-1${step === 2 ? ' step-2' : ''}${step === 3 ? ' step-3' : ''}${step === 4 ? ' step-4' : ''}${step === 5 ? ' step-5' : ''}`}>
           <div className="head-container">
-              <img
-                ref={headRef}
-                src={step === 3 ? insideTeeth : step === 4 ? openMouth : step === 5 ? brushTongue : cleanMouth}
-                alt={step === 3 ? 'Inside teeth' : step === 4 ? 'Open mouth' : step === 5 ? 'Tongue' : 'Clean teeth'}
-                className={`head-img ${step === 3 ? 'inside-mouth' : step === 4 ? 'open-mouth' : step === 5 ? 'tongue-mouth' : 'clean-mouth'}`}
-                draggable={false}
-              />
+            <img
+              ref={headRef}
+              src={step === 3 ? insideTeeth : step === 4 ? openMouth : step === 5 ? brushTongue : cleanMouth}
+              alt={step === 3 ? 'Inside teeth' : step === 4 ? 'Open mouth' : step === 5 ? 'Tongue' : 'Clean teeth'}
+              className={`head-img ${step === 3 ? 'inside-mouth' : step === 4 ? 'open-mouth' : step === 5 ? 'tongue-mouth' : 'clean-mouth'}`}
+              draggable={false}
+            />
             {/* Debug overlay to visualize teeth detection area */}
             {/* <div className="teeth-detection-area" aria-hidden="true" /> */}
-            
+
             {currentGerm && currentGerm.status === 'active' && (
               <img
                 ref={germRef}
@@ -1958,7 +1977,7 @@ export default function ToothbrushGame() {
         const minutes = Math.floor(timeSpent / 60)
         const seconds = timeSpent % 60
         const timeDisplay = minutes > 0 ? `${minutes}m ${seconds}s` : `${seconds}s`
-        
+
         // Calculate time penalty: -10 points for every 2 seconds over 3 minutes
         const threeMinutesInSeconds = 180
         let finalPoints = points
@@ -1968,7 +1987,7 @@ export default function ToothbrushGame() {
           const timePenalty = penaltyIntervals * 10 // -10 points per interval
           finalPoints = Math.max(0, points - timePenalty)
         }
-        
+
         return (
           <div className="intro-overlay">
             <div className="backdrop" />
@@ -1976,13 +1995,13 @@ export default function ToothbrushGame() {
               <img src={sparklingTeeth} alt="Sparkling teeth" className="final-sparkle" />
               <div className="intro-title congratulations-title">CONGRATULATIONS!</div>
               <div className="intro-title congratulations-subtitle">Brush your teeth twice a day</div>
-              
+
               {/* Final Score Display */}
               <div className="final-score-container">
                 <div className="final-score-label">Final Score</div>
                 <div className="final-score-value">{finalPoints}</div>
               </div>
-              
+
               {/* Stats Display */}
               <div className="game-stats-container">
                 <div className="stat-item stat-success">
@@ -1992,7 +2011,7 @@ export default function ToothbrushGame() {
                     <div className="stat-value">{totalGermsBrushed}</div>
                   </div>
                 </div>
-                
+
                 <div className="stat-item stat-failed">
                   <div className="stat-icon">🦠</div>
                   <div className="stat-content">
@@ -2000,7 +2019,7 @@ export default function ToothbrushGame() {
                     <div className="stat-value">{totalGermsFailed}</div>
                   </div>
                 </div>
-                
+
                 <div className="stat-item stat-time">
                   <div className="stat-icon">⏱️</div>
                   <div className="stat-content">
@@ -2009,10 +2028,10 @@ export default function ToothbrushGame() {
                   </div>
                 </div>
               </div>
-              
+
               <div className="congratulations-buttons">
                 <button className="continue-btn" onClick={goHome}>Main Menu</button>
-                <button className="continue-btn" onClick={() => { 
+                <button className="continue-btn" onClick={() => {
                   setFinalComplete(false)
                   setTotalGermsBrushed(0)
                   setTotalGermsFailed(0)
