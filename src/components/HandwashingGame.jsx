@@ -1,78 +1,75 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import './HandwashingGame.css'
-import videoSrc from '../assets/handwashing.mp4'
+import videoSrc from '../assets/new-handwashing.mp4'
 import { markGameCompleted, GAME_IDS } from '../utils/gameCompletion'
 
+const STEP_END_TIMES = [2.22, 7.09, 12.8, 14.9, 20.9, 26.4, 33.2]
+const STEP_TEXTS = [
+  'Apply enough soap to cover all hand surfaces',
+  'Rub hands palm to palm',
+  'Right palm over left dorsum with interlaced fingers and vice versa',
+  'Palm to palm with fingers interlaced',
+  'Rotational rubbing of left thumb clasped in right palm and vice versa',
+  'Rotational rubbing of the right hand fingernails on the left palm and vice versa',
+  'Rinse hands with water',
+  'Dry hands thoroughly with a single use towel'
+]
+const PER_STEP_POINTS = 100 / STEP_TEXTS.length
+
+const buildSegments = (duration) => {
+  const ends = [...STEP_END_TIMES, duration ?? null]
+  let previousEnd = 0
+  return ends.map((end) => {
+    const segment = [previousEnd, end]
+    if (end != null) {
+      previousEnd = end
+    }
+    return segment
+  })
+}
+
 const HandwashingGame = () => {
-  const steps = [
-    "Wet hands with water",
-    "Apply enough soap to cover all hand surfaces", 
-    "Rub hands palm to palm",
-    "Right palm over left dorsum with interlaced fingers and vice versa",
-    "Palm to palm with fingers interlaced",
-    "Backs of fingers to opposing palms with fingers interlocked",
-    "Rotational rubbing of left thumb clasped in right palm and vice versa",
-    "Rotational rubbing, backwards and forwards with clasped fingers of right hand in left palm and vice versa",
-    "Rinse hands with water",
-    "Dry hands thoroughly with a single use towel",
-    "Use towel to turn off faucet"
-  ]
+  const steps = STEP_TEXTS
 
   const [currentStep, setCurrentStep] = useState(0)
   const [selectedBoxes, setSelectedBoxes] = useState([])
+  const [choiceFlash, setChoiceFlash] = useState(['idle', 'idle', 'idle', 'idle'])
   const [choices, setChoices] = useState([])
   const [gameComplete, setGameComplete] = useState(false)
-  const [wrongCount, setWrongCount] = useState(0)
-  const [gameOver, setGameOver] = useState(false)
   const [stepResolved, setStepResolved] = useState(false)
-  const videoRef = useRef(null)
   const [segmentEnd, setSegmentEnd] = useState(null)
+  const [videoDuration, setVideoDuration] = useState(null)
+  const [segments, setSegments] = useState(() => buildSegments(null))
+  const [wrongChoiceCount, setWrongChoiceCount] = useState(0)
+  const [stepWrongCount, setStepWrongCount] = useState(0)
+  const [score, setScore] = useState(0)
+  const [penaltyPoints, setPenaltyPoints] = useState(0)
+
+  const videoRef = useRef(null)
   const segmentCompleteCallbackRef = useRef(null)
+  const flashTimeoutRef = useRef(null)
 
-  // Video segments in seconds for each step index (0..10)
-  const segments = [
-    [0, 5],    // step 0
-    [5, 10],   // step 1
-    [11, 15],  // step 2
-    [15, 20],  // step 3
-    [21, 24],  // step 4
-    [27, 33],  // step 5
-    [34, 40],  // step 6
-    [41, 49],  // step 7
-    [50, 53],  // step 8
-    [56, 60],  // step 9
-    [62, 64]   // step 10
-  ]
-
-  const generateChoices = (stepIndex) => {
+  const generateChoices = useCallback((stepIndex) => {
     const correctAnswer = steps[stepIndex]
-    
-    // Get all other steps except the current one
     const otherSteps = steps.filter((_, index) => index !== stepIndex)
-    
-    // Randomly select 3 wrong answers from all other steps
     const shuffledOthers = otherSteps.sort(() => Math.random() - 0.5)
     const wrongAnswers = shuffledOthers.slice(0, 3)
-    
-    // Shuffle the final answers (correct + 3 wrong)
     const allAnswers = [correctAnswer, ...wrongAnswers]
     const shuffled = allAnswers.sort(() => Math.random() - 0.5)
-    
     return shuffled.map((answer, index) => ({
       text: answer,
       isCorrect: answer === correctAnswer,
       index
     }))
-  }
+  }, [steps])
 
-  // Generate choices when step changes
   useEffect(() => {
     setChoices(generateChoices(currentStep))
     setSelectedBoxes([])
+    setChoiceFlash(['idle', 'idle', 'idle', 'idle'])
     setStepResolved(false)
-  }, [currentStep])
+  }, [currentStep, generateChoices])
 
-  // Pause video automatically at the end of the current segment
   useEffect(() => {
     const video = videoRef.current
     if (!video) return
@@ -89,131 +86,226 @@ const HandwashingGame = () => {
     return () => video.removeEventListener('timeupdate', onTimeUpdate)
   }, [segmentEnd])
 
+  useEffect(() => {
+    const video = videoRef.current
+    if (!video) return
+    const handleLoadedMetadata = () => {
+      setVideoDuration(video.duration || null)
+    }
+    video.addEventListener('loadedmetadata', handleLoadedMetadata)
+    if (video.readyState >= 1) {
+      handleLoadedMetadata()
+    }
+    return () => video.removeEventListener('loadedmetadata', handleLoadedMetadata)
+  }, [])
+
+  // Clean up pending flash timers on unmount
+  useEffect(() => () => {
+    if (flashTimeoutRef.current) {
+      clearTimeout(flashTimeoutRef.current)
+    }
+  }, [])
+
+  useEffect(() => {
+    setSegments(buildSegments(videoDuration))
+  }, [videoDuration])
+
   const playSegmentForIndex = (index, onComplete) => {
     const video = videoRef.current
     if (!video) return
     const [start, end] = segments[index] || []
-    if (start == null || end == null) return
+    if (start == null) return
     try {
       video.currentTime = start
-      setSegmentEnd(end)
+      // Slight speed boost for steps 3, 5, and 7 (1-based) to keep total under ~30s
+      if ([2, 4, 6].includes(index)) {
+        video.playbackRate = 1.15
+      } else {
+        video.playbackRate = 1.0
+      }
+      const effectiveEnd = end ?? video.duration ?? null
       segmentCompleteCallbackRef.current = onComplete || null
+      if (effectiveEnd != null) {
+        setSegmentEnd(effectiveEnd)
+      } else if (onComplete) {
+        const handleEnded = () => {
+          video.removeEventListener('ended', handleEnded)
+          segmentCompleteCallbackRef.current = null
+          onComplete()
+        }
+        video.addEventListener('ended', handleEnded)
+      }
       video.play().catch(() => {})
     } catch {}
   }
 
   const handleBoxClick = (boxIndex, isCorrect) => {
-    if (gameOver || stepResolved) return
-    // Don't allow clicking the same box twice
+    if (gameComplete || stepResolved) return
     if (selectedBoxes.includes(boxIndex)) return
-    
-    // Add this box to selected boxes
-    setSelectedBoxes(prev => [...prev, boxIndex])
-    
-    if (isCorrect) {
-      // Lock further input for this step immediately
-      setStepResolved(true)
-      // Play the segment corresponding to the step just answered
-      const isLast = currentStep === steps.length - 1
-      playSegmentForIndex(currentStep, () => {
+
+    // flash the chosen box
+    setChoiceFlash((prev) => prev.map((state, idx) => (idx === boxIndex ? (isCorrect ? 'correct' : 'incorrect') : 'idle')))
+    setSelectedBoxes((prev) => [...prev, boxIndex])
+    setStepResolved(true)
+
+    if (flashTimeoutRef.current) clearTimeout(flashTimeoutRef.current)
+
+    flashTimeoutRef.current = setTimeout(() => {
+      setChoiceFlash(['idle', 'idle', 'idle', 'idle'])
+      setSelectedBoxes([])
+
+      if (isCorrect) {
+        setScore((s) => s + PER_STEP_POINTS)
+        setStepWrongCount(0)
+        const isLast = currentStep === steps.length - 1
+        
         if (isLast) {
+          // Show scoreboard immediately on last step
           setGameComplete(true)
+          // Play the segment in background without callback
+          playSegmentForIndex(currentStep, null)
+        } else {
+          playSegmentForIndex(currentStep, null)
+          setCurrentStep((prev) => prev + 1)
         }
-      })
-      // Immediately advance to next step (or stay if last, overlay will show on complete)
-      if (!isLast) {
-        setCurrentStep(currentStep + 1)
+      } else {
+        setWrongChoiceCount((prev) => prev + 1)
+        const penalties = [7, 5, 3]
+        const penalty = penalties[Math.min(stepWrongCount, penalties.length - 1)]
+        setPenaltyPoints((p) => p + penalty)
+        setScore((s) => Math.max(0, s - penalty))
+        setStepWrongCount((count) => count + 1)
+        setStepResolved(false)
       }
-    } else {
-      // Wrong answer: increment germ count and check for game over
-      setWrongCount(prev => {
-        const next = prev + 1
-        if (next >= 3) {
-          setGameOver(true)
-          // Auto restart after brief delay
-          setTimeout(() => {
-            resetGame()
-          }, 1500)
-        }
-        return next
-      })
-    }
-    // For wrong answers, we just add them to the selected list and keep them red
+    }, 500)
   }
 
-  const resetGame = () => {
+  const resetGame = useCallback(() => {
+    if (flashTimeoutRef.current) {
+      clearTimeout(flashTimeoutRef.current)
+    }
     setCurrentStep(0)
     setSelectedBoxes([])
+    setChoiceFlash(['idle', 'idle', 'idle', 'idle'])
     setGameComplete(false)
-    setWrongCount(0)
-    setGameOver(false)
-  }
+    setStepResolved(false)
+    setWrongChoiceCount(0)
+    setStepWrongCount(0)
+    setScore(0)
+    setPenaltyPoints(0)
+    setSegmentEnd(null)
+    segmentCompleteCallbackRef.current = null
+    const video = videoRef.current
+    if (video) {
+      video.pause()
+      video.currentTime = 0
+    }
+  }, [])
 
-  // Mark game as completed when gameComplete becomes true
   useEffect(() => {
     if (gameComplete) {
       markGameCompleted(GAME_IDS.HANDWASHING)
-      // Dispatch custom event to update medal display
       window.dispatchEvent(new Event('gameCompleted'))
     }
   }, [gameComplete])
 
-  // We now show completion as an overlay instead of a full replace
+  const calculatePoints = () => {
+    const stepPointsMax = PER_STEP_POINTS * steps.length
+    const totalPoints = Math.max(0, Math.round(score))
+    const totalPenalty = Math.round(penaltyPoints)
+    return { stepPointsMax: Math.round(stepPointsMax), totalPenalty, totalPoints }
+  }
+
+  const getStarRating = (totalPoints) => {
+    if (totalPoints >= 90) return 3
+    if (totalPoints >= 70) return 2
+    return 1
+  }
+
+  const { stepPointsMax, totalPenalty, totalPoints } = calculatePoints()
+  const stars = getStarRating(totalPoints)
 
   return (
     <div className="handwashing-game">
       <div className="status-row">
-        <div className="status-banner">Step {currentStep} of {steps.length - 1}</div>
-        <div className="germs inline">
-          {[0,1,2].map((i) => (
-            <span key={i} className={`germ ${i < wrongCount ? 'active' : ''}`} aria-label="germ" role="img">🦠</span>
-          ))}
-        </div>
+        <div className="status-banner">Step {currentStep + 1} of {steps.length}</div>
+        <div className="status-banner neutral">Mistakes: {wrongChoiceCount}</div>
       </div>
-      <div className={`stage-row ${(gameOver || gameComplete) ? 'blurred' : ''}`}>
-        <div className={`game-header ${(gameOver || gameComplete) ? 'blurred' : ''}`}>
+      <div className={`stage-row ${gameComplete ? 'blurred' : ''}`}>
+        <div className="game-header">
           <div className="video-stage">
-            <video ref={videoRef} className="bg-video" src={videoSrc} muted playsInline preload="metadata" />
+            <video
+              ref={videoRef}
+              className="bg-video"
+              src={videoSrc}
+              muted
+              playsInline
+              preload="metadata"
+              controls={false}
+            />
           </div>
         </div>
         <div className="choices-panel">
-          <div 
-            className={`choice-box square ${selectedBoxes.includes(0) ? (choices[0]?.isCorrect ? 'correct' : 'incorrect') : ''}`}
+          <div
+            className={`choice-box square ${choiceFlash[0] === 'correct' ? 'correct' : choiceFlash[0] === 'incorrect' ? 'incorrect' : ''}`}
             onClick={() => handleBoxClick(0, choices[0]?.isCorrect)}
           >
             {choices[0]?.text}
           </div>
-          <div 
-            className={`choice-box square ${selectedBoxes.includes(1) ? (choices[1]?.isCorrect ? 'correct' : 'incorrect') : ''}`}
+          <div
+            className={`choice-box square ${choiceFlash[1] === 'correct' ? 'correct' : choiceFlash[1] === 'incorrect' ? 'incorrect' : ''}`}
             onClick={() => handleBoxClick(1, choices[1]?.isCorrect)}
           >
             {choices[1]?.text}
           </div>
-          <div 
-            className={`choice-box square ${selectedBoxes.includes(2) ? (choices[2]?.isCorrect ? 'correct' : 'incorrect') : ''}`}
+          <div
+            className={`choice-box square ${choiceFlash[2] === 'correct' ? 'correct' : choiceFlash[2] === 'incorrect' ? 'incorrect' : ''}`}
             onClick={() => handleBoxClick(2, choices[2]?.isCorrect)}
           >
             {choices[2]?.text}
           </div>
-          <div 
-            className={`choice-box square ${selectedBoxes.includes(3) ? (choices[3]?.isCorrect ? 'correct' : 'incorrect') : ''}`}
+          <div
+            className={`choice-box square ${choiceFlash[3] === 'correct' ? 'correct' : choiceFlash[3] === 'incorrect' ? 'incorrect' : ''}`}
             onClick={() => handleBoxClick(3, choices[3]?.isCorrect)}
           >
             {choices[3]?.text}
           </div>
         </div>
       </div>
-      {gameOver && (
-        <div className="game-over-overlay">
-          <div className="game-over-text">GAME OVER</div>
-          <div className="game-over-sub">Restarting…</div>
-        </div>
-      )}
       {gameComplete && (
-        <div className="celebration-overlay">
-          <div className="celebration-text">YOUR HANDS ARE NOW SAFE</div>
-          <div className="celebration-sub">Great job completing all steps!</div>
-          <button onClick={resetGame} className="reset-button">Play Again</button>
+        <div className="results-overlay">
+          <div className="backdrop" />
+          <div className="results-card">
+            <div className="results-icon">🎉</div>
+            <h1>Great job!</h1>
+            <p>You completed the handwashing routine.</p>
+            <div className="points-section">
+              <div className="star-rating">
+                {[1, 2, 3].map((star) => (
+                  <span key={star} className={`star ${star <= stars ? 'earned' : 'empty'}`}>⭐</span>
+                ))}
+              </div>
+              <div className="points-breakdown">
+                <div className="points-row">
+                  <span>Step Points:</span>
+                  <span className="points-positive">+{stepPointsMax} pts</span>
+                </div>
+                {totalPenalty > 0 && (
+                  <div className="points-row penalty">
+                    <span>Wrong Picks ({wrongChoiceCount}x):</span>
+                    <span className="points-negative">-{totalPenalty} pts</span>
+                  </div>
+                )}
+                <div className="points-total">
+                  <span>Total:</span>
+                  <span className="total-value">{totalPoints} pts</span>
+                </div>
+              </div>
+            </div>
+            <div className="results-actions">
+              <button onClick={resetGame} className="reset-button">Play Again</button>
+            </div>
+          </div>
         </div>
       )}
     </div>
