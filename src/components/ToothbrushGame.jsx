@@ -260,13 +260,7 @@ export default function ToothbrushGame() {
     }
   }, [brushPos, brushing, brushingActive]);
 
-  // Play good job sound when success screen shows
-  useEffect(() => {
-    if (showSuccess) {
-      const audio = new Audio(goodJobSfx);
-      audio.play().catch(err => console.log('Audio play failed:', err));
-    }
-  }, [showSuccess])
+
 
   useEffect(() => {
     const img = new Image()
@@ -1446,13 +1440,9 @@ export default function ToothbrushGame() {
       // Play gargle water sound effect
       const gargleSound = new Audio(gargleWaterSfx);
       gargleSound.play().catch(err => console.log('Audio play failed:', err));
-      // Add delay before showing "good job"
+      // Move to final screen after brief delay
       setTimeout(() => {
-        setShowSuccess(true)
-        setTimeout(() => {
-          setShowSuccess(false)
-          setFinalComplete(true)
-        }, SUCCESS_CLEAR_DELAY_MS)
+        setFinalComplete(true)
       }, 1000) // 1 second delay after water touches mouth
     }
     setWaterDragging(false)
@@ -1515,15 +1505,7 @@ export default function ToothbrushGame() {
   // When paste is applied, move to next step
   useEffect(() => {
     if (hasPaste && step === 0) {
-      const showTimer = setTimeout(() => {
-        setShowSuccess(true)
-        const clearTimer = setTimeout(() => {
-          setShowSuccess(false)
-          setStep(1) // Move to step 1
-        }, 1200)
-        return () => clearTimeout(clearTimer)
-      }, 1500)
-      return () => clearTimeout(showTimer)
+      setStep(1) // Move to step 1
     }
   }, [hasPaste, step])
 
@@ -1659,35 +1641,19 @@ export default function ToothbrushGame() {
       setStageCompleted(true)
       stageCompletedRef.current = true
       const currentStep = stepRef.current
-      setShowSuccess(true)
 
       if (currentStep === 1) {
-        setTimeout(() => {
-          setShowSuccess(false)
-          setStep(2)
-        }, 1200)
+        setStep(2)
       } else if (currentStep === 2) {
-        setTimeout(() => {
-          setShowSuccess(false)
-          setStep(3)
-        }, 1200)
+        setStep(3)
       } else if (currentStep === 3) {
-        setTimeout(() => {
-          setShowSuccess(false)
-          setStep(4)
-        }, 1200)
+        setStep(4)
       } else if (currentStep === 4) {
-        setTimeout(() => {
-          setShowSuccess(false)
-          setStep(5)
-        }, 1200)
+        setStep(5)
       } else if (currentStep === 5) {
         setBrushingActive(false)
         brushingActiveRef.current = false
-        setTimeout(() => {
-          setShowSuccess(false)
-          setStep(6)
-        }, 1200)
+        setStep(6)
       }
     }, STAGE_DURATION_MS)
 
@@ -1712,35 +1678,15 @@ export default function ToothbrushGame() {
       setHasPaste(true)
       setStep(1)
     } else if (step === 1) {
-      setShowSuccess(true)
-      setTimeout(() => {
-        setShowSuccess(false)
-        setStep(2)
-      }, 1200)
+      setStep(2)
     } else if (step === 2) {
-      setShowSuccess(true)
-      setTimeout(() => {
-        setShowSuccess(false)
-        setStep(3)
-      }, 1200)
+      setStep(3)
     } else if (step === 3) {
-      setShowSuccess(true)
-      setTimeout(() => {
-        setShowSuccess(false)
-        setStep(4)
-      }, 1200)
+      setStep(4)
     } else if (step === 4) {
-      setShowSuccess(true)
-      setTimeout(() => {
-        setShowSuccess(false)
-        setStep(5)
-      }, 1200)
+      setStep(5)
     } else if (step === 5) {
-      setShowSuccess(true)
-      setTimeout(() => {
-        setShowSuccess(false)
-        setStep(6)
-      }, 1200)
+      setStep(6)
     } else if (step === 6) {
       setFinalComplete(true)
     }
@@ -2045,12 +1991,7 @@ export default function ToothbrushGame() {
         )
       })()}
 
-      {showSuccess && (
-        <div className="success-overlay">
-          <div className="backdrop" />
-          <img src={goodJobImg} alt="Good job" className="success-popup" />
-        </div>
-      )}
+
 
       {/* Hitbox outlines removed (visuals hidden) */}
 
