@@ -3,6 +3,7 @@ import './ToothbrushGame.css'
 import { markGameCompleted, GAME_IDS } from '../utils/gameCompletion'
 import { getTierLabel, getTierClass } from '../utils/scoreTier'
 import { updateScore } from '../utils/scoreManager'
+import { useGameFlow } from '../context/GameFlowContext'
 
 import toothbrushNoPaste from '../assets/toothbrush-no-toothpaste.png'
 import toothbrushCursor from '../assets/toothbrush-toothpaste.png'
@@ -105,6 +106,7 @@ const clamp01 = (value) => Math.min(1, Math.max(0, value))
 
 
 export default function ToothbrushGame() {
+  const { completeCurrentGame } = useGameFlow()
   const [step, setStep] = useState(0) // 0: apply paste, 1: brush teeth
   const [hasPaste, setHasPaste] = useState(false)
   const [dragging, setDragging] = useState(false)
@@ -1748,12 +1750,13 @@ export default function ToothbrushGame() {
   }
 
   const goHome = () => {
+    completeCurrentGame()
     try {
-      // Hard redirect to app root (dev: http://localhost:5173/)
-      window.location.assign('/')
+      // Navigate to next game in sequence (Handwashing)
+      window.location.assign('/handwashing')
     } catch {
       // Fallback: update location directly
-      window.location.href = '/'
+      window.location.href = '/handwashing'
     }
   }
 
@@ -1995,15 +1998,8 @@ export default function ToothbrushGame() {
               </div>
 
               <div className="congratulations-buttons">
-                <button className="continue-btn" onClick={goHome}>Main Menu</button>
-                <button className="continue-btn" onClick={() => {
-                  setFinalComplete(false)
-                  setTotalGermsBrushed(0)
-                  setTotalGermsFailed(0)
-                  setGameStartTime(null)
-                  setPoints(0)
-                  setStep(1)
-                }}>Try Again</button>
+                <button className="continue-btn secondary-btn" onClick={() => window.location.assign('/')}>Main Menu</button>
+                <button className="continue-btn primary-btn" onClick={goHome}>Next Game →</button>
               </div>
             </div>
           </div>

@@ -4,6 +4,7 @@ import './HairwashingGame.css'
 import { markGameCompleted, GAME_IDS } from '../utils/gameCompletion'
 import { getTierLabel, getTierClass } from '../utils/scoreTier'
 import { updateScore } from '../utils/scoreManager'
+import { useGameFlow } from '../context/GameFlowContext'
 
 // Import layered hair assets (Body + Hair states)
 import bodyBase from '../assets/hairbrushing_game/hair/Body.png'
@@ -126,6 +127,12 @@ const TIME_LIMIT = 120 // 2 minutes in seconds
 
 export default function HairwashingGame() {
   const navigate = useNavigate()
+  const { completeCurrentGame } = useGameFlow()
+
+  const goToNextGame = () => {
+    completeCurrentGame()
+    navigate('/toothbrushing')
+  }
   const [step, setStep] = useState(STEPS.BRUSH)
   const [progress, setProgress] = useState(0)
   const [dragging, setDragging] = useState(false)
@@ -843,28 +850,7 @@ export default function HairwashingGame() {
 
             <div className="congratulations-buttons">
               <button className="continue-btn" onClick={() => navigate('/')}>Main Menu</button>
-              <button className="continue-btn" onClick={() => {
-                // Reset all game state
-                setStep(STEPS.BRUSH)
-                setProgress(0)
-                setDragging(false)
-                setShowSuccess(false)
-                setFinalComplete(false)
-                setHearts([])
-                setWaterDrops([])
-                setFoamBubbles([])
-                setPersistentFoam([])
-                setGameStartTime(Date.now())
-                setTimer(TIME_LIMIT)
-                setTimeUp(false)
-                setShampooApplied(false)
-                setShampooBlob(null)
-                setStepComplete(false)
-                setWrongChoice(false)
-                setShowHint(false)
-                setWrongChoiceCount(0)
-                setHintUsedCount(0)
-              }}>Try Again</button>
+              <button className="continue-btn primary-btn" onClick={goToNextGame}>Next Game →</button>
             </div>
           </div>
         </div>

@@ -11,6 +11,8 @@ import bgMusic from './assets/sounds/bg-music.wav'
 import { useHoverSound } from './utils/useHoverSound'
 import { AudioSettingsProvider } from './context/AudioSettingsProvider'
 import { AudioSettingsContext } from './context/AudioSettingsContext'
+import { GameFlowProvider } from './context/GameFlowContext'
+import ProtectedGameRoute from './components/ProtectedGameRoute'
 
 // Protected route wrapper - requires active session
 function ProtectedRoute({ children }) {
@@ -53,18 +55,12 @@ function AppInner() {
           }
         />
         <Route
-          path="/handwashing"
-          element={
-            <ProtectedRoute>
-              <GamePage gameType="Hand Washing" />
-            </ProtectedRoute>
-          }
-        />
-        <Route
           path="/hairwashing"
           element={
             <ProtectedRoute>
-              <GamePage gameType="Hair Washing" />
+              <ProtectedGameRoute gameIndex={0}>
+                <GamePage gameType="Hair Washing" />
+              </ProtectedGameRoute>
             </ProtectedRoute>
           }
         />
@@ -72,7 +68,19 @@ function AppInner() {
           path="/toothbrushing"
           element={
             <ProtectedRoute>
-              <GamePage gameType="Tooth Brushing" />
+              <ProtectedGameRoute gameIndex={1}>
+                <GamePage gameType="Tooth Brushing" />
+              </ProtectedGameRoute>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/handwashing"
+          element={
+            <ProtectedRoute>
+              <ProtectedGameRoute gameIndex={2}>
+                <GamePage gameType="Hand Washing" />
+              </ProtectedGameRoute>
             </ProtectedRoute>
           }
         />
@@ -133,7 +141,9 @@ function AppContent() {
 function App() {
   return (
     <AudioSettingsProvider>
-      <AppContent />
+      <GameFlowProvider>
+        <AppContent />
+      </GameFlowProvider>
     </AudioSettingsProvider>
   )
 }

@@ -630,3 +630,144 @@ body {
     font-size: 1rem;
   }
 }
+
+/* Logo and PLAY button side-by-side */
+.logo-and-play {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.svg-logo {
+  flex-shrink: 0;
+}
+
+/* Action buttons container (PLAY + Leaderboard) */
+.action-buttons {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+/* PLAY Button Styles */
+.play-button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1rem 2rem;
+  background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+  border: none;
+  border-radius: 50px;
+  color: white;
+  font-weight: 700;
+  font-size: 1.3rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(255, 215, 0, 0.4);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  flex-shrink: 0;
+}
+
+.play-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(255, 215, 0, 0.6);
+  background: linear-gradient(135deg, #FFA500 0%, #FFD700 100%);
+}
+
+.play-button:active {
+  transform: translateY(0);
+}
+
+.play-icon {
+  font-size: 1.2rem;
+  line-height: 1;
+}
+
+.play-text {
+  font-size: 1.2rem;
+}
+
+/* Leaderboard Button Styles */
+.leaderboard-button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1rem 2rem;
+  background: linear-gradient(135deg, #93BFC7 0%, #7BA8B0 100%);
+  border: none;
+  border-radius: 50px;
+  color: white;
+  font-weight: 700;
+  font-size: 1.3rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(147, 191, 199, 0.4);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  flex-shrink: 0;
+}
+
+.leaderboard-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(147, 191, 199, 0.6);
+  background: linear-gradient(135deg, #7BA8B0 0%, #93BFC7 100%);
+}
+
+.leaderboard-button:active {
+  transform: translateY(0);
+}
+
+.leaderboard-icon {
+  font-size: 1.2rem;
+  line-height: 1;
+}
+
+.leaderboard-text {
+  font-size: 1.2rem;
+}
+
+/* Mobile responsive for action buttons */
+@media (max-width: 640px) {
+  .logo-and-play {
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .action-buttons {
+    flex-direction: row;
+    gap: 0.5rem;
+    width: 95%;
+    justify-content: space-between;
+    padding: 0;
+  }
+
+  .play-button {
+    padding: 1rem;
+    font-size: 0.85rem;
+    flex: 1.6;
+    justify-content: center;
+  }
+
+  .leaderboard-button {
+    padding: 1rem;
+    font-size: 0.85rem;
+    flex: 1;
+    justify-content: center;
+  }
+
+  .play-icon,
+  .leaderboard-icon {
+    font-size: 1.2rem;
+  }
+
+  .play-text,
+  .leaderboard-text {
+    font-size: 1rem;
+  }
+}
