@@ -1026,8 +1026,8 @@ export default function ToothbrushGame() {
     successCountRef.current = nextCount
     // Track total germs brushed
     setTotalGermsBrushed(prev => prev + 1)
-    // Add points for brushing a germ (+100 points)
-    setPoints(prev => prev + 100)
+    // Add points for brushing a germ (+25 points)
+    setPoints(prev => prev + 25)
 
     setTimeout(() => {
       setCurrentGerm(prev => {
@@ -1050,8 +1050,8 @@ export default function ToothbrushGame() {
     setCurrentGerm(prev => prev ? { ...prev, status: 'failed' } : prev)
     // Track total germs failed
     setTotalGermsFailed(prev => prev + 1)
-    // Deduct points for missing a germ (-50 points)
-    setPoints(prev => Math.max(0, prev - 50))
+    // Deduct points for missing a germ (-10 points)
+    setPoints(prev => Math.max(0, prev - 10))
 
     const failSound = new Audio(failSfx);
     failSound.play().catch(err => console.log('Audio play failed:', err));
