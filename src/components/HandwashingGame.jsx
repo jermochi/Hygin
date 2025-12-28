@@ -136,8 +136,8 @@ const HandwashingGame = () => {
         }
         video.addEventListener('ended', handleEnded)
       }
-      video.play().catch(() => {})
-    } catch {}
+      video.play().catch(() => { })
+    } catch { }
   }
 
   const handleBoxClick = (boxIndex, isCorrect) => {
@@ -159,7 +159,7 @@ const HandwashingGame = () => {
         setScore((s) => s + PER_STEP_POINTS)
         setStepWrongCount(0)
         const isLast = currentStep === steps.length - 1
-        
+
         if (isLast) {
           // Show scoreboard immediately on last step
           setGameComplete(true)
@@ -276,38 +276,51 @@ const HandwashingGame = () => {
         </div>
       </div>
       {gameComplete && (
-        <div className="results-overlay">
+        <div className="intro-overlay">
           <div className="backdrop" />
-          <div className="results-card">
-            <div className="results-icon">🎉</div>
-            <h1>Great job!</h1>
-            <p>You completed the handwashing routine.</p>
-            <div className="points-section">
-              <div className="star-rating">
-                {[1, 2, 3].map((star) => (
-                  <span key={star} className={`star ${star <= stars ? 'earned' : 'empty'}`}>⭐</span>
-                ))}
-              </div>
-              <div className={`tier-badge ${tierClass}`}>Tier: {tierLabel}</div>
-              <div className="points-breakdown">
-                <div className="points-row">
-                  <span>Step Points:</span>
-                  <span className="points-positive">+{stepPointsMax} pts</span>
+          <div className="intro-card">
+            <div className="intro-title congratulations-title">CONGRATULATIONS!</div>
+            <div className="intro-title congratulations-subtitle">Wash your hands regularly</div>
+
+            {/* Final Score Display */}
+            <div className="final-score-container">
+              <div className="final-score-label">Final Score</div>
+              <div className="final-score-value">{totalPoints}</div>
+            </div>
+
+            {/* Tier Display */}
+            <div className={`tier-badge ${tierClass}`}>Tier: {tierLabel}</div>
+
+            {/* Stats Display */}
+            <div className="game-stats-container">
+              <div className="stat-item stat-success">
+                <div className="stat-icon">✅</div>
+                <div className="stat-content">
+                  <div className="stat-label">Steps Completed</div>
+                  <div className="stat-value">{steps.length}</div>
                 </div>
-                {totalPenalty > 0 && (
-                  <div className="points-row penalty">
-                    <span>Wrong Picks ({wrongChoiceCount}x):</span>
-                    <span className="points-negative">-{totalPenalty} pts</span>
-                  </div>
-                )}
-                <div className="points-total">
-                  <span>Total:</span>
-                  <span className="total-value">{totalPoints} pts</span>
+              </div>
+
+              <div className="stat-item stat-failed">
+                <div className="stat-icon">❌</div>
+                <div className="stat-content">
+                  <div className="stat-label">Mistakes</div>
+                  <div className="stat-value">{wrongChoiceCount}</div>
+                </div>
+              </div>
+
+              <div className="stat-item stat-time">
+                <div className="stat-icon">🎯</div>
+                <div className="stat-content">
+                  <div className="stat-label">Total Score</div>
+                  <div className="stat-value">{totalPoints}</div>
                 </div>
               </div>
             </div>
-            <div className="results-actions">
-              <button onClick={resetGame} className="reset-button">Play Again</button>
+
+            <div className="congratulations-buttons">
+              <button className="continue-btn" onClick={() => window.location.href = '/'}>Main Menu</button>
+              <button className="continue-btn" onClick={resetGame}>Try Again</button>
             </div>
           </div>
         </div>

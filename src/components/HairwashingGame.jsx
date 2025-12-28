@@ -170,7 +170,7 @@ export default function HairwashingGame() {
     const a = ref?.current
     if (!a) return
     if (a.paused) {
-      a.play().catch(() => {})
+      a.play().catch(() => { })
     }
   }, [])
 
@@ -621,7 +621,7 @@ export default function HairwashingGame() {
         setShampooBlob({ x: x, y: y })
         // Play shampoo squirt sound (reuse toothpaste)
         const squirt = new Audio(toothpasteSfx)
-        squirt.play().catch(() => {})
+        squirt.play().catch(() => { })
       }
       // Shampoo just needs to be dragged over hair
       setProgress(prev => Math.min(100, prev + 2))
@@ -788,87 +788,72 @@ export default function HairwashingGame() {
 
     return (
       <div className="hairwashing-game">
-        <div className="success-overlay">
+        <div className="intro-overlay">
           <div className="backdrop" />
-          <div className="success-content">
-            <div className="success-icon">🎉</div>
-            <h1>Great Job!</h1>
-            <p>You completed the hair washing routine!</p>
+          <div className="intro-card">
+            <div className="intro-title congratulations-title">CONGRATULATIONS!</div>
+            <div className="intro-title congratulations-subtitle">Keep your hair clean and healthy</div>
 
-            <div className="points-section">
-              <div className="star-rating">
-                {[1, 2, 3].map((star) => (
-                  <span key={star} className={`star ${star <= stars ? 'earned' : 'empty'}`}>
-                    ⭐
-                  </span>
-                ))}
+            {/* Final Score Display */}
+            <div className="final-score-container">
+              <div className="final-score-label">Final Score</div>
+              <div className="final-score-value">{totalPoints}</div>
+            </div>
+
+            {/* Tier Display */}
+            <div className={`tier-badge ${tierClass}`}>Tier: {tierLabel}</div>
+
+            {/* Stats Display */}
+            <div className="game-stats-container">
+              <div className="stat-item stat-success">
+                <div className="stat-icon">⏱️</div>
+                <div className="stat-content">
+                  <div className="stat-label">Time Remaining</div>
+                  <div className="stat-value">{formatTime(timer)}</div>
+                </div>
               </div>
-              <div className={`tier-badge ${tierClass}`}>Tier: {tierLabel}</div>
-              <div className="points-breakdown">
-                <div className="points-row">
-                  <span>Completion:</span>
-                  <span className="points-positive">+{basePoints} pts</span>
+
+              <div className="stat-item stat-failed">
+                <div className="stat-icon">⚠️</div>
+                <div className="stat-content">
+                  <div className="stat-label">Wrong Choices</div>
+                  <div className="stat-value">{wrongChoiceCount}</div>
                 </div>
-                <div className="points-row">
-                  <span>Time Bonus:</span>
-                  <span className="points-positive">+{timeBonus} pts</span>
-                </div>
-                {wrongToolPenalty > 0 && (
-                  <div className="points-row penalty">
-                    <span>Wrong Tools ({wrongChoiceCount}x):</span>
-                    <span className="points-negative">-{wrongToolPenalty} pts</span>
-                  </div>
-                )}
-                {hintPenalty > 0 && (
-                  <div className="points-row penalty">
-                    <span>Hints Used ({hintUsedCount}x):</span>
-                    <span className="points-negative">-{hintPenalty} pts</span>
-                  </div>
-                )}
-                <div className="points-total">
-                  <span>Total:</span>
-                  <span className="total-value">{totalPoints} pts</span>
+              </div>
+
+              <div className="stat-item stat-time">
+                <div className="stat-icon">🎯</div>
+                <div className="stat-content">
+                  <div className="stat-label">Total Score</div>
+                  <div className="stat-value">{totalPoints}</div>
                 </div>
               </div>
             </div>
 
-            <p className="time-display">Time: {formatTime(timer)}</p>
-            <div className="sparkles">✨ 💖 ✨</div>
-
-            <div className="success-buttons">
-              <button
-                className="menu-button"
-                onClick={() => navigate('/')}
-              >
-                🏠 Main Menu
-              </button>
-              <button
-                className="retry-button"
-                onClick={() => {
-                  // Reset all game state
-                  setStep(STEPS.BRUSH)
-                  setProgress(0)
-                  setDragging(false)
-                  setShowSuccess(false)
-                  setFinalComplete(false)
-                  setHearts([])
-                  setWaterDrops([])
-                  setFoamBubbles([])
-                  setPersistentFoam([])
-                  setGameStartTime(Date.now())
-                  setTimer(TIME_LIMIT)
-                  setTimeUp(false)
-                  setShampooApplied(false)
-                  setShampooBlob(null)
-                  setStepComplete(false)
-                  setWrongChoice(false)
-                  setShowHint(false)
-                  setWrongChoiceCount(0)
-                  setHintUsedCount(0)
-                }}
-              >
-                🔄 Play Again
-              </button>
+            <div className="congratulations-buttons">
+              <button className="continue-btn" onClick={() => navigate('/')}>Main Menu</button>
+              <button className="continue-btn" onClick={() => {
+                // Reset all game state
+                setStep(STEPS.BRUSH)
+                setProgress(0)
+                setDragging(false)
+                setShowSuccess(false)
+                setFinalComplete(false)
+                setHearts([])
+                setWaterDrops([])
+                setFoamBubbles([])
+                setPersistentFoam([])
+                setGameStartTime(Date.now())
+                setTimer(TIME_LIMIT)
+                setTimeUp(false)
+                setShampooApplied(false)
+                setShampooBlob(null)
+                setStepComplete(false)
+                setWrongChoice(false)
+                setShowHint(false)
+                setWrongChoiceCount(0)
+                setHintUsedCount(0)
+              }}>Try Again</button>
             </div>
           </div>
         </div>
