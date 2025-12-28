@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import './HandwashingGame.css'
 import videoSrc from '../assets/new-handwashing.mp4'
 import { markGameCompleted, GAME_IDS } from '../utils/gameCompletion'
+import { getTierLabel, getTierClass } from '../utils/scoreTier'
 
 const STEP_END_TIMES = [2.22, 7.09, 12.8, 14.9, 20.9, 26.4, 33.2]
 const STEP_TEXTS = [
@@ -224,6 +225,8 @@ const HandwashingGame = () => {
 
   const { stepPointsMax, totalPenalty, totalPoints } = calculatePoints()
   const stars = getStarRating(totalPoints)
+  const tierLabel = getTierLabel(totalPoints)
+  const tierClass = getTierClass(totalPoints)
 
   return (
     <div className="handwashing-game">
@@ -285,6 +288,7 @@ const HandwashingGame = () => {
                   <span key={star} className={`star ${star <= stars ? 'earned' : 'empty'}`}>⭐</span>
                 ))}
               </div>
+              <div className={`tier-badge ${tierClass}`}>Tier: {tierLabel}</div>
               <div className="points-breakdown">
                 <div className="points-row">
                   <span>Step Points:</span>

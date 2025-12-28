@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react'
 import './ToothbrushGame.css'
 import { markGameCompleted, GAME_IDS } from '../utils/gameCompletion'
+import { getTierLabel, getTierClass } from '../utils/scoreTier'
 
 import toothbrushNoPaste from '../assets/toothbrush-no-toothpaste.png'
 import toothbrushCursor from '../assets/toothbrush-toothpaste.png'
@@ -1934,6 +1935,12 @@ export default function ToothbrushGame() {
           finalPoints = Math.max(0, points - timePenalty)
         }
 
+        // Compute tier based on brushing performance percentage
+        const totalAttempts = totalGermsBrushed + totalGermsFailed
+        const percentScore = totalAttempts > 0 ? Math.round((totalGermsBrushed / totalAttempts) * 100) : 0
+        const tierLabel = getTierLabel(percentScore)
+        const tierClass = getTierClass(percentScore)
+
         return (
           <div className="intro-overlay">
             <div className="backdrop" />
@@ -1947,6 +1954,9 @@ export default function ToothbrushGame() {
                 <div className="final-score-label">Final Score</div>
                 <div className="final-score-value">{finalPoints}</div>
               </div>
+
+              {/* Tier Display */}
+              <div className={`tier-badge ${tierClass}`}>Tier: {tierLabel}</div>
 
               {/* Stats Display */}
               <div className="game-stats-container">

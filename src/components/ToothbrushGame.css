@@ -624,6 +624,33 @@
 	font-family: 'Arial Black', 'Arial Bold', sans-serif;
 }
 
+/* Tier badge */
+.tier-badge {
+	display: inline-block;
+	margin: 8px 0 10px;
+	padding: clamp(6px, 2vw, 8px) clamp(12px, 3vw, 14px);
+	border-radius: 999px;
+	font-weight: 800;
+	letter-spacing: 0.3px;
+	font-size: clamp(0.9rem, 3vw, 1rem);
+	border: clamp(2px, 0.5vw, 3px) solid transparent;
+}
+.tier-excellent {
+	color: #1e7d34;
+	background: #eaf9ef;
+	border-color: #27ae60;
+}
+.tier-good {
+	color: #8a6d00;
+	background: #fff7d6;
+	border-color: #f1c40f;
+}
+.tier-poor {
+	color: #8b1d1d;
+	background: #fde9ea;
+	border-color: #e74c3c;
+}
+
 /* Game Stats Display */
 .game-stats-container {
 	display: flex;
