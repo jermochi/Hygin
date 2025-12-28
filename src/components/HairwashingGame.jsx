@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import './HairwashingGame.css'
 import { markGameCompleted, GAME_IDS } from '../utils/gameCompletion'
 import { getTierLabel, getTierClass } from '../utils/scoreTier'
+import { updateScore } from '../utils/scoreManager'
 
 // Import layered hair assets (Body + Hair states)
 import bodyBase from '../assets/hairbrushing_game/hair/Body.png'
@@ -537,6 +538,16 @@ export default function HairwashingGame() {
       // Play good job sound
       const goodJobAudio = new Audio(goodJobSfx)
       goodJobAudio.play().catch(() => { })
+
+      // Calculate and save final score (game3 = Hair Washing)
+      const timeBonus = Math.floor(timer * 2)
+      const wrongToolPenalty = wrongChoiceCount * 10
+      const hintPenalty = hintUsedCount * 15
+      const finalScore = Math.max(0, 100 + timeBonus - wrongToolPenalty - hintPenalty)
+
+      updateScore(3, finalScore).catch(err => {
+        console.error('Failed to save score:', err)
+      })
     }
   }, [step])
 

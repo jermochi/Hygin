@@ -1,13 +1,27 @@
-import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom'
+import { BrowserRouter as Router, Routes, Route, useLocation, Navigate } from 'react-router-dom'
 import { useEffect, useRef, useContext } from 'react'
 import LandingPage from './components/LandingPage'
 import GamePage from './components/GamePage'
+import PlayerOnboarding from './components/PlayerOnboarding'
+import Leaderboard from './components/Leaderboard'
+import { hasActiveSession } from './utils/scoreManager'
 import './App.css'
 import './App.css'
 import bgMusic from './assets/sounds/bg-music.wav'
 import { useHoverSound } from './utils/useHoverSound'
 import { AudioSettingsProvider } from './context/AudioSettingsProvider'
 import { AudioSettingsContext } from './context/AudioSettingsContext'
+
+// Protected route wrapper - requires active session
+function ProtectedRoute({ children }) {
+  const hasSession = hasActiveSession()
+
+  if (!hasSession) {
+    return <Navigate to="/onboarding" replace />
+  }
+
+  return children
+}
 
 // Inner component that uses useLocation (must be inside Router)
 function AppInner() {
@@ -25,10 +39,43 @@ function AppInner() {
         </button>
       )}
       <Routes>
-        <Route path="/" element={<LandingPage />} />
-        <Route path="/handwashing" element={<GamePage gameType="Hand Washing" />} />
-        <Route path="/hairwashing" element={<GamePage gameType="Hair Washing" />} />
-        <Route path="/toothbrushing" element={<GamePage gameType="Tooth Brushing" />} />
+        {/* Public routes */}
+        <Route path="/onboarding" element={<PlayerOnboarding />} />
+        <Route path="/leaderboard" element={<Leaderboard />} />
+
+        {/* Protected routes - require active session */}
+        <Route
+          path="/"
+          element={
+            <ProtectedRoute>
+              <LandingPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/handwashing"
+          element={
+            <ProtectedRoute>
+              <GamePage gameType="Hand Washing" />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/hairwashing"
+          element={
+            <ProtectedRoute>
+              <GamePage gameType="Hair Washing" />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/toothbrushing"
+          element={
+            <ProtectedRoute>
+              <GamePage gameType="Tooth Brushing" />
+            </ProtectedRoute>
+          }
+        />
       </Routes>
     </div>
   );

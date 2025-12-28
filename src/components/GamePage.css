@@ -15,22 +15,33 @@
   z-index: 2;
 }
 
-.logo-link {
+.back-button {
   text-decoration: none;
   display: flex;
   align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  color: white;
+  font-weight: 600;
   transition: all 0.3s ease;
   touch-action: manipulation;
 }
 
-.logo-link:hover,
-.logo-link:active {
-  transform: scale(1.05);
+.back-button:hover,
+.back-button:active {
+  background: rgba(255, 255, 255, 0.3);
+  transform: translateX(-4px);
 }
 
-.logo-image {
-  height: clamp(50px, 12vw, 100px);
-  width: auto;
+.back-icon {
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
+.back-text {
+  font-size: 1rem;
 }
 
 .game-content {

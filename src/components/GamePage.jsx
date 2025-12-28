@@ -9,11 +9,12 @@ const GamePage = ({ gameType }) => {
   return (
     <div className="game-page">
       <header className="game-header">
-        <Link to="/" className="logo-link">
-          <img src={logo} alt="Hygin Logo" className="logo-image" />
+        <Link to="/" className="back-button">
+          <span className="back-icon">←</span>
+          <span className="back-text">Back to Menu</span>
         </Link>
       </header>
-      
+
       <main className="game-content">
         {gameType === "Hand Washing" && <HandwashingGame />}
         {gameType === "Tooth Brushing" && <ToothbrushGame />}

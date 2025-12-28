@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect, useCallback } from 'react'
 import './ToothbrushGame.css'
 import { markGameCompleted, GAME_IDS } from '../utils/gameCompletion'
 import { getTierLabel, getTierClass } from '../utils/scoreTier'
+import { updateScore } from '../utils/scoreManager'
 
 import toothbrushNoPaste from '../assets/toothbrush-no-toothpaste.png'
 import toothbrushCursor from '../assets/toothbrush-toothpaste.png'
@@ -54,7 +55,7 @@ const STEP5_BRISTLE_SIZE = { width: 0.28, height: 0.24 }
 const STAGE_DURATION_MS = 7000 // Duration of each stage in milliseconds (7 seconds)
 const FAILURE_WINDOW_MS = 3000 // Time to brush each germ
 const INITIAL_SPAWN_DELAY_MS = 1000
-const NEXT_SPAWN_DELAY_MS = 0 // Instant spawn after brushing
+const NEXT_SPAWN_DELAY_MS = 200 // 0.2 seconds delay after brushing
 const SUCCESS_CLEAR_DELAY_MS = 1200
 const FAILURE_CLEAR_DELAY_MS = 600
 const GERM_IMAGES = [germ1, germ2, germ3, germ4, germ5, germ6, germ7, germ8]
@@ -64,6 +65,7 @@ const GERM_STROKES_TO_REMOVE = 3
 const STEP1_GERM_STROKES = 3
 const STEP2_GERM_STROKES = 3
 const STEP2_MOVEMENT_THRESHOLD = 60
+const STEP3_GERM_STROKES = 2  // Easier: reduced from 3 to 2
 const STEP4_GERM_STROKES = 2
 const STEP5_GERM_STROKES = 3
 const VERTICAL_STROKE_THRESHOLD = 8
@@ -75,8 +77,8 @@ const STEP4_DOMINANCE_RATIO = 0.9
 const STEP45_BRUSH_WIDTH = 'clamp(80px, 8vw, 120px)'
 // Where the cursor should attach to the floating toothbrush (percentages of width/height)
 const BRUSH_HEAD_ANCHOR = { x: 0.85, y: 0.45 }
-// Germ display / hitbox size (1/3 of previous 260px width)
-const GERM_DISPLAY_SIZE = Math.round(260 / 3)
+// Germ display / hitbox size (increased for easier interaction)
+const GERM_DISPLAY_SIZE = Math.round(260 / 2.5)  // Increased from 260/3 to 260/2.5 for larger hitbox
 const STEP4_GERM_SIZE = Math.round(GERM_DISPLAY_SIZE * 0.6)
 const INSIDE_TOP_Y_RANGE = { min: 0.18, max: 0.36 }
 const INSIDE_BOTTOM_Y_RANGE = { min: 0.66, max: 0.88 }
@@ -620,8 +622,13 @@ export default function ToothbrushGame() {
       markGameCompleted(GAME_IDS.TOOTHBRUSHING)
       // Dispatch custom event to update medal display
       window.dispatchEvent(new Event('gameCompleted'))
+
+      // Save score to database (game2 = Tooth Brushing)
+      updateScore(2, points).catch(err => {
+        console.error('Failed to save score:', err)
+      })
     }
-  }, [finalComplete])
+  }, [finalComplete, points])
 
   // Toggle germ hitbox visualization with "H"
   useEffect(() => {
@@ -1287,7 +1294,9 @@ export default function ToothbrushGame() {
               ? STEP5_GERM_STROKES
               : stepRef.current === 4
                 ? STEP4_GERM_STROKES
-                : STEP1_GERM_STROKES
+                : stepRef.current === 3
+                  ? STEP3_GERM_STROKES
+                  : STEP1_GERM_STROKES
           const perStroke = 1 / strokesNeeded
           const nextOpacity = Math.max(0, (germ.opacity ?? 1) - perStroke)
 
@@ -1393,7 +1402,9 @@ export default function ToothbrushGame() {
       setBrushedThisWindow(true)
       brushedThisWindowRef.current = true
 
-      const perStroke = 1 / STEP2_GERM_STROKES
+      // Use STEP3_GERM_STROKES for step 3 (easier), STEP2_GERM_STROKES for step 2
+      const strokesNeeded = stepRef.current === 3 ? STEP3_GERM_STROKES : STEP2_GERM_STROKES
+      const perStroke = 1 / strokesNeeded
       const nextOpacity = Math.max(0, (germ.opacity ?? 1) - perStroke)
 
       if (nextOpacity <= 0) {
@@ -1458,11 +1469,11 @@ export default function ToothbrushGame() {
       pointerPosRef.current = { x: e.clientX, y: e.clientY }
       if (step === 0 && dragging) {
         handleStep0Move(e)
-      } else if ((step === 1 || step === 4 || step === 5) && brushing) {
+      } else if ((step === 1 || step === 3 || step === 4 || step === 5) && brushing) {
         setBrushPos({ x: e.clientX, y: e.clientY })
         const bristleCenter = getBristleCenter()
         handleVerticalStrokeMove(e, bristleCenter.x, bristleCenter.y)
-      } else if ((step === 2 || step === 3) && brushing) {
+      } else if (step === 2 && brushing) {
         setBrushPos({ x: e.clientX, y: e.clientY })
         const bristleCenter = getBristleCenter()
         handleStep2Move(e, bristleCenter.x, bristleCenter.y)
@@ -1474,9 +1485,9 @@ export default function ToothbrushGame() {
     const handleUp = () => {
       if (step === 0 && dragging) {
         handleStep0Up()
-      } else if ((step === 1 || step === 4 || step === 5) && brushing) {
+      } else if ((step === 1 || step === 3 || step === 4 || step === 5) && brushing) {
         handleVerticalUp()
-      } else if ((step === 2 || step === 3) && brushing) {
+      } else if (step === 2 && brushing) {
         handleStep2Up()
       } else if (step === 6 && waterDragging) {
         handleStep6Up()
@@ -1754,9 +1765,7 @@ export default function ToothbrushGame() {
       {showHitboxes && (
         <div className="debug-chip">Hitboxes ON — press H to hide</div>
       )}
-      <button className="skip-button" onClick={skipToNextStep}>
-        Skip
-      </button>
+
       <div className="step-instruction">
         <div className="step-title-row">
           <div className="step-title">Step {step}:</div>
@@ -1769,7 +1778,7 @@ export default function ToothbrushGame() {
               : step === 2
                 ? 'Brush the outer surface using circular motion'
                 : step === 3
-                  ? 'Brush the inside surfaces to make them sparkle'
+                  ? 'Brush the inside surfaces up and down until clean'
                   : step === 4
                     ? 'Brush the chewing surfaces up and down until clean'
                     : step === 5

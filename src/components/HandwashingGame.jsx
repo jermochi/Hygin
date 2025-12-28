@@ -3,6 +3,7 @@ import './HandwashingGame.css'
 import videoSrc from '../assets/new-handwashing.mp4'
 import { markGameCompleted, GAME_IDS } from '../utils/gameCompletion'
 import { getTierLabel, getTierClass } from '../utils/scoreTier'
+import { updateScore } from '../utils/scoreManager'
 
 const STEP_END_TIMES = [2.22, 7.09, 12.8, 14.9, 20.9, 26.4, 33.2]
 const STEP_TEXTS = [
@@ -207,8 +208,14 @@ const HandwashingGame = () => {
     if (gameComplete) {
       markGameCompleted(GAME_IDS.HANDWASHING)
       window.dispatchEvent(new Event('gameCompleted'))
+
+      // Save score to database (game1 = Hand Washing)
+      const finalScore = Math.max(0, Math.round(score))
+      updateScore(1, finalScore).catch(err => {
+        console.error('Failed to save score:', err)
+      })
     }
-  }, [gameComplete])
+  }, [gameComplete, score])
 
   const calculatePoints = () => {
     const stepPointsMax = PER_STEP_POINTS * steps.length
