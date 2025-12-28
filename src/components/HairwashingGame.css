@@ -843,9 +843,10 @@
 .hairwashing-game .points-section {
   margin: 1rem 0;
   padding: 1rem;
-  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  background: #ffffff; /* solid white for max contrast */
   border-radius: 15px;
   border: 2px solid #ABE7B2;
+  color: #2d3a40; /* strong readable text color */
 }
 .hairwashing-game .tier-badge {
   display: inline-block;
@@ -871,6 +872,7 @@
   color: #8b1d1d;
   background: #fde9ea;
   border-color: #e74c3c;
+}
 
 .hairwashing-game .star-rating {
   display: flex;
