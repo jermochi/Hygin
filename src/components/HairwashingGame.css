@@ -843,9 +843,35 @@
 .hairwashing-game .points-section {
   margin: 1rem 0;
   padding: 1rem;
-  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  background: #ffffff; /* solid white for max contrast */
   border-radius: 15px;
   border: 2px solid #ABE7B2;
+  color: #2d3a40; /* strong readable text color */
+}
+.hairwashing-game .tier-badge {
+  display: inline-block;
+  margin: 8px 0 10px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-weight: 800;
+  letter-spacing: 0.3px;
+  font-size: 0.95rem;
+  border: 2px solid transparent;
+}
+.hairwashing-game .tier-excellent {
+  color: #1e7d34;
+  background: #eaf9ef;
+  border-color: #27ae60;
+}
+.hairwashing-game .tier-good {
+  color: #8a6d00;
+  background: #fff7d6;
+  border-color: #f1c40f;
+}
+.hairwashing-game .tier-poor {
+  color: #8b1d1d;
+  background: #fde9ea;
+  border-color: #e74c3c;
 }
 
 .hairwashing-game .star-rating {

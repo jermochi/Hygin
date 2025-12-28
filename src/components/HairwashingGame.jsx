@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import './HairwashingGame.css'
 import { markGameCompleted, GAME_IDS } from '../utils/gameCompletion'
+import { getTierLabel, getTierClass } from '../utils/scoreTier'
 
 // Import layered hair assets (Body + Hair states)
 import bodyBase from '../assets/hairbrushing_game/hair/Body.png'
@@ -781,6 +782,9 @@ export default function HairwashingGame() {
   if (showSuccess) {
     const { basePoints, timeBonus, wrongToolPenalty, hintPenalty, totalPoints } = calculatePoints()
     const stars = getStarRating(totalPoints)
+    const percentScore = Math.max(0, Math.min(100, totalPoints))
+    const tierLabel = getTierLabel(percentScore)
+    const tierClass = getTierClass(percentScore)
 
     return (
       <div className="hairwashing-game">
@@ -799,6 +803,7 @@ export default function HairwashingGame() {
                   </span>
                 ))}
               </div>
+              <div className={`tier-badge ${tierClass}`}>Tier: {tierLabel}</div>
               <div className="points-breakdown">
                 <div className="points-row">
                   <span>Completion:</span>
