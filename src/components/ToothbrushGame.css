@@ -347,7 +347,6 @@
 	/* Keep a generous minimum height for step 3 so the play card isn't squashed */
 	min-height: clamp(48vh, 60vh, 76vh);
 	height: auto;
-	touch-action: auto;
 }
 
 .play-container.step-1.step-3 .head-container {
