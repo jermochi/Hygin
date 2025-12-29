@@ -45,6 +45,10 @@ const BRISTLES_TOP_OFFSET_PORTION = -0.30
 const BRISTLES_WIDTH_PORTION_STEP1 = BRISTLES_WIDTH_PORTION
 const BRISTLES_HEIGHT_PORTION_STEP1 = BRISTLES_HEIGHT_PORTION
 const BRISTLES_TOP_OFFSET_PORTION_STEP1 = 0.25
+// Step 3-specific bristles placement (larger hitbox for easier mobile interaction)
+const BRISTLES_WIDTH_PORTION_STEP3 = 0.60  // Wider than step 1 (0.40)
+const BRISTLES_HEIGHT_PORTION_STEP3 = 0.75  // Taller than step 1 (0.55)
+const BRISTLES_TOP_OFFSET_PORTION_STEP3 = 0.25  // Same offset as step 1
 // Step 4-5 angled placement (use upper portion of brush)
 const STEP4_POINTER_ANCHOR = { x: 0.16, y: 0.12 }
 const STEP4_DETECTION_CENTER = { x: 0.30, y: 0.32 }
@@ -658,11 +662,17 @@ export default function ToothbrushGame() {
     let centerY = BRISTLES_TOP_OFFSET_PORTION + heightPortion / 2
     let pointerAnchor = null
 
-    if (step === 1 || step === 2 || step === 3) {
+    if (step === 1 || step === 2) {
       widthPortion = BRISTLES_WIDTH_PORTION_STEP1
       heightPortion = BRISTLES_HEIGHT_PORTION_STEP1
       centerX = 1 - widthPortion / 2
       centerY = BRISTLES_TOP_OFFSET_PORTION_STEP1 + heightPortion / 2
+    } else if (step === 3) {
+      // Larger hitbox for step 3 to make it easier on mobile
+      widthPortion = BRISTLES_WIDTH_PORTION_STEP3
+      heightPortion = BRISTLES_HEIGHT_PORTION_STEP3
+      centerX = 1 - widthPortion / 2
+      centerY = BRISTLES_TOP_OFFSET_PORTION_STEP3 + heightPortion / 2
     } else if (step === 4) {
       widthPortion = STEP4_BRISTLE_SIZE.width
       heightPortion = STEP4_BRISTLE_SIZE.height
