@@ -45,10 +45,7 @@ const BRISTLES_TOP_OFFSET_PORTION = -0.30
 const BRISTLES_WIDTH_PORTION_STEP1 = BRISTLES_WIDTH_PORTION
 const BRISTLES_HEIGHT_PORTION_STEP1 = BRISTLES_HEIGHT_PORTION
 const BRISTLES_TOP_OFFSET_PORTION_STEP1 = 0.25
-// Step 3-specific bristles placement (larger hitbox for easier mobile interaction)
-const BRISTLES_WIDTH_PORTION_STEP3 = 0.60  // Wider than step 1 (0.40)
-const BRISTLES_HEIGHT_PORTION_STEP3 = 0.75  // Taller than step 1 (0.55)
-const BRISTLES_TOP_OFFSET_PORTION_STEP3 = 0.25  // Same offset as step 1
+// Step 3 uses the same bristle config as step 1 for consistent behavior
 // Step 4-5 angled placement (use upper portion of brush)
 const STEP4_POINTER_ANCHOR = { x: 0.16, y: 0.12 }
 const STEP4_DETECTION_CENTER = { x: 0.30, y: 0.32 }
@@ -71,7 +68,7 @@ const GERM_STROKES_TO_REMOVE = 3
 const STEP1_GERM_STROKES = 3
 const STEP2_GERM_STROKES = 3
 const STEP2_MOVEMENT_THRESHOLD = 60
-const STEP3_GERM_STROKES = 2  // Easier: reduced from 3 to 2
+const STEP3_GERM_STROKES = 2  // Very easy: just 1 stroke needed
 const STEP4_GERM_STROKES = 2
 const STEP5_GERM_STROKES = 3
 const VERTICAL_STROKE_THRESHOLD = 8
@@ -668,11 +665,11 @@ export default function ToothbrushGame() {
       centerX = 1 - widthPortion / 2
       centerY = BRISTLES_TOP_OFFSET_PORTION_STEP1 + heightPortion / 2
     } else if (step === 3) {
-      // Larger hitbox for step 3 to make it easier on mobile
-      widthPortion = BRISTLES_WIDTH_PORTION_STEP3
-      heightPortion = BRISTLES_HEIGHT_PORTION_STEP3
+      // Step 3 uses same bristle config as step 1 for consistency
+      widthPortion = BRISTLES_WIDTH_PORTION_STEP1
+      heightPortion = BRISTLES_HEIGHT_PORTION_STEP1
       centerX = 1 - widthPortion / 2
-      centerY = BRISTLES_TOP_OFFSET_PORTION_STEP3 + heightPortion / 2
+      centerY = BRISTLES_TOP_OFFSET_PORTION_STEP1 + heightPortion / 2
     } else if (step === 4) {
       widthPortion = STEP4_BRISTLE_SIZE.width
       heightPortion = STEP4_BRISTLE_SIZE.height
@@ -751,70 +748,45 @@ export default function ToothbrushGame() {
       const currentStep = stepRef.current
 
       if (
-        currentStep === 3 &&
-        insideTeethDataRef.current &&
-        Array.isArray(insideTeethDataRef.current.points) &&
-        insideTeethDataRef.current.points.length
+        currentStep === 3
       ) {
-        const { points, width, height, mask, topSpawnPoints, bottomSpawnPoints } = insideTeethDataRef.current
-        const marginXNorm = r.width > 0 ? (GERM_DISPLAY_SIZE / 2) / r.width : 0
-        const marginYNorm = r.height > 0 ? (GERM_DISPLAY_SIZE / 2) / r.height : 0
-        const offsets = [
-          { dx: 0, dy: 0 },
-          { dx: marginXNorm, dy: 0 },
-          { dx: -marginXNorm, dy: 0 },
-          { dx: 0, dy: marginYNorm },
-          { dx: 0, dy: -marginYNorm }
-        ]
+        // Step 3: Spawn only on teeth (two separate bands: upper and lower)
+        // Upper teeth band: 25%-75% width, 22%-36% height
+        // Lower teeth band: 25%-75% width, 72%-86% height
+        const useUpperTeeth = Math.random() < 0.5
 
-        const pools = []
-        if (topSpawnPoints?.length) pools.push(topSpawnPoints)
-        if (bottomSpawnPoints?.length) pools.push(bottomSpawnPoints)
+        const teethLeft = r.left + r.width * 0.25
+        const teethRight = r.right - r.width * 0.25
 
-        const pickPool = () => {
-          if (!pools.length) return points
-          return pools[Math.floor(Math.random() * pools.length)]
+        let teethTop, teethBottom
+        if (useUpperTeeth) {
+          // Upper teeth band
+          teethTop = r.top + r.height * 0.22
+          teethBottom = r.top + r.height * 0.36
+        } else {
+          // Lower teeth band
+          teethTop = r.top + r.height * 0.72
+          teethBottom = r.top + r.height * 0.86
         }
 
-        const selectCandidate = () => {
-          const activePool = pickPool()
-          for (let attempt = 0; attempt < 20; attempt++) {
-            const candidate = activePool[Math.floor(Math.random() * activePool.length)]
-            if (!candidate) continue
-            const valid = offsets.every(({ dx, dy }) => {
-              const nx = candidate.x + dx
-              const ny = candidate.y + dy
-              if (nx < 0 || nx > 1 || ny < 0 || ny > 1) return false
-              if (!mask || !width || !height) return true
-              const px = Math.min(width - 1, Math.max(0, Math.round(nx * (width - 1))))
-              const py = Math.min(height - 1, Math.max(0, Math.round(ny * (height - 1))))
-              return mask[py * width + px] === 1
-            })
-            if (valid) {
-              return candidate
-            }
-          }
-          const fallbackPool = points
-          return fallbackPool[Math.floor(Math.random() * fallbackPool.length)] ?? null
-        }
+        const teethWidth = Math.max(teethRight - teethLeft, 1)
+        const teethHeight = Math.max(teethBottom - teethTop, 1)
 
-        const point = selectCandidate()
-        if (point) {
-          xPct = (point.x ?? 0.5) * 100
-          let clampedY = point.y ?? 0.5
-          if (point.y <= INSIDE_TOP_Y_RANGE.max) {
-            clampedY = Math.min(
-              Math.max(point.y, INSIDE_TOP_SPAWN_RANGE.min),
-              INSIDE_TOP_SPAWN_RANGE.max
-            )
-          } else {
-            clampedY = Math.min(
-              Math.max(point.y, INSIDE_BOTTOM_SPAWN_RANGE.min),
-              INSIDE_BOTTOM_SPAWN_RANGE.max
-            )
-          }
-          yPct = clampedY * 100
-        }
+        const padX = teethWidth * 0.08
+        const padY = teethHeight * 0.1
+        const spawnWidth = Math.max(teethWidth - 2 * padX, 0)
+        const spawnHeight = Math.max(teethHeight - 2 * padY, 0)
+
+        const xAbs = spawnWidth > 0
+          ? teethLeft + padX + Math.random() * spawnWidth
+          : teethLeft + teethWidth / 2
+        const yAbs = spawnHeight > 0
+          ? teethTop + padY + Math.random() * spawnHeight
+          : teethTop + teethHeight / 2
+
+        xPct = ((xAbs - r.left) / r.width) * 100
+        yPct = ((yAbs - r.top) / r.height) * 100
+        placementHandled = true
       } else if (currentStep === 4) {
         // Prefer spawning directly on detected teeth pixels within occlusal bands.
         const mouthData = openMouthDataRef.current
@@ -1131,14 +1103,13 @@ export default function ToothbrushGame() {
     }
 
     if (stepRef.current === 3) {
-      // Use the easier/wider hit area for Step 3 (same as Step 1)
-      // We ignore the strict insideTeethDataRef bounds for brushing mechanics
-      // to make it easier on mobile.
+      // Expanded area to cover both upper teeth (22%-36%) and lower teeth (72%-86%)
+      // Full vertical range: 22%-86% to ensure all spawned germs are brushable
       return {
         left: headRect.left + headRect.width * 0.25,
         right: headRect.right - headRect.width * 0.25,
-        top: headRect.top + headRect.height * 0.38,
-        bottom: headRect.top + headRect.height * 0.68
+        top: headRect.top + headRect.height * 0.22,    // Start at upper teeth
+        bottom: headRect.top + headRect.height * 0.86  // End at lower teeth
       }
     }
     if (stepRef.current === 5 && tongueDataRef.current && tongueDataRef.current.bounds) {
