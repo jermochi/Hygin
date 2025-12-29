@@ -328,7 +328,6 @@ const HandwashingGame = () => {
 
             <div className="congratulations-buttons">
               <button className="continue-btn" onClick={() => window.location.href = '/'}>Main Menu</button>
-              <button className="continue-btn" onClick={resetGame}>Try Again</button>
             </div>
           </div>
         </div>

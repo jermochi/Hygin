@@ -209,9 +209,6 @@ const LandingPage = () => {
                 <button className="celebration-btn primary" onClick={handleViewLeaderboard}>
                   View Leaderboard 🏆
                 </button>
-                <button className="celebration-btn secondary" onClick={() => setShowCelebration(false)}>
-                  Continue Playing
-                </button>
               </div>
             </div>
           </div>

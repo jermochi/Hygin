@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react'
+import { useNavigate } from 'react-router-dom'
 import './ToothbrushGame.css'
 import { markGameCompleted, GAME_IDS } from '../utils/gameCompletion'
 import { getTierLabel, getTierClass } from '../utils/scoreTier'
@@ -106,6 +107,7 @@ const clamp01 = (value) => Math.min(1, Math.max(0, value))
 
 
 export default function ToothbrushGame() {
+  const navigate = useNavigate()
   const { completeCurrentGame } = useGameFlow()
   const [step, setStep] = useState(0) // 0: apply paste, 1: brush teeth
   const [hasPaste, setHasPaste] = useState(false)
@@ -1118,17 +1120,15 @@ export default function ToothbrushGame() {
       }
     }
 
-    if (stepRef.current === 3 && insideTeethDataRef.current.bounds) {
-      const { bounds, topRange, bottomRange } = insideTeethDataRef.current
-      const minX = bounds?.minX ?? 0.1
-      const maxX = bounds?.maxX ?? 0.9
-      const topBand = topRange ?? INSIDE_TOP_Y_RANGE
-      const bottomBand = bottomRange ?? INSIDE_BOTTOM_Y_RANGE
+    if (stepRef.current === 3) {
+      // Use the easier/wider hit area for Step 3 (same as Step 1)
+      // We ignore the strict insideTeethDataRef bounds for brushing mechanics
+      // to make it easier on mobile.
       return {
-        left: headRect.left + headRect.width * minX,
-        right: headRect.left + headRect.width * maxX,
-        top: headRect.top + headRect.height * (topBand?.min ?? INSIDE_TOP_Y_RANGE.min),
-        bottom: headRect.top + headRect.height * (bottomBand?.max ?? INSIDE_BOTTOM_Y_RANGE.max)
+        left: headRect.left + headRect.width * 0.25,
+        right: headRect.right - headRect.width * 0.25,
+        top: headRect.top + headRect.height * 0.38,
+        bottom: headRect.top + headRect.height * 0.68
       }
     }
     if (stepRef.current === 5 && tongueDataRef.current && tongueDataRef.current.bounds) {
@@ -1159,13 +1159,11 @@ export default function ToothbrushGame() {
     if (normX < 0 || normX > 1 || normY < 0 || normY > 1) return false
 
     if (
-      stepRef.current === 3 &&
-      !(
-        (normY >= INSIDE_TOP_Y_RANGE.min && normY <= INSIDE_TOP_Y_RANGE.max) ||
-        (normY >= INSIDE_BOTTOM_Y_RANGE.min && normY <= INSIDE_BOTTOM_Y_RANGE.max)
-      )
+      stepRef.current === 3
     ) {
-      return false
+      // For Step 3, bypass strict mask/band checks to allow easier brushing
+      // We rely solely on getTeethArea bounds for hit detection
+      return true
     }
 
     const x = Math.min(data.width - 1, Math.max(0, Math.round(normX * (data.width - 1))))
@@ -1349,17 +1347,6 @@ export default function ToothbrushGame() {
       circleProgressRef.current = 0
       step2LastPointerRef.current = null
       return
-    }
-
-    if (stepRef.current === 3 && headRef.current) {
-      const headRect = headRef.current.getBoundingClientRect()
-      const relX = (pointerX - headRect.left) / headRect.width
-      const relY = (pointerY - headRect.top) / headRect.height
-      if (!isInsideTeethPixel(relX, relY)) {
-        circleProgressRef.current = 0
-        step2LastPointerRef.current = null
-        return
-      }
     }
 
     const germ = currentGermRef.current
@@ -1581,14 +1568,16 @@ export default function ToothbrushGame() {
   }, [step, startBrushingPhase])
 
   useEffect(() => {
-    if (step === 3 && insideTeethReady) {
+    if (step === 3) {
+      // Start brushing phase immediately for Step 3 (like Step 5)
+      // Don't wait for insideTeethReady since we're using wide hit area (like Step 1)
       startBrushingPhase(3)
     }
     if (step === 5) {
       // tongue image doesn't require extra readiness; start phase immediately
       startBrushingPhase(5)
     }
-  }, [step, insideTeethReady, startBrushingPhase])
+  }, [step, startBrushingPhase])
 
   useEffect(() => {
     if ((step === 1 || step === 2 || step === 3 || step === 4 || step === 5) && brushingActive && !brushing) {
@@ -1596,10 +1585,12 @@ export default function ToothbrushGame() {
       setBrushDirection(null)
       const pos = pointerPosRef.current
       setBrushPos({ x: pos.x, y: pos.y })
-      if (step === 1) {
+      if (step === 1 || step === 3) {
+        // Step 1 and Step 3 both use vertical strokes
         setLastBrushY(null)
         verticalLastBrushXRef.current = null
-      } else if (step === 2 || step === 3) {
+      } else if (step === 2) {
+        // Step 2 uses circular motion
         setLastBrushY(null)
         step2LastPointerRef.current = null
         circleProgressRef.current = 0
@@ -1750,14 +1741,11 @@ export default function ToothbrushGame() {
   }
 
   const goHome = () => {
-    completeCurrentGame()
-    try {
-      // Navigate to next game in sequence (Handwashing)
-      window.location.assign('/handwashing')
-    } catch {
-      // Fallback: update location directly
-      window.location.href = '/handwashing'
-    }
+    // Navigate first, then mark as complete
+    // This prevents ProtectedGameRoute from interfering
+    navigate('/handwashing')
+    // Mark completion after navigation
+    setTimeout(() => completeCurrentGame(), 100)
   }
 
   return (
@@ -1999,7 +1987,10 @@ export default function ToothbrushGame() {
 
               <div className="congratulations-buttons">
                 <button className="continue-btn secondary-btn" onClick={() => window.location.assign('/')}>Main Menu</button>
-                <button className="continue-btn primary-btn" onClick={goHome}>Next Game →</button>
+                <button className="continue-btn primary-btn" onClick={() => {
+                  completeCurrentGame()
+                  navigate('/handwashing')
+                }}>Next Game →</button>
               </div>
             </div>
           </div>
