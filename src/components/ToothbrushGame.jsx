@@ -1606,7 +1606,7 @@ export default function ToothbrushGame() {
   }, [step, brushingActive, brushing])
 
   useEffect(() => {
-    if (brushing && (step === 1 || step === 4 || step === 5) && lastBrushY === null) {
+    if (brushing && (step === 1 || step === 3 || step === 4 || step === 5) && lastBrushY === null) {
       const raf = requestAnimationFrame(() => {
         const center = getBristleCenter()
         if (center?.y !== undefined) {
