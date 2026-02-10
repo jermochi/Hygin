@@ -199,6 +199,16 @@
   color: #2d3a40;
 }
 
+.status-banner.timer-banner {
+  background: #2d3a40;
+  color: #fff;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: clamp(0.9rem, 2.5vw, 1.1rem);
+  letter-spacing: 1px;
+  min-width: 70px;
+  text-align: center;
+}
+
 .current-step {
   margin-bottom: clamp(0.5rem, 2vw, 0.75rem);
   color: #2d3a40;

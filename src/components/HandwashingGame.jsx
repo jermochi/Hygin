@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
+
 import './HandwashingGame.css'
 import videoSrc from '../assets/new-handwashing.mp4'
 import { markGameCompleted, GAME_IDS } from '../utils/gameCompletion'
@@ -47,8 +48,10 @@ const HandwashingGame = () => {
   const [stepWrongCount, setStepWrongCount] = useState(0)
   const [score, setScore] = useState(0)
   const [penaltyPoints, setPenaltyPoints] = useState(0)
+  const [elapsedTime, setElapsedTime] = useState(0)
 
   const videoRef = useRef(null)
+  const timerIntervalRef = useRef(null)
   const segmentCompleteCallbackRef = useRef(null)
   const flashTimeoutRef = useRef(null)
 
@@ -72,6 +75,24 @@ const HandwashingGame = () => {
     setChoiceFlash(['idle', 'idle', 'idle', 'idle'])
     setStepResolved(false)
   }, [currentStep, generateChoices])
+
+  // Elapsed timer - counts up from 0:00
+  useEffect(() => {
+    timerIntervalRef.current = setInterval(() => {
+      if (!gameComplete) {
+        setElapsedTime(prev => prev + 1)
+      }
+    }, 1000)
+    return () => {
+      if (timerIntervalRef.current) clearInterval(timerIntervalRef.current)
+    }
+  }, [gameComplete])
+
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60)
+    const secs = seconds % 60
+    return `${mins}:${secs.toString().padStart(2, '0')}`
+  }
 
   useEffect(() => {
     const video = videoRef.current
@@ -196,6 +217,7 @@ const HandwashingGame = () => {
     setStepWrongCount(0)
     setScore(0)
     setPenaltyPoints(0)
+    setElapsedTime(0)
     setSegmentEnd(null)
     segmentCompleteCallbackRef.current = null
     const video = videoRef.current
@@ -241,6 +263,7 @@ const HandwashingGame = () => {
       <div className="status-row">
         <div className="status-banner">Step {currentStep + 1} of {steps.length}</div>
         <div className="status-banner neutral">Mistakes: {wrongChoiceCount}</div>
+        <div className="status-banner timer-banner">{formatTime(elapsedTime)}</div>
       </div>
       <div className={`stage-row ${gameComplete ? 'blurred' : ''}`}>
         <div className="game-header">
@@ -302,7 +325,6 @@ const HandwashingGame = () => {
             {/* Stats Display */}
             <div className="game-stats-container">
               <div className="stat-item stat-success">
-                <div className="stat-icon">✅</div>
                 <div className="stat-content">
                   <div className="stat-label">Steps Completed</div>
                   <div className="stat-value">{steps.length}</div>
@@ -310,7 +332,6 @@ const HandwashingGame = () => {
               </div>
 
               <div className="stat-item stat-failed">
-                <div className="stat-icon">❌</div>
                 <div className="stat-content">
                   <div className="stat-label">Mistakes</div>
                   <div className="stat-value">{wrongChoiceCount}</div>
@@ -318,10 +339,9 @@ const HandwashingGame = () => {
               </div>
 
               <div className="stat-item stat-time">
-                <div className="stat-icon">🎯</div>
                 <div className="stat-content">
-                  <div className="stat-label">Total Score</div>
-                  <div className="stat-value">{totalPoints}</div>
+                  <div className="stat-label">Time</div>
+                  <div className="stat-value">{formatTime(elapsedTime)}</div>
                 </div>
               </div>
             </div>

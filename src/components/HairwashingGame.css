@@ -226,39 +226,15 @@
   display: flex;
   align-items: center;
   padding: 8px 14px;
-  background: rgba(0, 0, 0, 0.25);
+  background: rgba(45, 58, 64, 0.85);
   border: 2px solid rgba(255, 255, 255, 0.4);
   border-radius: 20px;
   color: #fff;
   font-size: 1rem;
   font-weight: 700;
+  font-family: 'Courier New', Courier, monospace;
+  letter-spacing: 1px;
   text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.4);
-  transition: all 0.3s ease;
-}
-
-.hairwashing-game .timer-display.warning {
-  background: rgba(255, 165, 0, 0.4);
-  border-color: rgba(255, 165, 0, 0.7);
-  color: #fff;
-}
-
-.hairwashing-game .timer-display.critical {
-  background: rgba(255, 50, 50, 0.5);
-  border-color: rgba(255, 50, 50, 0.8);
-  color: #fff;
-  animation: timer-pulse 0.5s ease-in-out infinite;
-}
-
-@keyframes timer-pulse {
-
-  0%,
-  100% {
-    transform: scale(1);
-  }
-
-  50% {
-    transform: scale(1.05);
-  }
 }
 
 /* ========== Step Indicators / Bottom Toolbar ========== */
@@ -843,11 +819,14 @@
 .hairwashing-game .points-section {
   margin: 1rem 0;
   padding: 1rem;
-  background: #ffffff; /* solid white for max contrast */
+  background: #ffffff;
+  /* solid white for max contrast */
   border-radius: 15px;
   border: 2px solid #ABE7B2;
-  color: #2d3a40; /* strong readable text color */
+  color: #2d3a40;
+  /* strong readable text color */
 }
+
 .hairwashing-game .tier-badge {
   display: inline-block;
   margin: 8px 0 10px;
@@ -858,16 +837,19 @@
   font-size: 0.95rem;
   border: 2px solid transparent;
 }
+
 .hairwashing-game .tier-excellent {
   color: #1e7d34;
   background: #eaf9ef;
   border-color: #27ae60;
 }
+
 .hairwashing-game .tier-good {
   color: #8a6d00;
   background: #fff7d6;
   border-color: #f1c40f;
 }
+
 .hairwashing-game .tier-poor {
   color: #8b1d1d;
   background: #fde9ea;

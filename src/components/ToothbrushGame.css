@@ -478,7 +478,22 @@
 .step-title-row {
 	display: flex;
 	align-items: center;
+	justify-content: space-between;
 	gap: 12px;
+}
+
+.step-timer {
+	background: #2d3a40;
+	color: #fff;
+	font-family: 'Courier New', Courier, monospace;
+	font-size: clamp(0.9rem, 2.5vw, 1.1rem);
+	font-weight: 700;
+	padding: 6px 14px;
+	border-radius: 10px;
+	letter-spacing: 1px;
+	min-width: 60px;
+	text-align: center;
+	flex-shrink: 0;
 }
 
 /* Intro overlay */

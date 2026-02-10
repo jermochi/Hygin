@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="180" viewBox="0 0 320 180">
+  <rect fill="#ff3d30" x="0" y="0" width="320" height="180" rx="40"/>
+  <g transform="translate(12 36)">
+    <!-- Gum background -->
+    <rect x="0" y="0" width="296" height="108" rx="52" fill="#e84339"/>
+    <!-- Teeth (simple stylized) -->
+    <g fill="#fff" stroke="#e0e0e0" stroke-width="3">
+      <path d="M8 12 h36 a22 22 0 0 1 22 22 v28 a22 22 0 0 1 -22 22 h-36 z"/>
+      <path d="M52 12 h40 a22 22 0 0 1 22 22 v28 a22 22 0 0 1 -22 22 h-40 z"/>
+      <path d="M100 12 h40 a22 22 0 0 1 22 22 v28 a22 22 0 0 1 -22 22 h-40 z"/>
+      <path d="M148 12 h40 a22 22 0 0 1 22 22 v28 a22 22 0 0 1 -22 22 h-40 z"/>
+      <path d="M196 12 h40 a22 22 0 0 1 22 22 v28 a22 22 0 0 1 -22 22 h-40 z"/>
+      <path d="M244 12 h36 a22 22 0 0 1 22 22 v28 a22 22 0 0 1 -22 22 h-36 z"/>
+    </g>
+    <!-- Shine accents -->
+    <g fill="#f5fafe">
+      <circle cx="36" cy="42" r="10"/>
+      <circle cx="84" cy="38" r="8"/>
+      <circle cx="132" cy="46" r="7"/>
+      <circle cx="180" cy="40" r="9"/>
+      <circle cx="228" cy="44" r="8"/>
+    </g>
+  </g>
+</svg>

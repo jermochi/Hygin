@@ -123,7 +123,6 @@ const TOOL_SIZES = {
 
 // Brush radius for erasing
 const BRUSH_RADIUS = 35
-const TIME_LIMIT = 120 // 2 minutes in seconds
 
 export default function HairwashingGame() {
   const navigate = useNavigate()
@@ -144,8 +143,7 @@ export default function HairwashingGame() {
   const [foamBubbles, setFoamBubbles] = useState([])
   const [persistentFoam, setPersistentFoam] = useState([]) // Foam that stays until rinsed
   const [gameStartTime, setGameStartTime] = useState(null)
-  const [timer, setTimer] = useState(TIME_LIMIT) // Countdown from 2 minutes
-  const [timeUp, setTimeUp] = useState(false)
+  const [elapsedTime, setElapsedTime] = useState(0)
   const [shampooApplied, setShampooApplied] = useState(false)
   const [shampooBlob, setShampooBlob] = useState(null) // Position of shampoo blob
   const [topImageLoaded, setTopImageLoaded] = useState(false)
@@ -237,23 +235,16 @@ export default function HairwashingGame() {
     }
   }
 
-  // Initialize timer
+  // Initialize timer - counts UP from 0:00
   useEffect(() => {
     if (!gameStartTime) {
       setGameStartTime(Date.now())
     }
 
     timerIntervalRef.current = setInterval(() => {
-      // Stop timer if game is complete, time is up, or player finished
-      if (gameStartTime && step !== STEPS.COMPLETE && !timeUp && !finalComplete) {
+      if (gameStartTime && step !== STEPS.COMPLETE && !finalComplete) {
         const elapsed = Math.floor((Date.now() - gameStartTime) / 1000)
-        const remaining = Math.max(0, TIME_LIMIT - elapsed)
-        setTimer(remaining)
-
-        // Check if time is up
-        if (remaining <= 0) {
-          setTimeUp(true)
-        }
+        setElapsedTime(elapsed)
       }
     }, 1000)
 
@@ -547,10 +538,10 @@ export default function HairwashingGame() {
       goodJobAudio.play().catch(() => { })
 
       // Calculate and save final score (game3 = Hair Washing)
-      const timeBonus = Math.floor(timer * 2)
+      const timePenalty = Math.floor(elapsedTime / 10) * 5
       const wrongToolPenalty = wrongChoiceCount * 10
       const hintPenalty = hintUsedCount * 15
-      const finalScore = Math.max(0, 100 + timeBonus - wrongToolPenalty - hintPenalty)
+      const finalScore = Math.max(0, 100 - timePenalty - wrongToolPenalty - hintPenalty)
 
       updateScore(3, finalScore).catch(err => {
         console.error('Failed to save score:', err)
@@ -781,12 +772,12 @@ export default function HairwashingGame() {
 
   // Calculate points based on performance
   const calculatePoints = () => {
-    const basePoints = 100 // Base points for completing the game
-    const timeBonus = Math.floor(timer * 2) // 2 points per second remaining
-    const wrongToolPenalty = wrongChoiceCount * 10 // -10 points per wrong tool
-    const hintPenalty = hintUsedCount * 15 // -15 points per hint used
-    const totalPoints = Math.max(0, basePoints + timeBonus - wrongToolPenalty - hintPenalty)
-    return { basePoints, timeBonus, wrongToolPenalty, hintPenalty, totalPoints }
+    const basePoints = 100
+    const timePenalty = Math.floor(elapsedTime / 10) * 5
+    const wrongToolPenalty = wrongChoiceCount * 10
+    const hintPenalty = hintUsedCount * 15
+    const totalPoints = Math.max(0, basePoints - timePenalty - wrongToolPenalty - hintPenalty)
+    return { basePoints, timePenalty, wrongToolPenalty, hintPenalty, totalPoints }
   }
 
   // Get star rating based on points
@@ -798,7 +789,7 @@ export default function HairwashingGame() {
 
   // Render success overlay
   if (showSuccess) {
-    const { basePoints, timeBonus, wrongToolPenalty, hintPenalty, totalPoints } = calculatePoints()
+    const { basePoints, timePenalty, wrongToolPenalty, hintPenalty, totalPoints } = calculatePoints()
     const stars = getStarRating(totalPoints)
     const percentScore = Math.max(0, Math.min(100, totalPoints))
     const tierLabel = getTierLabel(percentScore)
@@ -824,15 +815,13 @@ export default function HairwashingGame() {
             {/* Stats Display */}
             <div className="game-stats-container">
               <div className="stat-item stat-success">
-                <div className="stat-icon">⏱️</div>
                 <div className="stat-content">
-                  <div className="stat-label">Time Remaining</div>
-                  <div className="stat-value">{formatTime(timer)}</div>
+                  <div className="stat-label">Time</div>
+                  <div className="stat-value">{formatTime(elapsedTime)}</div>
                 </div>
               </div>
 
               <div className="stat-item stat-failed">
-                <div className="stat-icon">⚠️</div>
                 <div className="stat-content">
                   <div className="stat-label">Wrong Choices</div>
                   <div className="stat-value">{wrongChoiceCount}</div>
@@ -840,7 +829,6 @@ export default function HairwashingGame() {
               </div>
 
               <div className="stat-item stat-time">
-                <div className="stat-icon">🎯</div>
                 <div className="stat-content">
                   <div className="stat-label">Total Score</div>
                   <div className="stat-value">{totalPoints}</div>
@@ -858,48 +846,7 @@ export default function HairwashingGame() {
     )
   }
 
-  // Render game over overlay when time is up
-  if (timeUp) {
-    const handleRetry = () => {
-      // Reset all game state
-      setStep(STEPS.BRUSH)
-      setProgress(0)
-      setDragging(false)
-      setShowSuccess(false)
-      setFinalComplete(false)
-      setHearts([])
-      setWaterDrops([])
-      setFoamBubbles([])
-      setPersistentFoam([])
-      setGameStartTime(Date.now())
-      setTimer(TIME_LIMIT)
-      setTimeUp(false)
-      setShampooApplied(false)
-      setShampooBlob(null)
-      setStepComplete(false)
-      setWrongChoice(false)
-      setShowHint(false)
-      setWrongChoiceCount(0)
-      setHintUsedCount(0)
-    }
 
-    return (
-      <div className="hairwashing-game">
-        <div className="success-overlay game-over">
-          <div className="backdrop" />
-          <div className="success-content">
-            <div className="success-icon">⏰</div>
-            <h1>Time's Up!</h1>
-            <p>You ran out of time!</p>
-            <p className="step-reached">You reached: {currentConfig.title || 'Step 1'}</p>
-            <button className="retry-button" onClick={handleRetry}>
-              🔄 Try Again
-            </button>
-          </div>
-        </div>
-      </div>
-    )
-  }
 
   return (
     <div
@@ -914,13 +861,13 @@ export default function HairwashingGame() {
           <h2 className="step-title">{currentConfig.title}</h2>
           <p className="step-subtitle">
             {stepComplete && !finalComplete
-              ? '✅ Done! Now choose the next tool!'
+              ? 'Done! Now choose the next tool!'
               : currentConfig.subtitle}
           </p>
         </div>
         <div className="progress-section">
           {wrongChoice && (
-            <div className="wrong-feedback">❌ Wrong tool!</div>
+            <div className="wrong-feedback">Wrong tool!</div>
           )}
           <div className="progress-bar-container">
             <div className="progress-bar-track">
@@ -1077,8 +1024,8 @@ export default function HairwashingGame() {
         >
           💡 {showHint && <span className="hint-text">Use: {getNextToolName()}</span>}
         </button>
-        <div className={`timer-display ${timer <= 30 ? 'warning' : ''} ${timer <= 10 || timeUp ? 'critical' : ''}`}>
-          <span>⏱️ {formatTime(timer)}</span>
+        <div className={`timer-display`}>
+          <span>{formatTime(elapsedTime)}</span>
         </div>
       </div>
 

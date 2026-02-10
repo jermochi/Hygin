@@ -124,6 +124,7 @@ export default function ToothbrushGame() {
   const [totalGermsFailed, setTotalGermsFailed] = useState(0)
   const [gameStartTime, setGameStartTime] = useState(null)
   const [points, setPoints] = useState(0)
+  const [elapsedTime, setElapsedTime] = useState(0)
 
   // Step 1: Brushing state
   const [brushPos, setBrushPos] = useState({ x: 0, y: 0 })
@@ -207,6 +208,22 @@ export default function ToothbrushGame() {
   useEffect(() => { successCountRef.current = successCount }, [successCount])
   useEffect(() => { brushedThisWindowRef.current = brushedThisWindow }, [brushedThisWindow])
   useEffect(() => { stageCompletedRef.current = stageCompleted }, [stageCompleted])
+
+  // Elapsed timer - counts up from 0:00
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (!finalComplete) {
+        setElapsedTime(prev => prev + 1)
+      }
+    }, 1000)
+    return () => clearInterval(interval)
+  }, [finalComplete])
+
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60)
+    const secs = seconds % 60
+    return `${mins}:${secs.toString().padStart(2, '0')}`
+  }
 
   // Initialize brushing sound
   useEffect(() => {
@@ -1719,6 +1736,7 @@ export default function ToothbrushGame() {
     setTotalGermsFailed(0)
     setGameStartTime(null)
     setPoints(0)
+    setElapsedTime(0)
   }
 
   const goHome = () => {
@@ -1741,6 +1759,7 @@ export default function ToothbrushGame() {
       <div className="step-instruction">
         <div className="step-title-row">
           <div className="step-title">Step {step}:</div>
+          <div className="step-timer">{formatTime(elapsedTime)}</div>
         </div>
         <div className="step-sub">
           {step === 0
@@ -1901,16 +1920,11 @@ export default function ToothbrushGame() {
       )}
 
       {finalComplete && (() => {
-        const timeSpent = gameStartTime ? Math.floor((Date.now() - gameStartTime) / 1000) : 0
-        const minutes = Math.floor(timeSpent / 60)
-        const seconds = timeSpent % 60
-        const timeDisplay = minutes > 0 ? `${minutes}m ${seconds}s` : `${seconds}s`
-
         // Calculate time penalty: -10 points for every 2 seconds over 3 minutes
         const threeMinutesInSeconds = 180
         let finalPoints = points
-        if (timeSpent > threeMinutesInSeconds) {
-          const secondsOver = timeSpent - threeMinutesInSeconds
+        if (elapsedTime > threeMinutesInSeconds) {
+          const secondsOver = elapsedTime - threeMinutesInSeconds
           const penaltyIntervals = Math.floor(secondsOver / 2) // Every 2 seconds
           const timePenalty = penaltyIntervals * 10 // -10 points per interval
           finalPoints = Math.max(0, points - timePenalty)
@@ -1942,7 +1956,6 @@ export default function ToothbrushGame() {
               {/* Stats Display */}
               <div className="game-stats-container">
                 <div className="stat-item stat-success">
-                  <div className="stat-icon">✨</div>
                   <div className="stat-content">
                     <div className="stat-label">Germs Brushed</div>
                     <div className="stat-value">{totalGermsBrushed}</div>
@@ -1950,7 +1963,6 @@ export default function ToothbrushGame() {
                 </div>
 
                 <div className="stat-item stat-failed">
-                  <div className="stat-icon">🦠</div>
                   <div className="stat-content">
                     <div className="stat-label">Germs Missed</div>
                     <div className="stat-value">{totalGermsFailed}</div>
@@ -1958,10 +1970,9 @@ export default function ToothbrushGame() {
                 </div>
 
                 <div className="stat-item stat-time">
-                  <div className="stat-icon">⏱️</div>
                   <div className="stat-content">
-                    <div className="stat-label">Time Spent</div>
-                    <div className="stat-value">{timeDisplay}</div>
+                    <div className="stat-label">Time</div>
+                    <div className="stat-value">{formatTime(elapsedTime)}</div>
                   </div>
                 </div>
               </div>

@@ -1,0 +1,24 @@
+.toothbrushing-root{display:flex;flex-direction:column;gap:16px;align-items:center}
+.hud{display:flex;gap:16px;align-items:center}
+.progress{display:flex;align-items:center;gap:8px}
+.progress .label{font-weight:600}
+.progress .bar{width:240px;height:12px;background:#e6e6e6;border-radius:999px;overflow:hidden}
+.progress .bar span{display:block;height:100%;background:linear-gradient(90deg,#4ade80,#22c55e);box-shadow:0 0 8px rgba(34,197,94,.5) inset}
+.progress .pct{min-width:44px;text-align:right;font-variant-numeric:tabular-nums}
+.reset-btn{background:#0ea5e9;color:#fff;border:0;border-radius:8px;padding:8px 12px;font-weight:600;cursor:pointer}
+.reset-btn:hover{filter:brightness(.95)}
+
+.model-stage{position:relative;display:inline-block;user-select:none;touch-action:none}
+.model-stage.completed .teeth-base{filter:drop-shadow(0 0 8px rgba(255,255,255,.8))}
+.model{width:420px;height:auto;display:block}
+
+/* Position the mouth overlay around the smile */
+.teeth-base,.teeth-canvas{position:absolute;left:50%;transform:translateX(-50%);bottom:84px;width:320px;height:180px}
+.teeth-canvas{pointer-events:none}
+
+/* Brush sprite */
+.toothbrush{position:absolute;left:0;top:0;width:120px;height:auto;pointer-events:none;transition:transform .03s linear;filter:drop-shadow(0 4px 8px rgba(0,0,0,.25))}
+
+.success-banner{position:absolute;left:50%;top:8px;transform:translateX(-50%);background:#22c55e;color:#fff;padding:8px 12px;border-radius:999px;font-weight:700;box-shadow:0 6px 16px rgba(34,197,94,.35)}
+
+.tip{opacity:.8}
