@@ -31,19 +31,3 @@
 .medal-item.earned:hover {
   transform: scale(1.1);
 }
-
-/* Responsive adjustments */
-@media (max-width: 600px) {
-  .medal-display {
-    gap: 8px;
-  }
-  
-  .medal-image {
-    height: 36px;
-  }
-}
-
-
-
-
-
