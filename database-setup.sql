@@ -21,9 +21,11 @@
 
 CREATE TABLE IF NOT EXISTS players (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  name TEXT NOT NULL,
-  grade TEXT NOT NULL,
+  full_name TEXT NOT NULL,
+  grade TEXT NOT NULL CHECK (grade IN ('Grade 3', 'Grade 4', 'Grade 5', 'Grade 6')),
+  section TEXT NOT NULL,
   age INTEGER NOT NULL,
+  gender TEXT NOT NULL CHECK (gender IN ('Male', 'Female')),
   game1_score INTEGER DEFAULT 0,  -- Hand Washing
   game2_score INTEGER DEFAULT 0,  -- Tooth Brushing
   game3_score INTEGER DEFAULT 0,  -- Hair Washing
@@ -32,6 +34,11 @@ CREATE TABLE IF NOT EXISTS players (
 
 -- Add comment for documentation
 COMMENT ON TABLE players IS 'Stores player profiles and their high scores for each game';
+COMMENT ON COLUMN players.full_name IS 'Full name of the player';
+COMMENT ON COLUMN players.grade IS 'Grade level (Grade 3 through Grade 6 only)';
+COMMENT ON COLUMN players.section IS 'Class section of the player';
+COMMENT ON COLUMN players.age IS 'Age of the player';
+COMMENT ON COLUMN players.gender IS 'Gender of the player (Male or Female)';
 COMMENT ON COLUMN players.game1_score IS 'High score for Hand Washing game';
 COMMENT ON COLUMN players.game2_score IS 'High score for Tooth Brushing game';
 COMMENT ON COLUMN players.game3_score IS 'High score for Hair Washing game';
@@ -129,15 +136,15 @@ AND tablename IN ('players', 'final_leaderboard');
 -- ============================================
 -- Uncomment the lines below to insert test data
 
--- INSERT INTO players (name, grade, age, game1_score, game2_score, game3_score) 
+-- INSERT INTO players (full_name, grade, section, age, gender, game1_score, game2_score, game3_score) 
 -- VALUES 
---   ('Test Player 1', 'Grade 4', 10, 85, 92, 78),
---   ('Test Player 2', 'Grade 5', 11, 95, 88, 91);
+--   ('Juan Dela Cruz', 'Grade 4', 'Section A', 10, 'Male', 85, 92, 78),
+--   ('Maria Santos', 'Grade 5', 'Section B', 11, 'Female', 95, 88, 91);
 
 -- INSERT INTO final_leaderboard (name, total_score) 
 -- VALUES 
---   ('Test Player 1', 255),
---   ('Test Player 2', 274);
+--   ('Juan Dela Cruz', 255),
+--   ('Maria Santos', 274);
 
 -- ============================================
 -- SETUP COMPLETE!

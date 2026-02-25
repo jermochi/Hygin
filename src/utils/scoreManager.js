@@ -42,18 +42,20 @@ export const getCurrentPlayer = async () => {
 
 /**
  * Creates a new player and starts a session
- * @param {object} playerData - { name, grade, age }
+ * @param {object} playerData - { fullName, grade, section, age, gender }
  * @returns {Promise<string|null>} - Player ID or null if failed
  */
-export const createPlayer = async ({ name, grade, age }) => {
+export const createPlayer = async ({ fullName, grade, section, age, gender }) => {
     try {
         const { data, error } = await supabase
             .from('players')
             .insert([
                 {
-                    name,
+                    full_name: fullName,
                     grade,
+                    section,
                     age: parseInt(age),
+                    gender,
                     game1_score: 0,
                     game2_score: 0,
                     game3_score: 0
@@ -151,7 +153,7 @@ export const completeGameSession = async () => {
         // Fetch player data
         const { data: player, error: fetchError } = await supabase
             .from('players')
-            .select('name, game1_score, game2_score, game3_score')
+            .select('full_name, game1_score, game2_score, game3_score')
             .eq('id', playerId)
             .single()
 
@@ -168,7 +170,7 @@ export const completeGameSession = async () => {
             .from('final_leaderboard')
             .insert([
                 {
-                    name: player.name,
+                    name: player.full_name,
                     total_score: totalScore
                 }
             ])

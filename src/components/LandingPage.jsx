@@ -28,7 +28,7 @@ const LandingPage = () => {
     const loadPlayerInfo = async () => {
       const player = await getCurrentPlayer()
       if (player) {
-        setPlayerName(player.name)
+        setPlayerName(player.full_name)
 
         // Check if all games are completed
         const gamesCompleted = [

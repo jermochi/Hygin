@@ -10,9 +10,11 @@ import './PlayerOnboarding.css'
 const PlayerOnboarding = () => {
     const navigate = useNavigate()
     const [formData, setFormData] = useState({
-        name: '',
+        fullName: '',
         grade: '',
-        age: ''
+        section: '',
+        age: '',
+        gender: ''
     })
     const [error, setError] = useState('')
     const [isSubmitting, setIsSubmitting] = useState(false)
@@ -32,16 +34,24 @@ const PlayerOnboarding = () => {
         setError('')
 
         // Validation
-        if (!formData.name.trim()) {
-            setError('Please enter your name')
+        if (!formData.fullName.trim()) {
+            setError('Please enter your full name')
             return
         }
         if (!formData.grade) {
             setError('Please select your grade')
             return
         }
+        if (!formData.section.trim()) {
+            setError('Please enter your section')
+            return
+        }
         if (!formData.age || formData.age < 1 || formData.age > 100) {
             setError('Please enter a valid age')
+            return
+        }
+        if (!formData.gender) {
+            setError('Please select your gender')
             return
         }
 
@@ -49,9 +59,11 @@ const PlayerOnboarding = () => {
 
         try {
             const playerId = await createPlayer({
-                name: formData.name.trim(),
+                fullName: formData.fullName.trim(),
                 grade: formData.grade,
-                age: formData.age
+                section: formData.section.trim(),
+                age: formData.age,
+                gender: formData.gender
             })
 
             if (playerId) {
@@ -102,14 +114,14 @@ const PlayerOnboarding = () => {
 
                 <form className="onboarding-form" onSubmit={handleSubmit}>
                     <div className="form-group">
-                        <label htmlFor="name" className="form-label">Your Name</label>
+                        <label htmlFor="fullName" className="form-label">Full Name</label>
                         <input
                             type="text"
-                            id="name"
-                            name="name"
+                            id="fullName"
+                            name="fullName"
                             className="form-input"
-                            placeholder="Enter your name"
-                            value={formData.name}
+                            placeholder="Enter your full name"
+                            value={formData.fullName}
                             onChange={handleChange}
                             disabled={isSubmitting}
                             autoFocus
@@ -135,6 +147,20 @@ const PlayerOnboarding = () => {
                     </div>
 
                     <div className="form-group">
+                        <label htmlFor="section" className="form-label">Section</label>
+                        <input
+                            type="text"
+                            id="section"
+                            name="section"
+                            className="form-input"
+                            placeholder="Enter your section"
+                            value={formData.section}
+                            onChange={handleChange}
+                            disabled={isSubmitting}
+                        />
+                    </div>
+
+                    <div className="form-group">
                         <label htmlFor="age" className="form-label">Age</label>
                         <input
                             type="number"
@@ -148,6 +174,34 @@ const PlayerOnboarding = () => {
                             onChange={handleChange}
                             disabled={isSubmitting}
                         />
+                    </div>
+
+                    <div className="form-group">
+                        <label className="form-label">Gender</label>
+                        <div className="gender-options">
+                            <label className={`gender-option ${formData.gender === 'Male' ? 'selected' : ''}`}>
+                                <input
+                                    type="radio"
+                                    name="gender"
+                                    value="Male"
+                                    checked={formData.gender === 'Male'}
+                                    onChange={handleChange}
+                                    disabled={isSubmitting}
+                                />
+                                <span className="gender-label">Male</span>
+                            </label>
+                            <label className={`gender-option ${formData.gender === 'Female' ? 'selected' : ''}`}>
+                                <input
+                                    type="radio"
+                                    name="gender"
+                                    value="Female"
+                                    checked={formData.gender === 'Female'}
+                                    onChange={handleChange}
+                                    disabled={isSubmitting}
+                                />
+                                <span className="gender-label">Female</span>
+                            </label>
+                        </div>
                     </div>
 
                     {error && <div className="form-error">{error}</div>}
