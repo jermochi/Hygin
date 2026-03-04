@@ -50,7 +50,7 @@ const STEP_CONFIG = {
     title: 'Step 1: Detangle',
     subtitle: 'Drag the brush across the hair to detangle it!',
     tool: 'brush',
-    targetPercent: 100,
+    targetPercent: 70,
     useImageMask: true,
     topHairImage: hairMessyUncleaned,      // Messy hair on top (to be erased)
     bottomHairImage: hairUntangledUncleaned // Untangled hair revealed
@@ -59,7 +59,7 @@ const STEP_CONFIG = {
     title: 'Step 2: Wet Hair',
     subtitle: 'Use the showerhead to wet the hair!',
     tool: 'showerhead',
-    targetPercent: 100,
+    targetPercent: 70,
     useImageMask: true,
     topHairImage: hairUntangledUncleaned,  // Dry untangled on top
     bottomHairImage: hairWetUncleaned      // Wet uncleaned revealed
@@ -68,7 +68,7 @@ const STEP_CONFIG = {
     title: 'Step 3: Apply Shampoo',
     subtitle: 'Drag the shampoo bottle to apply it!',
     tool: 'shampoo',
-    targetPercent: 100,
+    targetPercent: 70,
     useImageMask: false,
     currentHairImage: hairWetUncleaned,
     showShampooBlob: true
@@ -77,7 +77,7 @@ const STEP_CONFIG = {
     title: 'Step 4: Lather',
     subtitle: 'Use the scalp massager to lather the shampoo!',
     tool: 'massager',
-    targetPercent: 100,
+    targetPercent: 70,
     useImageMask: false,
     currentHairImage: hairWetUncleaned,
     createBubbles: true
@@ -86,7 +86,7 @@ const STEP_CONFIG = {
     title: 'Step 5: Rinse',
     subtitle: 'Rinse away all the foam!',
     tool: 'showerhead',
-    targetPercent: 100,
+    targetPercent: 70,
     useImageMask: true,
     topHairImage: hairWetUncleaned,    // Wet uncleaned with foam
     bottomHairImage: hairWetClean      // Clean wet hair revealed
@@ -95,7 +95,7 @@ const STEP_CONFIG = {
     title: 'Step 6: Towel Dry',
     subtitle: 'Pat dry with the towel!',
     tool: 'towel',
-    targetPercent: 100,
+    targetPercent: 70,
     useImageMask: true,
     topHairImage: hairWetClean,        // Wet clean on top
     bottomHairImage: hairSemiWetClean  // Semi-wet revealed
@@ -104,7 +104,7 @@ const STEP_CONFIG = {
     title: 'Step 7: Blow Dry',
     subtitle: 'Finish drying with the hair dryer!',
     tool: 'blowdryer',
-    targetPercent: 100,
+    targetPercent: 70,
     useImageMask: true,
     topHairImage: hairSemiWetClean,    // Semi-wet on top
     bottomHairImage: hairDryClean      // Fully dry revealed
@@ -121,8 +121,8 @@ const TOOL_SIZES = {
   blowdryer: { width: 100, height: 100 }
 }
 
-// Brush radius for erasing
-const BRUSH_RADIUS = 35
+// Brush radius for erasing (larger = easier for kids)
+const BRUSH_RADIUS = 55
 
 export default function HairwashingGame() {
   const navigate = useNavigate()
@@ -152,6 +152,7 @@ export default function HairwashingGame() {
   const [showHint, setShowHint] = useState(false) // Show hint for which tool to use next
   const [wrongChoiceCount, setWrongChoiceCount] = useState(0) // Track wrong tool attempts
   const [hintUsedCount, setHintUsedCount] = useState(0) // Track hint usage
+  const [highlightCorrectTool, setHighlightCorrectTool] = useState(null) // Which tool step to highlight as correct
 
   // Canvas refs for masking
   const canvasRef = useRef(null)
@@ -538,10 +539,9 @@ export default function HairwashingGame() {
       goodJobAudio.play().catch(() => { })
 
       // Calculate and save final score (game3 = Hair Washing)
+      // No penalties for wrong choices or hints — kids are learning!
       const timePenalty = Math.floor(elapsedTime / 10) * 5
-      const wrongToolPenalty = wrongChoiceCount * 10
-      const hintPenalty = hintUsedCount * 15
-      const finalScore = Math.max(0, 100 - timePenalty - wrongToolPenalty - hintPenalty)
+      const finalScore = Math.max(0, 100 - timePenalty)
 
       updateScore(3, finalScore).catch(err => {
         console.error('Failed to save score:', err)
@@ -570,17 +570,37 @@ export default function HairwashingGame() {
     }
   }, [step, stepComplete, getNextStep])
 
+  // Get the tool image for a given step
+  const getToolImageForStep = useCallback((targetStep) => {
+    switch (targetStep) {
+      case STEPS.BRUSH: return hairbrush
+      case STEPS.WET: return showerhead
+      case STEPS.SHAMPOO: return shampoo
+      case STEPS.SCRUB: return scalpMassager
+      case STEPS.RINSE: return showerhead
+      case STEPS.TOWEL: return towel
+      case STEPS.BLOWDRY: return hairDryer
+      default: return null
+    }
+  }, [])
+
   // Handle clicking on a tool in the toolbar
   const handleToolClick = useCallback((targetStep) => {
     // Clear wrong choice feedback
     setWrongChoice(false)
+    setHighlightCorrectTool(null)
 
     // If current step is not complete, can't switch
     if (!stepComplete && targetStep !== step) {
       // Show wrong choice - they need to finish current step first
       setWrongChoice(true)
-      setWrongChoiceCount(prev => prev + 1) // Track wrong choice
-      setTimeout(() => setWrongChoice(false), 1000)
+      setWrongChoiceCount(prev => prev + 1)
+      // Auto-show the correct tool to use
+      setHighlightCorrectTool(step)
+      setTimeout(() => {
+        setWrongChoice(false)
+        setHighlightCorrectTool(null)
+      }, 2500)
       return
     }
 
@@ -593,14 +613,20 @@ export default function HairwashingGame() {
         setStep(nextStep)
         setProgress(0)
         setStepComplete(false)
+        setHighlightCorrectTool(null)
         setHearts([])
         setWaterDrops([])
         setFoamBubbles([])
       } else {
-        // Wrong choice!
+        // Wrong choice! Show which tool they should pick
         setWrongChoice(true)
-        setWrongChoiceCount(prev => prev + 1) // Track wrong choice
-        setTimeout(() => setWrongChoice(false), 1000)
+        setWrongChoiceCount(prev => prev + 1)
+        // Highlight the correct next tool
+        setHighlightCorrectTool(nextStep)
+        setTimeout(() => {
+          setWrongChoice(false)
+          setHighlightCorrectTool(null)
+        }, 2500)
       }
       return
     }
@@ -633,7 +659,7 @@ export default function HairwashingGame() {
         squirt.play().catch(() => { })
       }
       // Shampoo just needs to be dragged over hair
-      setProgress(prev => Math.min(100, prev + 2))
+      setProgress(prev => Math.min(100, prev + 5))
     }
   }, [step, dragging, shampooBlob, isOverHairPixel])
 
@@ -644,7 +670,7 @@ export default function HairwashingGame() {
       if (!isOverHairPixel(x, y)) return
 
       // Scrubbing increases foam and progress
-      setProgress(prev => Math.min(100, prev + 0.5))
+      setProgress(prev => Math.min(100, prev + 2))
       spawnEffects(x, y)
     }
   }, [step, dragging, spawnEffects, isOverHairPixel])
@@ -770,14 +796,12 @@ export default function HairwashingGame() {
     { id: 'towel', img: towel, active: step === STEPS.TOWEL },
   ]
 
-  // Calculate points based on performance
+  // Calculate points based on performance (no penalties for wrong choices/hints — kids are learning!)
   const calculatePoints = () => {
     const basePoints = 100
     const timePenalty = Math.floor(elapsedTime / 10) * 5
-    const wrongToolPenalty = wrongChoiceCount * 10
-    const hintPenalty = hintUsedCount * 15
-    const totalPoints = Math.max(0, basePoints - timePenalty - wrongToolPenalty - hintPenalty)
-    return { basePoints, timePenalty, wrongToolPenalty, hintPenalty, totalPoints }
+    const totalPoints = Math.max(0, basePoints - timePenalty)
+    return { basePoints, timePenalty, totalPoints }
   }
 
   // Get star rating based on points
@@ -789,7 +813,7 @@ export default function HairwashingGame() {
 
   // Render success overlay
   if (showSuccess) {
-    const { basePoints, timePenalty, wrongToolPenalty, hintPenalty, totalPoints } = calculatePoints()
+    const { basePoints, timePenalty, totalPoints } = calculatePoints()
     const stars = getStarRating(totalPoints)
     const percentScore = Math.max(0, Math.min(100, totalPoints))
     const tierLabel = getTierLabel(percentScore)
@@ -860,14 +884,19 @@ export default function HairwashingGame() {
         <div className="step-info">
           <h2 className="step-title">{currentConfig.title}</h2>
           <p className="step-subtitle">
-            {stepComplete && !finalComplete
-              ? 'Done! Now choose the next tool!'
-              : currentConfig.subtitle}
+            {wrongChoice && highlightCorrectTool !== null
+              ? `Try the ${getNextToolName()}! 👇`
+              : stepComplete && !finalComplete
+                ? 'Done! Now choose the next tool!'
+                : currentConfig.subtitle}
           </p>
         </div>
         <div className="progress-section">
-          {wrongChoice && (
-            <div className="wrong-feedback">Wrong tool!</div>
+          {wrongChoice && highlightCorrectTool !== null && (
+            <div className="wrong-feedback-with-hint">
+              <span>Use this → </span>
+              <img src={getToolImageForStep(highlightCorrectTool)} alt="Correct tool" className="hint-tool-img" />
+            </div>
           )}
           <div className="progress-bar-container">
             <div className="progress-bar-track">
@@ -1033,44 +1062,50 @@ export default function HairwashingGame() {
       <div className="step-indicators bottom-toolbar">
         <div className="toolbar-scroll-container">
           <div
-            className={`step-item clickable ${step >= STEPS.BRUSH ? 'completed' : ''} ${step === STEPS.BRUSH ? 'active' : ''}`}
+            className={`step-item clickable ${step >= STEPS.BRUSH ? 'completed' : ''} ${step === STEPS.BRUSH ? 'active' : ''} ${highlightCorrectTool === STEPS.BRUSH ? 'highlight-correct' : ''}`}
             onClick={() => handleToolClick(STEPS.BRUSH)}
           >
+            {highlightCorrectTool === STEPS.BRUSH && <div className="correct-arrow">👆 Use this!</div>}
             <img src={hairbrush} alt="Hairbrush" className="step-icon-img" />
             <span className="step-label">Hairbrush</span>
           </div>
           <div
-            className={`step-item clickable ${step >= STEPS.WET ? 'completed' : ''} ${step === STEPS.WET || step === STEPS.RINSE ? 'active' : ''}`}
+            className={`step-item clickable ${step >= STEPS.WET ? 'completed' : ''} ${step === STEPS.WET || step === STEPS.RINSE ? 'active' : ''} ${highlightCorrectTool === STEPS.WET || highlightCorrectTool === STEPS.RINSE ? 'highlight-correct' : ''}`}
             onClick={() => step < STEPS.SHAMPOO ? handleToolClick(STEPS.WET) : handleToolClick(STEPS.RINSE)}
           >
+            {(highlightCorrectTool === STEPS.WET || highlightCorrectTool === STEPS.RINSE) && <div className="correct-arrow">👆 Use this!</div>}
             <img src={showerhead} alt="Showerhead" className="step-icon-img" />
             <span className="step-label">Showerhead</span>
           </div>
           <div
-            className={`step-item clickable ${step >= STEPS.SHAMPOO ? 'completed' : ''} ${step === STEPS.SHAMPOO ? 'active' : ''}`}
+            className={`step-item clickable ${step >= STEPS.SHAMPOO ? 'completed' : ''} ${step === STEPS.SHAMPOO ? 'active' : ''} ${highlightCorrectTool === STEPS.SHAMPOO ? 'highlight-correct' : ''}`}
             onClick={() => handleToolClick(STEPS.SHAMPOO)}
           >
+            {highlightCorrectTool === STEPS.SHAMPOO && <div className="correct-arrow">👆 Use this!</div>}
             <img src={shampoo} alt="Shampoo" className="step-icon-img" />
             <span className="step-label">Shampoo</span>
           </div>
           <div
-            className={`step-item clickable ${step >= STEPS.SCRUB ? 'completed' : ''} ${step === STEPS.SCRUB ? 'active' : ''}`}
+            className={`step-item clickable ${step >= STEPS.SCRUB ? 'completed' : ''} ${step === STEPS.SCRUB ? 'active' : ''} ${highlightCorrectTool === STEPS.SCRUB ? 'highlight-correct' : ''}`}
             onClick={() => handleToolClick(STEPS.SCRUB)}
           >
+            {highlightCorrectTool === STEPS.SCRUB && <div className="correct-arrow">👆 Use this!</div>}
             <img src={scalpMassager} alt="Scalp Massager" className="step-icon-img" />
             <span className="step-label">Scalp Massager</span>
           </div>
           <div
-            className={`step-item clickable ${step >= STEPS.TOWEL ? 'completed' : ''} ${step === STEPS.TOWEL ? 'active' : ''}`}
+            className={`step-item clickable ${step >= STEPS.TOWEL ? 'completed' : ''} ${step === STEPS.TOWEL ? 'active' : ''} ${highlightCorrectTool === STEPS.TOWEL ? 'highlight-correct' : ''}`}
             onClick={() => handleToolClick(STEPS.TOWEL)}
           >
+            {highlightCorrectTool === STEPS.TOWEL && <div className="correct-arrow">👆 Use this!</div>}
             <img src={towel} alt="Towel" className="step-icon-img" />
             <span className="step-label">Towel</span>
           </div>
           <div
-            className={`step-item clickable ${step >= STEPS.BLOWDRY ? 'completed' : ''} ${step === STEPS.BLOWDRY ? 'active' : ''}`}
+            className={`step-item clickable ${step >= STEPS.BLOWDRY ? 'completed' : ''} ${step === STEPS.BLOWDRY ? 'active' : ''} ${highlightCorrectTool === STEPS.BLOWDRY ? 'highlight-correct' : ''}`}
             onClick={() => handleToolClick(STEPS.BLOWDRY)}
           >
+            {highlightCorrectTool === STEPS.BLOWDRY && <div className="correct-arrow">👆 Use this!</div>}
             <img src={hairDryer} alt="Blowdryer" className="step-icon-img" />
             <span className="step-label">Blowdryer</span>
           </div>

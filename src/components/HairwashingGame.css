@@ -104,6 +104,97 @@
   box-shadow: 0 4px 15px rgba(255, 0, 0, 0.4);
 }
 
+/* Wrong feedback with hint - shows correct tool image */
+.hairwashing-game .wrong-feedback-with-hint {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: linear-gradient(135deg, #ff9800, #f57c00);
+  color: white;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-weight: bold;
+  font-size: 0.95rem;
+  animation: shake 0.5s ease-in-out;
+  box-shadow: 0 4px 15px rgba(255, 152, 0, 0.5);
+}
+
+.hairwashing-game .hint-tool-img {
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+  animation: hint-tool-bounce 0.6s ease-in-out infinite alternate;
+}
+
+@keyframes hint-tool-bounce {
+  0% {
+    transform: scale(1);
+  }
+
+  100% {
+    transform: scale(1.2);
+  }
+}
+
+/* Highlight correct tool in toolbar */
+.hairwashing-game .step-item.highlight-correct {
+  position: relative;
+  animation: highlight-bounce 0.6s ease-in-out infinite alternate !important;
+}
+
+.hairwashing-game .step-item.highlight-correct .step-icon-img {
+  filter: grayscale(0%) drop-shadow(0 0 14px rgba(76, 175, 80, 1)) drop-shadow(0 0 28px rgba(76, 175, 80, 0.7)) !important;
+  opacity: 1 !important;
+  transform: scale(1.25) !important;
+}
+
+.hairwashing-game .step-item.highlight-correct .step-label {
+  color: #4CAF50 !important;
+  font-weight: 800 !important;
+  text-shadow: 0 0 8px rgba(76, 175, 80, 0.6);
+}
+
+@keyframes highlight-bounce {
+  0% {
+    transform: translateY(0) scale(1);
+  }
+
+  100% {
+    transform: translateY(-12px) scale(1.08);
+  }
+}
+
+/* Correct arrow indicator above the tool */
+.hairwashing-game .correct-arrow {
+  position: absolute;
+  top: -32px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: linear-gradient(135deg, #4CAF50, #66BB6A);
+  color: white;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  white-space: nowrap;
+  box-shadow: 0 3px 10px rgba(76, 175, 80, 0.5);
+  animation: arrow-pulse 0.8s ease-in-out infinite alternate;
+  z-index: 300;
+}
+
+@keyframes arrow-pulse {
+  0% {
+    transform: translateX(-50%) scale(1);
+    opacity: 0.9;
+  }
+
+  100% {
+    transform: translateX(-50%) scale(1.1);
+    opacity: 1;
+  }
+}
+
 @keyframes shake {
 
   0%,
