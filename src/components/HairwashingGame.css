@@ -1084,3 +1084,198 @@
 .hairwashing-game .menu-button:active {
   transform: scale(0.98);
 }
+
+/* ========== Drag-Here Indicator ========== */
+.hairwashing-game .drag-here-indicator {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 110;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  pointer-events: none;
+  animation: drag-here-pulse 1.5s ease-in-out infinite;
+}
+
+.hairwashing-game .drag-here-indicator .drag-arrow {
+  font-size: 3rem;
+  animation: drag-arrow-bounce 1s ease-in-out infinite;
+  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.4));
+}
+
+.hairwashing-game .drag-here-indicator .drag-text {
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  padding: 6px 16px;
+  border-radius: 20px;
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+}
+
+@keyframes drag-here-pulse {
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.6;
+  }
+}
+
+@keyframes drag-arrow-bounce {
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-12px);
+  }
+}
+
+/* ========== Next Step Banner ========== */
+.hairwashing-game .next-step-banner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 10px 20px 4px;
+  background: linear-gradient(135deg, rgba(76, 175, 80, 0.25) 0%, rgba(139, 195, 74, 0.3) 100%);
+  border-top: 2px solid rgba(76, 175, 80, 0.5);
+  border-bottom: 2px solid rgba(76, 175, 80, 0.5);
+  animation: banner-appear 0.5s ease-out;
+  flex-shrink: 0;
+  z-index: 200;
+}
+
+@keyframes banner-appear {
+  0% {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.hairwashing-game .next-step-banner-content {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.hairwashing-game .next-step-checkmark {
+  font-size: 1.4rem;
+}
+
+.hairwashing-game .next-step-message {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #fff;
+  text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.4);
+}
+
+.hairwashing-game .next-step-message strong {
+  color: #a5f3a8;
+  font-weight: 800;
+}
+
+.hairwashing-game .next-step-tool-preview {
+  width: 42px;
+  height: 42px;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 8px rgba(76, 175, 80, 0.6));
+  animation: next-tool-bounce 0.8s ease-in-out infinite alternate;
+}
+
+@keyframes next-tool-bounce {
+  0% {
+    transform: scale(1);
+  }
+
+  100% {
+    transform: scale(1.15);
+  }
+}
+
+.hairwashing-game .next-step-arrow-down {
+  font-size: 1rem;
+  color: rgba(76, 175, 80, 0.8);
+  animation: arrow-down-bounce 1s ease-in-out infinite;
+  line-height: 1;
+}
+
+@keyframes arrow-down-bounce {
+
+  0%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.6;
+  }
+
+  50% {
+    transform: translateY(4px);
+    opacity: 1;
+  }
+}
+
+/* ========== Step Number Badges ========== */
+.hairwashing-game .step-number-badge {
+  position: absolute;
+  top: -4px;
+  right: -2px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.45);
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.7rem;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  border: 1.5px solid rgba(255, 255, 255, 0.3);
+}
+
+.hairwashing-game .step-item.active .step-number-badge {
+  background: linear-gradient(135deg, #FFD700, #FFA500);
+  color: #fff;
+  border-color: rgba(255, 215, 0, 0.8);
+  box-shadow: 0 0 8px rgba(255, 215, 0, 0.6);
+}
+
+.hairwashing-game .step-item.highlight-correct .step-number-badge {
+  background: linear-gradient(135deg, #4CAF50, #66BB6A);
+  color: #fff;
+  border-color: rgba(76, 175, 80, 0.9);
+  box-shadow: 0 0 12px rgba(76, 175, 80, 0.8);
+  animation: badge-pulse 0.8s ease-in-out infinite alternate;
+}
+
+@keyframes badge-pulse {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 8px rgba(76, 175, 80, 0.6);
+  }
+
+  100% {
+    transform: scale(1.15);
+    box-shadow: 0 0 16px rgba(76, 175, 80, 1);
+  }
+}
+
+/* Make step-item position relative so badge positions correctly */
+.hairwashing-game .step-item {
+  position: relative;
+}

@@ -153,6 +153,7 @@ export default function HairwashingGame() {
   const [wrongChoiceCount, setWrongChoiceCount] = useState(0) // Track wrong tool attempts
   const [hintUsedCount, setHintUsedCount] = useState(0) // Track hint usage
   const [highlightCorrectTool, setHighlightCorrectTool] = useState(null) // Which tool step to highlight as correct
+  const [hasInteracted, setHasInteracted] = useState(false) // Track if user has started dragging this step
 
   // Canvas refs for masking
   const canvasRef = useRef(null)
@@ -516,6 +517,13 @@ export default function HairwashingGame() {
     // Mark step as complete
     setStepComplete(true)
     setDragging(false)
+    setHasInteracted(false)
+
+    // Auto-highlight the correct NEXT tool immediately so it's obvious
+    const nextStep = step >= STEPS.BLOWDRY ? STEPS.COMPLETE : step + 1
+    if (nextStep !== STEPS.COMPLETE) {
+      setHighlightCorrectTool(nextStep)
+    }
 
     // Handle step-specific cleanup
     if (step === STEPS.SHAMPOO) {
@@ -565,10 +573,24 @@ export default function HairwashingGame() {
       case STEPS.SCRUB: return 'Scalp Massager'
       case STEPS.RINSE: return 'Showerhead'
       case STEPS.TOWEL: return 'Towel'
-      case STEPS.BLOWDRY: return 'Blowdryer'
+      case STEPS.BLOWDRY: return 'Hair Dryer'
       default: return ''
     }
   }, [step, stepComplete, getNextStep])
+
+  // Get the step number label for a toolbar item
+  const getStepNumber = (targetStep) => {
+    switch (targetStep) {
+      case STEPS.BRUSH: return '1'
+      case STEPS.WET: return '2'
+      case STEPS.SHAMPOO: return '3'
+      case STEPS.SCRUB: return '4'
+      case STEPS.RINSE: return '5'
+      case STEPS.TOWEL: return '6'
+      case STEPS.BLOWDRY: return '7'
+      default: return ''
+    }
+  }
 
   // Get the tool image for a given step
   const getToolImageForStep = useCallback((targetStep) => {
@@ -614,6 +636,7 @@ export default function HairwashingGame() {
         setProgress(0)
         setStepComplete(false)
         setHighlightCorrectTool(null)
+        setHasInteracted(false)
         setHearts([])
         setWaterDrops([])
         setFoamBubbles([])
@@ -681,6 +704,7 @@ export default function HairwashingGame() {
 
     e.preventDefault()
     setDragging(true)
+    setHasInteracted(true)
     setCursorPos({ x: e.clientX, y: e.clientY })
 
     // Start appropriate looped tool sound
@@ -885,9 +909,9 @@ export default function HairwashingGame() {
           <h2 className="step-title">{currentConfig.title}</h2>
           <p className="step-subtitle">
             {wrongChoice && highlightCorrectTool !== null
-              ? `Try the ${getNextToolName()}! 👇`
+              ? `Not that one! Tap the ${getNextToolName()}! 👇`
               : stepComplete && !finalComplete
-                ? 'Done! Now choose the next tool!'
+                ? `Great job! Now tap the ${getNextToolName()} below! 👇`
                 : currentConfig.subtitle}
           </p>
         </div>
@@ -1035,9 +1059,28 @@ export default function HairwashingGame() {
           <div className={`floating-tool-item towel-pos ${step === STEPS.TOWEL ? 'active' : ''}`}>
             <img src={towel} alt="Towel" />
           </div>
+          {/* Drag-here indicator when step starts and user hasn't interacted yet */}
+          {!hasInteracted && !stepComplete && !finalComplete && step !== STEPS.COMPLETE && (
+            <div className="drag-here-indicator">
+              <div className="drag-arrow">👆</div>
+              <div className="drag-text">Drag here!</div>
+            </div>
+          )}
         </div>
 
       </div>
+
+      {/* Next step banner - appears between game area and toolbar when step is done */}
+      {stepComplete && !finalComplete && (
+        <div className="next-step-banner">
+          <div className="next-step-banner-content">
+            <span className="next-step-checkmark">✅</span>
+            <span className="next-step-message">Step done! Tap the <strong>{getNextToolName()}</strong> below!</span>
+            <img src={getToolImageForStep(getNextStep())} alt="Next tool" className="next-step-tool-preview" />
+          </div>
+          <div className="next-step-arrow-down">▼</div>
+        </div>
+      )}
 
       {/* Toolbar header with hint and timer */}
       <div className="toolbar-header">
@@ -1065,23 +1108,26 @@ export default function HairwashingGame() {
             className={`step-item clickable ${step >= STEPS.BRUSH ? 'completed' : ''} ${step === STEPS.BRUSH ? 'active' : ''} ${highlightCorrectTool === STEPS.BRUSH ? 'highlight-correct' : ''}`}
             onClick={() => handleToolClick(STEPS.BRUSH)}
           >
-            {highlightCorrectTool === STEPS.BRUSH && <div className="correct-arrow">👆 Use this!</div>}
+            {highlightCorrectTool === STEPS.BRUSH && <div className="correct-arrow">👆 Tap me!</div>}
+            <div className="step-number-badge">{getStepNumber(STEPS.BRUSH)}</div>
             <img src={hairbrush} alt="Hairbrush" className="step-icon-img" />
-            <span className="step-label">Hairbrush</span>
+            <span className="step-label">Brush</span>
           </div>
           <div
             className={`step-item clickable ${step >= STEPS.WET ? 'completed' : ''} ${step === STEPS.WET || step === STEPS.RINSE ? 'active' : ''} ${highlightCorrectTool === STEPS.WET || highlightCorrectTool === STEPS.RINSE ? 'highlight-correct' : ''}`}
             onClick={() => step < STEPS.SHAMPOO ? handleToolClick(STEPS.WET) : handleToolClick(STEPS.RINSE)}
           >
-            {(highlightCorrectTool === STEPS.WET || highlightCorrectTool === STEPS.RINSE) && <div className="correct-arrow">👆 Use this!</div>}
+            {(highlightCorrectTool === STEPS.WET || highlightCorrectTool === STEPS.RINSE) && <div className="correct-arrow">👆 Tap me!</div>}
+            <div className="step-number-badge">{step < STEPS.SHAMPOO ? getStepNumber(STEPS.WET) : getStepNumber(STEPS.RINSE)}</div>
             <img src={showerhead} alt="Showerhead" className="step-icon-img" />
-            <span className="step-label">Showerhead</span>
+            <span className="step-label">Shower</span>
           </div>
           <div
             className={`step-item clickable ${step >= STEPS.SHAMPOO ? 'completed' : ''} ${step === STEPS.SHAMPOO ? 'active' : ''} ${highlightCorrectTool === STEPS.SHAMPOO ? 'highlight-correct' : ''}`}
             onClick={() => handleToolClick(STEPS.SHAMPOO)}
           >
-            {highlightCorrectTool === STEPS.SHAMPOO && <div className="correct-arrow">👆 Use this!</div>}
+            {highlightCorrectTool === STEPS.SHAMPOO && <div className="correct-arrow">👆 Tap me!</div>}
+            <div className="step-number-badge">{getStepNumber(STEPS.SHAMPOO)}</div>
             <img src={shampoo} alt="Shampoo" className="step-icon-img" />
             <span className="step-label">Shampoo</span>
           </div>
@@ -1089,15 +1135,17 @@ export default function HairwashingGame() {
             className={`step-item clickable ${step >= STEPS.SCRUB ? 'completed' : ''} ${step === STEPS.SCRUB ? 'active' : ''} ${highlightCorrectTool === STEPS.SCRUB ? 'highlight-correct' : ''}`}
             onClick={() => handleToolClick(STEPS.SCRUB)}
           >
-            {highlightCorrectTool === STEPS.SCRUB && <div className="correct-arrow">👆 Use this!</div>}
+            {highlightCorrectTool === STEPS.SCRUB && <div className="correct-arrow">👆 Tap me!</div>}
+            <div className="step-number-badge">{getStepNumber(STEPS.SCRUB)}</div>
             <img src={scalpMassager} alt="Scalp Massager" className="step-icon-img" />
-            <span className="step-label">Scalp Massager</span>
+            <span className="step-label">Massager</span>
           </div>
           <div
             className={`step-item clickable ${step >= STEPS.TOWEL ? 'completed' : ''} ${step === STEPS.TOWEL ? 'active' : ''} ${highlightCorrectTool === STEPS.TOWEL ? 'highlight-correct' : ''}`}
             onClick={() => handleToolClick(STEPS.TOWEL)}
           >
-            {highlightCorrectTool === STEPS.TOWEL && <div className="correct-arrow">👆 Use this!</div>}
+            {highlightCorrectTool === STEPS.TOWEL && <div className="correct-arrow">👆 Tap me!</div>}
+            <div className="step-number-badge">{getStepNumber(STEPS.TOWEL)}</div>
             <img src={towel} alt="Towel" className="step-icon-img" />
             <span className="step-label">Towel</span>
           </div>
@@ -1105,9 +1153,10 @@ export default function HairwashingGame() {
             className={`step-item clickable ${step >= STEPS.BLOWDRY ? 'completed' : ''} ${step === STEPS.BLOWDRY ? 'active' : ''} ${highlightCorrectTool === STEPS.BLOWDRY ? 'highlight-correct' : ''}`}
             onClick={() => handleToolClick(STEPS.BLOWDRY)}
           >
-            {highlightCorrectTool === STEPS.BLOWDRY && <div className="correct-arrow">👆 Use this!</div>}
-            <img src={hairDryer} alt="Blowdryer" className="step-icon-img" />
-            <span className="step-label">Blowdryer</span>
+            {highlightCorrectTool === STEPS.BLOWDRY && <div className="correct-arrow">👆 Tap me!</div>}
+            <div className="step-number-badge">{getStepNumber(STEPS.BLOWDRY)}</div>
+            <img src={hairDryer} alt="Hair Dryer" className="step-icon-img" />
+            <span className="step-label">Dryer</span>
           </div>
         </div>
       </div>
