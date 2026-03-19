@@ -9,6 +9,7 @@ import { useGameFlow } from '../context/GameFlowContext'
 
 const STEP_END_TIMES = [2.22, 7.09, 12.8, 14.9, 20.9, 26.4, 33.2]
 const STEP_TEXTS = [
+  'Rinse with water',
   'Apply enough soap to cover all hand surfaces',
   'Rub hands palm to palm',
   'Right palm over left dorsum with interlaced fingers and vice versa',
@@ -19,6 +20,8 @@ const STEP_TEXTS = [
   'Dry hands thoroughly with a single use towel'
 ]
 const PER_STEP_POINTS = 100 / STEP_TEXTS.length
+// Video segment for the new first step (reuses the rinse segment)
+const RINSE_VIDEO_SEGMENT = [26.4, 33.2]
 
 const buildSegments = (duration) => {
   const ends = [...STEP_END_TIMES, duration ?? null]
@@ -137,12 +140,28 @@ const HandwashingGame = () => {
   const playSegmentForIndex = (index, onComplete) => {
     const video = videoRef.current
     if (!video) return
-    const [start, end] = segments[index] || []
+
+    // Step 0 (new 'Rinse with water') uses a custom video segment
+    if (index === 0) {
+      const [start, end] = RINSE_VIDEO_SEGMENT
+      try {
+        video.currentTime = start
+        video.playbackRate = 1.0
+        segmentCompleteCallbackRef.current = onComplete || null
+        setSegmentEnd(end)
+        video.play().catch(() => { })
+      } catch { }
+      return
+    }
+
+    // For all other steps, map to the original segment (step index - 1)
+    const originalIndex = index - 1
+    const [start, end] = segments[originalIndex] || []
     if (start == null) return
     try {
       video.currentTime = start
-      // Slight speed boost for steps 3, 5, and 7 (1-based) to keep total under ~30s
-      if ([2, 4, 6].includes(index)) {
+      // Slight speed boost for certain segments to keep total under ~30s
+      if ([2, 4, 6].includes(originalIndex)) {
         video.playbackRate = 1.15
       } else {
         video.playbackRate = 1.0

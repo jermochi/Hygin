@@ -65,18 +65,21 @@ const GERM_IMAGES = [germ1, germ2, germ3, germ4, germ5, germ6, germ7, germ8]
 // How many brush direction-change strokes are required to remove a single germ
 const GERM_STROKES_TO_REMOVE = 3
 // Step-1 specific stroke requirement (keep step0 behavior unaffected)
-const STEP1_GERM_STROKES = 3
-const STEP2_GERM_STROKES = 3
-const STEP2_MOVEMENT_THRESHOLD = 60
-const STEP3_GERM_STROKES = 2  // Very easy: just 1 stroke needed
+const STEP1_GERM_STROKES = 2
+const STEP2_GERM_STROKES = 2
+const STEP2_MOVEMENT_THRESHOLD = 30
+const STEP3_GERM_STROKES = 2  // Very easy: just 2 strokes needed
 const STEP4_GERM_STROKES = 2
-const STEP5_GERM_STROKES = 3
-const VERTICAL_STROKE_THRESHOLD = 8
-const VERTICAL_HORIZONTAL_TOLERANCE = 28
-const VERTICAL_DOMINANCE_RATIO = 1.05
-const STEP4_VERTICAL_THRESHOLD = 6
-const STEP4_HORIZONTAL_TOLERANCE = 40
-const STEP4_DOMINANCE_RATIO = 0.9
+const STEP5_GERM_STROKES = 2
+const VERTICAL_STROKE_THRESHOLD = 4
+const VERTICAL_HORIZONTAL_TOLERANCE = 60
+const VERTICAL_DOMINANCE_RATIO = 0.5
+const MAX_SCORE = 350
+const IDLE_TIMEOUT_MS = 10000 // 10 seconds idle after stage expires before auto-advance
+const IDLE_PENALTY_POINTS = 30 // Points deducted for idle auto-advance
+const STEP4_VERTICAL_THRESHOLD = 4
+const STEP4_HORIZONTAL_TOLERANCE = 60
+const STEP4_DOMINANCE_RATIO = 0.5
 const STEP45_BRUSH_WIDTH = 'clamp(80px, 8vw, 120px)'
 // Where the cursor should attach to the floating toothbrush (percentages of width/height)
 const BRUSH_HEAD_ANCHOR = { x: 0.85, y: 0.45 }
@@ -149,8 +152,11 @@ export default function ToothbrushGame() {
   const [waterPoured, setWaterPoured] = useState(false)
   const [overRinseMouth, setOverRinseMouth] = useState(false)
   const [stageCompleted, setStageCompleted] = useState(false)
+  const [stageExpired, setStageExpired] = useState(false)
   const spawnTimersRef = useRef({ windowTimer: null, nextSpawnTimer: null })
   const stageTimerRef = useRef(null)
+  const idleTimerRef = useRef(null)
+  const stageExpiredRef = useRef(false)
 
   // Live refs to avoid stale state inside timeouts
   const stepRef = useRef(step)
@@ -208,6 +214,7 @@ export default function ToothbrushGame() {
   useEffect(() => { successCountRef.current = successCount }, [successCount])
   useEffect(() => { brushedThisWindowRef.current = brushedThisWindow }, [brushedThisWindow])
   useEffect(() => { stageCompletedRef.current = stageCompleted }, [stageCompleted])
+  useEffect(() => { stageExpiredRef.current = stageExpired }, [stageExpired])
 
   // Elapsed timer - counts up from 0:00
   useEffect(() => {
@@ -1027,8 +1034,28 @@ export default function ToothbrushGame() {
     }, 2000)
   }, [])
 
+  const advanceToNextStep = useCallback((currentStep) => {
+    if (currentStep === 1) {
+      setStep(2)
+    } else if (currentStep === 2) {
+      setStep(3)
+    } else if (currentStep === 3) {
+      setStep(4)
+    } else if (currentStep === 4) {
+      setStep(5)
+    } else if (currentStep === 5) {
+      setBrushingActive(false)
+      brushingActiveRef.current = false
+      setStep(6)
+    }
+  }, [])
+
   const handleGermSuccess = useCallback(() => {
     clearFailureTimer()
+    if (idleTimerRef.current) {
+      clearTimeout(idleTimerRef.current)
+      idleTimerRef.current = null
+    }
     step2LastPointerRef.current = null
     circleProgressRef.current = 0
     const nextCount = successCountRef.current + 1
@@ -1036,8 +1063,11 @@ export default function ToothbrushGame() {
     successCountRef.current = nextCount
     // Track total germs brushed
     setTotalGermsBrushed(prev => prev + 1)
-    // Add points for brushing a germ (+25 points)
-    setPoints(prev => prev + 25)
+    // Add points for brushing a germ (+55 points, capped at MAX_SCORE)
+    setPoints(prev => Math.min(MAX_SCORE, prev + 55))
+
+    // Check if stage had expired — if so, advance after clearing the germ
+    const wasExpired = stageExpiredRef.current
 
     setTimeout(() => {
       setCurrentGerm(prev => {
@@ -1048,10 +1078,19 @@ export default function ToothbrushGame() {
         return prev
       })
 
-      // Simply spawn next germ after clearing, timer will handle stage completion
-      scheduleNextSpawn(NEXT_SPAWN_DELAY_MS)
+      if (wasExpired) {
+        // Stage timer already ran out — advance to next step now
+        setStageCompleted(true)
+        stageCompletedRef.current = true
+        setStageExpired(false)
+        stageExpiredRef.current = false
+        advanceToNextStep(stepRef.current)
+      } else {
+        // Simply spawn next germ after clearing, timer will handle stage completion
+        scheduleNextSpawn(NEXT_SPAWN_DELAY_MS)
+      }
     }, SUCCESS_CLEAR_DELAY_MS)
-  }, [clearFailureTimer, scheduleNextSpawn])
+  }, [clearFailureTimer, scheduleNextSpawn, advanceToNextStep])
 
   const handleGermFailure = useCallback(() => {
     clearFailureTimer()
@@ -1060,11 +1099,14 @@ export default function ToothbrushGame() {
     setCurrentGerm(prev => prev ? { ...prev, status: 'failed' } : prev)
     // Track total germs failed
     setTotalGermsFailed(prev => prev + 1)
-    // Deduct points for missing a germ (-10 points)
-    setPoints(prev => Math.max(0, prev - 10))
+    // Deduct points for missing a germ (-15 points)
+    setPoints(prev => Math.max(0, prev - 15))
 
     const failSound = new Audio(failSfx);
     failSound.play().catch(err => console.log('Audio play failed:', err));
+
+    // Check if stage had expired — if so, advance after clearing the germ
+    const wasExpired = stageExpiredRef.current
 
     setTimeout(() => {
       setCurrentGerm(prev => {
@@ -1075,10 +1117,23 @@ export default function ToothbrushGame() {
         return prev
       })
 
-      // Schedule next spawn after clearing
-      scheduleNextSpawn(NEXT_SPAWN_DELAY_MS)
+      if (wasExpired) {
+        // Stage timer already ran out — advance to next step now
+        setStageCompleted(true)
+        stageCompletedRef.current = true
+        setStageExpired(false)
+        stageExpiredRef.current = false
+        if (idleTimerRef.current) {
+          clearTimeout(idleTimerRef.current)
+          idleTimerRef.current = null
+        }
+        advanceToNextStep(stepRef.current)
+      } else {
+        // Schedule next spawn after clearing
+        scheduleNextSpawn(NEXT_SPAWN_DELAY_MS)
+      }
     }, FAILURE_CLEAR_DELAY_MS)
-  }, [clearFailureTimer, scheduleNextSpawn])
+  }, [clearFailureTimer, scheduleNextSpawn, advanceToNextStep])
 
   useEffect(() => {
     handleGermFailureRef.current = handleGermFailure
@@ -1625,6 +1680,8 @@ export default function ToothbrushGame() {
     // Reset stage completion state
     setStageCompleted(false)
     stageCompletedRef.current = false
+    setStageExpired(false)
+    stageExpiredRef.current = false
 
     // Initial germ spawn
     const initial = setTimeout(() => {
@@ -1638,25 +1695,36 @@ export default function ToothbrushGame() {
       }
     }, INITIAL_SPAWN_DELAY_MS)
 
-    // Start stage timer (5 seconds)
+    // Start stage timer
     stageTimerRef.current = setTimeout(() => {
-      // Stage complete - stop spawning and move to next step
-      setStageCompleted(true)
-      stageCompletedRef.current = true
       const currentStep = stepRef.current
+      const activeGerm = currentGermRef.current
 
-      if (currentStep === 1) {
-        setStep(2)
-      } else if (currentStep === 2) {
-        setStep(3)
-      } else if (currentStep === 3) {
-        setStep(4)
-      } else if (currentStep === 4) {
-        setStep(5)
-      } else if (currentStep === 5) {
-        setBrushingActive(false)
-        brushingActiveRef.current = false
-        setStep(6)
+      if (!activeGerm || activeGerm.status !== 'active') {
+        // No active germ — advance immediately
+        setStageCompleted(true)
+        stageCompletedRef.current = true
+        advanceToNextStep(currentStep)
+      } else {
+        // Active germ exists — mark as expired, wait for player to brush it
+        setStageExpired(true)
+        stageExpiredRef.current = true
+        // Stop spawning new germs
+        setStageCompleted(true)
+        stageCompletedRef.current = true
+
+        // Start idle timeout — if no germ is brushed within 10s, auto-advance with penalty
+        idleTimerRef.current = setTimeout(() => {
+          idleTimerRef.current = null
+          // Auto-advance with penalty
+          setPoints(prev => Math.max(0, prev - IDLE_PENALTY_POINTS))
+          // Clear the active germ
+          setCurrentGerm(null)
+          currentGermRef.current = null
+          setStageExpired(false)
+          stageExpiredRef.current = false
+          advanceToNextStep(stepRef.current)
+        }, IDLE_TIMEOUT_MS)
       }
     }, STAGE_DURATION_MS)
 
@@ -1666,10 +1734,14 @@ export default function ToothbrushGame() {
         clearTimeout(stageTimerRef.current)
         stageTimerRef.current = null
       }
+      if (idleTimerRef.current) {
+        clearTimeout(idleTimerRef.current)
+        idleTimerRef.current = null
+      }
       clearFailureTimer()
       clearNextSpawnTimer()
     }
-  }, [step, brushingActive, spawnGerm, clearFailureTimer, clearNextSpawnTimer])
+  }, [step, brushingActive, spawnGerm, clearFailureTimer, clearNextSpawnTimer, advanceToNextStep])
 
 
   const startStep1 = () => {
@@ -1713,6 +1785,10 @@ export default function ToothbrushGame() {
       shineTimeoutsRef.current.forEach(t => clearTimeout(t))
       shineTimeoutsRef.current.clear()
     }
+    if (idleTimerRef.current) {
+      clearTimeout(idleTimerRef.current)
+      idleTimerRef.current = null
+    }
     setStep(0)
     setHasPaste(false)
     setShowIntro(false)
@@ -1737,6 +1813,10 @@ export default function ToothbrushGame() {
     setGameStartTime(null)
     setPoints(0)
     setElapsedTime(0)
+    setStageCompleted(false)
+    stageCompletedRef.current = false
+    setStageExpired(false)
+    stageExpiredRef.current = false
   }
 
   const goHome = () => {
