@@ -109,7 +109,7 @@ const LandingPage = () => {
             </div>
           </div>
           <p className="description">
-            Hygienix is an engaging, web-based gamification platform designed to teach essential hygiene practices to children in Grades 3-6. The game transforms daily routines into a fun, interactive experience by using game elements like points, levels, and challenges. Players learn about and are motivated to practice key hygiene habits, specifically handwashing, tooth brushing, and hair washing, with the goal of building lifelong healthy behaviors.
+            Hygienix is an engaging, web-based gamification platform designed to teach essential hygiene practices to children in Grades 4-6. The game transforms daily routines into a fun, interactive experience by using game elements like points, levels, and challenges. Players learn about and are motivated to practice key hygiene habits, specifically handwashing, tooth brushing, and hair washing, with the goal of building lifelong healthy behaviors.
           </p>
         </div>
 
