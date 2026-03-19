@@ -440,3 +440,46 @@
   padding: 1.2rem 1rem;
   background-color: rgba(255, 255, 255, 0.95);
 }
+
+/* Preview label shown while video plays */
+.preview-label {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 0;
+  margin-top: -10px;
+  margin-bottom: 20px;
+  font-size: 2.2rem;
+  font-weight: 900;
+  color: #93BFC7;
+  text-align: center;
+  animation: previewPulse 1.5s ease-in-out infinite;
+}
+
+.preview-emoji {
+  font-size: 3.2rem;
+  display: block;
+  animation: previewBounce 1s ease-in-out infinite;
+}
+
+@keyframes previewPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+@keyframes previewBounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+/* Fade in choices after video preview */
+.choices-fade-in {
+  animation: choicesFadeIn 0.4s ease-out forwards;
+}
+
+@keyframes choicesFadeIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}

@@ -9,19 +9,19 @@ import { useGameFlow } from '../context/GameFlowContext'
 
 const STEP_END_TIMES = [2.22, 7.09, 12.8, 14.9, 20.9, 26.4, 33.2]
 const STEP_TEXTS = [
-  'Rinse with water',
-  'Apply enough soap to cover all hand surfaces',
-  'Rub hands palm to palm',
-  'Right palm over left dorsum with interlaced fingers and vice versa',
-  'Palm to palm with fingers interlaced',
-  'Rotational rubbing of left thumb clasped in right palm and vice versa',
-  'Rotational rubbing of the right hand fingernails on the left palm and vice versa',
-  'Rinse hands with water',
-  'Dry hands thoroughly with a single use towel'
+  'Wet hands',
+  'Put on soap',
+  'Rub palms',
+  'Rub back of hands',
+  'Rub between fingers',
+  'Rub thumbs',
+  'Rub fingertips',
+  'Rinse hands',
+  'Dry hands'
 ]
 const PER_STEP_POINTS = 100 / STEP_TEXTS.length
 // Video segment for the new first step (reuses the rinse segment)
-const RINSE_VIDEO_SEGMENT = [26.4, 33.2]
+const RINSE_VIDEO_SEGMENT = [29.8, 33.2]
 
 const buildSegments = (duration) => {
   const ends = [...STEP_END_TIMES, duration ?? null]
@@ -52,6 +52,7 @@ const HandwashingGame = () => {
   const [score, setScore] = useState(0)
   const [penaltyPoints, setPenaltyPoints] = useState(0)
   const [elapsedTime, setElapsedTime] = useState(0)
+  const [previewPlaying, setPreviewPlaying] = useState(true) // Video preview plays first
 
   const videoRef = useRef(null)
   const timerIntervalRef = useRef(null)
@@ -77,6 +78,7 @@ const HandwashingGame = () => {
     setSelectedBoxes([])
     setChoiceFlash(['idle', 'idle', 'idle', 'idle'])
     setStepResolved(false)
+    setPreviewPlaying(true)
   }, [currentStep, generateChoices])
 
   // Elapsed timer - counts up from 0:00
@@ -136,6 +138,18 @@ const HandwashingGame = () => {
   useEffect(() => {
     setSegments(buildSegments(videoDuration))
   }, [videoDuration])
+
+  // Auto-play video preview when previewPlaying becomes true
+  useEffect(() => {
+    if (!previewPlaying) return
+    // Small delay to ensure video element is ready
+    const timer = setTimeout(() => {
+      playSegmentForIndex(currentStep, () => {
+        setPreviewPlaying(false)
+      })
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [previewPlaying, currentStep, segments])
 
   const playSegmentForIndex = (index, onComplete) => {
     const video = videoRef.current
@@ -205,10 +219,8 @@ const HandwashingGame = () => {
         if (isLast) {
           // Show scoreboard immediately on last step
           setGameComplete(true)
-          // Play the segment in background without callback
-          playSegmentForIndex(currentStep, null)
         } else {
-          playSegmentForIndex(currentStep, null)
+          // Advance to next step — its video preview will auto-play via useEffect
           setCurrentStep((prev) => prev + 1)
         }
       } else {
@@ -232,6 +244,7 @@ const HandwashingGame = () => {
     setChoiceFlash(['idle', 'idle', 'idle', 'idle'])
     setGameComplete(false)
     setStepResolved(false)
+    setPreviewPlaying(true)
     setWrongChoiceCount(0)
     setStepWrongCount(0)
     setScore(0)
@@ -279,6 +292,12 @@ const HandwashingGame = () => {
 
   return (
     <div className="handwashing-game">
+      {previewPlaying && (
+        <div className="preview-label">
+          <span className="preview-emoji">👀</span>
+          <span>Watch closely!</span>
+        </div>
+      )}
       <div className="status-row">
         <div className="status-banner">Step {currentStep + 1} of {steps.length}</div>
         <div className="status-banner neutral">Mistakes: {wrongChoiceCount}</div>
@@ -298,32 +317,34 @@ const HandwashingGame = () => {
             />
           </div>
         </div>
-        <div className="choices-panel">
-          <div
-            className={`choice-box square ${choiceFlash[0] === 'correct' ? 'correct' : choiceFlash[0] === 'incorrect' ? 'incorrect' : ''}`}
-            onClick={() => handleBoxClick(0, choices[0]?.isCorrect)}
-          >
-            {choices[0]?.text}
+        {!previewPlaying && (
+          <div className="choices-panel choices-fade-in">
+            <div
+              className={`choice-box square ${choiceFlash[0] === 'correct' ? 'correct' : choiceFlash[0] === 'incorrect' ? 'incorrect' : ''}`}
+              onClick={() => handleBoxClick(0, choices[0]?.isCorrect)}
+            >
+              {choices[0]?.text}
+            </div>
+            <div
+              className={`choice-box square ${choiceFlash[1] === 'correct' ? 'correct' : choiceFlash[1] === 'incorrect' ? 'incorrect' : ''}`}
+              onClick={() => handleBoxClick(1, choices[1]?.isCorrect)}
+            >
+              {choices[1]?.text}
+            </div>
+            <div
+              className={`choice-box square ${choiceFlash[2] === 'correct' ? 'correct' : choiceFlash[2] === 'incorrect' ? 'incorrect' : ''}`}
+              onClick={() => handleBoxClick(2, choices[2]?.isCorrect)}
+            >
+              {choices[2]?.text}
+            </div>
+            <div
+              className={`choice-box square ${choiceFlash[3] === 'correct' ? 'correct' : choiceFlash[3] === 'incorrect' ? 'incorrect' : ''}`}
+              onClick={() => handleBoxClick(3, choices[3]?.isCorrect)}
+            >
+              {choices[3]?.text}
+            </div>
           </div>
-          <div
-            className={`choice-box square ${choiceFlash[1] === 'correct' ? 'correct' : choiceFlash[1] === 'incorrect' ? 'incorrect' : ''}`}
-            onClick={() => handleBoxClick(1, choices[1]?.isCorrect)}
-          >
-            {choices[1]?.text}
-          </div>
-          <div
-            className={`choice-box square ${choiceFlash[2] === 'correct' ? 'correct' : choiceFlash[2] === 'incorrect' ? 'incorrect' : ''}`}
-            onClick={() => handleBoxClick(2, choices[2]?.isCorrect)}
-          >
-            {choices[2]?.text}
-          </div>
-          <div
-            className={`choice-box square ${choiceFlash[3] === 'correct' ? 'correct' : choiceFlash[3] === 'incorrect' ? 'incorrect' : ''}`}
-            onClick={() => handleBoxClick(3, choices[3]?.isCorrect)}
-          >
-            {choices[3]?.text}
-          </div>
-        </div>
+        )}
       </div>
       {gameComplete && (
         <div className="intro-overlay">
